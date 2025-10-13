@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portal de Rectificación de cursos</title>
+
+  <!-- (Optional) Font Awesome for login icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- Your external stylesheet (if any) -->
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <script type="module" src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js"></script>
+
+  <style>
+    :root{ --main-pink:#f02454; --main-pink-dark:#c81e47; --muted:#6b7280; --border:#e5e7eb; }
+    body{ background:linear-gradient(135deg,#f8fafc,#eef2ff,#e0e7ff); min-height:100vh; padding:24px; font-family:system-ui,Arial,sans-serif; }
+    .wrap{ max-width:1100px; margin:0 auto; }
+    .card{ background:#fff; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+    .header{ background:linear-gradient(90deg,var(--main-pink),var(--main-pink-dark)); color:#fff; padding:28px 32px; border-radius:18px 18px 0 0; }
+    .header-row{ display:flex; align-items:center; gap:18px; }
+    .avatar{ background:rgba(255,255,255,.18); border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.75rem; }
+    .header-main{ font-size:1.8rem; font-weight:800; letter-spacing:.5px; }
+    .profile-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px; }
+    .profile-card{ background:rgba(255,255,255,.12); border-radius:10px; padding:12px 16px; min-height:64px; }
+    .profile-label{ color:#ffd6e1; font-size:12px; font-weight:600; margin-bottom:4px; display:block; letter-spacing:.2px; }
+    .profile-value{ color:#fff; font-size:14px; font-weight:700; word-break:break-word; }
+
+    .grid{ display:grid; gap:16px; }
+    .grid-3{ grid-template-columns:repeat(3,1fr); }
+    .panel{ background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:20px; }
+
+    .badge{ display:inline-block; padding:8px 12px; border-radius:10px; font-weight:800; letter-spacing:.8px; }
+    .badge.purple{ background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; }
+
+    /* enrolled list */
+    .course-container{ display:flex; flex-direction:column; gap:12px; }
+    .course{
+      display:grid; grid-template-columns:120px 1fr 240px; align-items:center; gap:16px; padding:16px;
+      border:1px solid var(--border); border-radius:12px; background:#fff; transition:box-shadow .15s ease, transform .15s ease;
+    }
+    .course:hover{ box-shadow:0 2px 8px rgba(0,0,0,.05); transform: translateY(-1px); }
+    .course-code{ display:flex; align-items:center; justify-content:center; }
+    .course-details{ display:flex; flex-direction:column; gap:8px; }
+    .course-title{ font-weight:700; font-size:1.02rem; color:#111827; margin:0; }
+    .course-meta{ display:flex; flex-wrap:wrap; gap:10px 14px; font-size:.9rem; color:#374151; }
+    .meta-item{ display:flex; gap:6px; }
+    .meta-item:not(:last-child)::after{ content:"•"; margin-left:6px; color:#d1d5db; }
+    .repl{ grid-column:3; justify-self:end; }
+    .repl[open]{ grid-column:1 / -1; }
+    .repl[open] > summary{ justify-self:end; margin-bottom:8px; }
+
+    /* replacement options */
+    .replacement-options{ width:100%; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; }
+    .option{ display:grid; grid-template-columns:120px 1fr 200px; align-items:center; gap:16px; padding:14px 16px; border-top:1px solid var(--border); }
+    .option:first-child{ border-top:none; }
+    .option-code{ width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; border-radius:10px; padding:10px; font-weight:800; letter-spacing:1px; }
+    .option-fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px 16px; }
+    .field .label{ display:block; color:#6b7280; font-size:.78rem; margin-bottom:4px; }
+    .field .value{ font-weight:700; font-size:.92rem; color:#111827; }
+    .option-cta{ display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; }
+    .option-btn{ width:100%; height:52px; border-radius:10px; font-weight:800; color:#fff; background:#2563eb; border:1px solid #2563eb; cursor:pointer; }
+    .option-btn[disabled]{ opacity:.45; cursor:not-allowed; filter:grayscale(0.1); }
+    .conflict-note{ color:#b91c1c; font-size:.85rem; text-align:center; }
+
+    /* change summary */
+    .change-wrapper{ margin:10px 0 2px; padding:14px 16px; border:1px dashed #e6e8ee; border-radius:12px; background:#fcfcff; }
+    .change-title{ font-weight:800; color:#0f172a; margin-bottom:10px; letter-spacing:.3px; }
+    .change-compare{ display:grid; grid-template-columns:1fr 60px 1fr; gap:14px; align-items:stretch; }
+    .change-card{ border:1px solid var(--border); background:#fff; border-radius:12px; padding:12px 14px; display:grid; grid-template-columns:repeat(4,minmax(0, 1fr)); gap:8px 16px; }
+
+    /* actions */
+    .actions-center{ text-align:center; margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .btn-primary{ background:#2563eb; color:#fff; border:1px solid #2563eb; padding:10px 16px; border-radius:10px; font-weight:800; box-shadow:0 6px 14px rgba(37,99,235,.16); cursor:pointer; }
+    .btn-primary:hover{ filter:brightness(0.96); }
+    .btn-primary.btn-glow{ padding:8px 14px; font-size:1rem; border-radius:4px; box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1; animation:glowPulse 2s infinite alternate; border:2px solid #f02454; background:linear-gradient(90deg,#f02454,#c81e47); }
+    @keyframes glowPulse{0%{box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1;}100%{box-shadow:0 0 32px 6px #f02454,0 0 48px 8px #ffd6e1;}}
+
+    .error{ color:#b00; background:#630606; border:1px solid #fbb; padding:10px; border-radius:8px; margin-bottom:16px; }
+    .title-container{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .loading-overlay{ position:fixed; z-index:9999; inset:0; background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
+    .loading-overlay.active{ opacity:1; pointer-events:all; }
+    .hidden{ display:none; }
+
+    /* ===== Timetable ===== */
+    .timetable { margin-top: 18px; }
+    .tt-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .tt-close{ background:#f8fafc; border:1px solid var(--border); padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700; }
+    .tt-board{ display: flex; flex-direction: column; align-items: stretch; width: 100%; }
+    .tt-head {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      background: #1f2a37;
+      color: #fff;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 14px 14px 0 0;
+      border-bottom: 1px solid #e5e7eb;
+      overflow: hidden;
+      width: 100%;
+      min-width: 0;
+    }
+    .tt-head .cell {
+      padding: 18px 0 16px 0;
+      font-weight: 900;
+      font-size: 1.13rem;
+      letter-spacing: .2px;
+      text-align: center;
+      border-left: 1px solid rgba(255,255,255,.08);
+      border-right: none;
+      border-top: none;
+      border-bottom: none;
+      background: none;
+    }
+    .tt-head .cell:first-child {
+      border-left: none;
+      border-radius: 14px 0 0 0;
+    }
+    .tt-head .cell:last-child {
+      border-radius: 0 14px 0 0;
+    }
+    .tt-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 0;
+      box-sizing: border-box;
+      border-top: none;
+      width: 100%;
+      min-width: 0;
+    }
+    .tt-col {
+      min-height: 180px;
+      padding: 12px 0;
+      border-left: 1px solid #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fff;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+    .tt-col:first-child {
+      border-left: none;
+    }
+    .card-mini {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 110px;
+      max-height: unset;
+      background: #fff;
+      border: 1px solid #eef0f6;
+      border-radius: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+      align-items: flex-start;
+      justify-content: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    .card-mini .code {
+      display: inline-block;
+      background: linear-gradient(90deg,#f02454,#c81e47);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .8px;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 1rem;
+      align-self: flex-start;
+    }
+    .card-mini .name {
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+      font-size: 0.93rem; /* reduced from 1.01rem */
+      max-width: 180px;
+      white-space: normal; /* allow wrapping */
+      overflow-wrap: break-word; /* break long words */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2; /* standard property for compatibility */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 2.2em; /* reserve space for 2 lines */
+    }
+    .card-mini .meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.97rem;
+    }
+    .chip {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: .93rem;
+    }
+    .chip.mod {
+      min-width: 1.75rem;
+      text-align: center;
+    }
+    .tt-legend{ padding:12px 16px; background:#f8fafc; border-top:1px solid #eef0f6; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+    .dot{ width:8px; height:8px; background:#e11d48; border-radius:999px; display:inline-block; margin-right:8px; }
+    @media (max-width: 900px){ .tt-head .cell{ padding:14px 10px; } }
+
+    /* ===== AI Preferences MODAL (blur background) ===== */
+    .ai-modal-overlay {
+      position: fixed; z-index: 10000; inset: 0;
+      background: rgba(60,60,80,0.18);
+      backdrop-filter: blur(6px);
+      display: none; /* toggled to flex */
+      align-items: center; justify-content: center;
+      transition: opacity 0.3s;
+    }
+    body.ai-modal-open > .wrap,
+    body.ai-modal-open > .loading-overlay {
+      filter: blur(6px) brightness(0.95);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ===== Pretty “preferences-card” UI ===== */
+    .preferences-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      max-width: 520px;
+      width: 92vw;
+    }
+    .card-header { text-align: center; margin-bottom: 20px; }
+    .card-title { font-size: 1.6rem; font-weight: 800; color: #2d3748; margin-bottom: 6px; }
+    .card-subtitle { color: #718096; font-size: 0.95rem; }
+
+    .selected-days { background: #f0f4ff; padding: 12px; border-radius: 12px; margin: 14px 0 18px; border-left: 4px solid #ea6692; }
+    .selected-days-text { color: #4a5568; font-size: 0.92rem; }
+    .selected-days-count { font-weight: 800; color: #ce6588; }
+
+    .section-title { font-size: 1rem; font-weight: 700; color: #4a5568; margin: 8px 0 12px; display:flex; align-items:center; gap:8px; }
+    .section-title::before { content: ""; }
+
+    .days-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+    .day-checkbox{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .checkbox-label { position: relative; width: 62px; height: 62px; cursor: pointer; }
+    .checkbox-input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .checkbox-custom {
+      width: 100%; height: 100%; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-weight: 800; color: #718096;
+    }
+    .checkbox-input:checked + .checkbox-custom {
+      background: linear-gradient(135deg, #e53860, #e53860);
+      border-color: #dd6990; color: white; transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    .checkbox-input:checked + .checkbox-custom::after { content: "✓"; font-size: 1rem; margin-left: 6px; }
+    .day-name { font-size: 0.88rem; color: #4a5568; font-weight: 600; }
+
+    .buttons-container{ display:flex; gap:12px; }
+    .btn{ flex:1; padding:12px 16px; border:none; border-radius:12px; font-size:1rem; font-weight:800; cursor:pointer; transition:.2s; }
+    .btn-cancel{ background:#f7fafc; color:#718096; border:2px solid #e2e8f0; }
+    .btn-cancel:hover{ background:#edf2f7; }
+    .btn-generate{ background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; box-shadow:0 4px 15px rgba(102,126,234,.3); }
+    .btn-generate:hover{ transform: translateY(-1px); }
+
+    /* From Uiverse.io by MuhammadHasann */
+    .button {
+      --black-700: hsla(0 0% 12% / 1);
+      --border_radius: 9999px;
+      --transtion: 0.3s ease-in-out;
+      --offset: 2px;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transform-origin: center;
+      padding: 1rem 2rem;
+      background-color: transparent;
+      border: none;
+      border-radius: var(--border_radius);
+      transform: scale(calc(1 + (var(--active, 0) * 0.1)));
+      transition: transform var(--transtion);
+    }
+    .button::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      background-color: var(--black-700);
+      border-radius: var(--border_radius);
+      box-shadow: inset 0 0.5px hsl(0, 0%, 100%), inset 0 -1px 2px 0 hsl(0, 0%, 0%),
+        0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))),
+        0 0 0 calc(var(--active, 0) * 0.375rem) hsl(260 97% 50% / 0.75);
+      transition: all var(--transtion);
+      z-index: 0;
+    }
+    .button::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      background-color: hsla(260 97% 61% / 0.75);
+      background-image: radial-gradient(
+          at 51% 89%,
+          hsla(266, 45%, 74%, 1) 0px,
+          transparent 50%
+        ),
+        radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 1) 0px, transparent 50%),
+        radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 1) 0px, transparent 50%);
+      background-position: top;
+      opacity: var(--active, 0);
+      border-radius: var(--border_radius);
+      transition: opacity var(--transtion);
+      z-index: 2;
+    }
+    .button:is(:hover, :focus-visible) {
+      --active: 1;
+    }
+    .button:active {
+      transform: scale(1);
+    }
+    .button .dots_border {
+      --size_border: calc(100% + 2px);
+      overflow: hidden;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: var(--size_border);
+      height: var(--size_border);
+      background-color: transparent;
+      border-radius: var(--border_radius);
+      z-index: -10;
+    }
+    .button .dots_border::before {
+      content: "";
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transform-origin: left;
+      transform: rotate(0deg);
+      width: 100%;
+      height: 2rem;
+      background-color: white;
+      mask: linear-gradient(transparent 0%, white 120%);
+      animation: rotate 2s linear infinite;
+    }
+    @keyframes rotate {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .button .sparkle {
+      position: relative;
+      z-index: 10;
+      width: 1.75rem;
+    }
+    .button .sparkle .path {
+      fill: currentColor;
+      stroke: currentColor;
+      transform-origin: center;
+      color: hsl(0, 0%, 100%);
+    }
+    .button:is(:hover, :focus) .sparkle .path {
+      animation: path 1.5s linear 0.5s infinite;
+    }
+    .button .sparkle .path:nth-child(1) {
+      --scale_path_1: 1.2;
+    }
+    .button .sparkle .path:nth-child(2) {
+      --scale_path_2: 1.2;
+    }
+    .button .sparkle .path:nth-child(3) {
+      --scale_path_3: 1.2;
+    }
+    @keyframes path {
+      0%,
+      34%,
+      71%,
+      100% {
+        transform: scale(1);
+      }
+      17% {
+        transform: scale(var(--scale_path_1, 1));
+      }
+      49% {
+        transform: scale(var(--scale_path_2, 1));
+      }
+      83% {
+        transform: scale(var(--scale_path_3, 1));
+      }
+    }
+    .button .text_button {
+      position: relative;
+      z-index: 10;
+      background-image: linear-gradient(
+        90deg,
+        hsla(0 0% 100% / 1) 0%,
+        hsla(0 0% 100% / var(--active, 0)) 120%
+      );
+      background-clip: text;
+      font-size: 1rem;
+      color: transparent;
+    }
+
+    @media (max-width: 900px) {
+      .wrap { max-width: 100vw; padding: 0 2vw; }
+      .profile-cards { grid-template-columns: 1fr 1fr; }
+      .tt-head, .tt-grid { grid-template-columns: repeat(6, 1fr) !important; font-size: 0.97rem; }
+      .tt-head .cell { padding: 10px 2px; font-size: 0.97rem; }
+      .tt-col { min-height: 100px; gap: 8px; }
+      .card-mini { font-size: 0.93rem; padding: 8px 4px; }
+    }
+    @media (max-width: 600px) {
+      .wrap { padding: 0 1vw; }
+      .profile-cards { grid-template-columns: 1fr; gap: 8px; }
+      .panel { padding: 8px 2px; }
+      .tt-head, .tt-grid { grid-template-columns: repeat(6, 1fr) !important; }
+      .tt-head .cell, .tt-col { font-size: 0.91rem; }
+      .tt-board { width: 100vw; }
+      .tt-col { min-height: 80px; padding: 4px 0; }
+      .card-mini { width: 100%; min-width: 0; max-width: 100%; padding: 6px 2px; font-size: 0.89rem; border-radius: 14px; }
+      .card-mini .name { font-size: 0.87rem; max-width: 96vw; }
+      .actions-center { flex-direction: column; gap: 8px; }
+      .btn-primary, .btn { width: 100%; font-size: 1rem; }
+      .ai-modal-overlay .preferences-card { padding: 12px 2px; max-width: 99vw; }
+    }
+  </style>
+</head>
+<body class="<%= firstName ? '' : 'is-login' %>">
+  <% if (!firstName) { %>
+    <div class="login-bg" aria-hidden="true"></div>
+  <% } %>
+
+  <div class="wrap">
+    <%
+      const _firstName  = firstName  || null;
+      const _lastName   = lastName   || null;
+      const _studentId  = studentId  || '—';
+      const _semester   = semester   || '—';
+      const _department = department || '—';
+
+      const _dni   = dni || '—';
+      const _email = email_institucional || '';
+      const _phone = phone || '';
+      const _facultyName   = facultyName || '';
+      const _specialtyName = specialtyName || _department;
+      const _mode   = mode   || '';
+      const _periodRaw = period || '';
+
+      const _enrolled = Array.isArray(schedules) ? schedules : [];
+      const _totalCredits = _enrolled.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
+    %>
+
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+
+    <% if (!_firstName) { %>
+      <div class="login-container">
+        <div class="logo-section">
+          <img src="/images/umalogo1.png" alt="UMA" class="logo-image" onerror="this.style.display='none'">
+          <div style="margin-top:8px;font-weight:800;letter-spacing:.4px;">Universidad María Auxiliadora</div>
+        </div>
+
+        <div class="form-section">
+          <form action="/login" method="POST" id="loginForm">
+            <div class="form-group">
+              <label for="codigo">Código</label>
+              <div class="input-with-icon">
+                <i class="fas fa-user"></i>
+                <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="dni">DNI</label>
+              <div class="input-with-icon">
+                <i class="fas fa-id-card"></i>
+                <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
+              </div>
+            </div>
+
+            <button type="submit" class="login-btn pulse">Ingresar</button>
+          </form>
+
+          <div class="login-footer">
+            ¿Problemas para acceder? Contacta con soporte técnico.
+          </div>
+        </div>
+      </div>
+
+    <% } else { %>
+      <div class="title-container">
+        <h1 style="font-size:2rem; font-weight:800; color:#1e293b;">Portal de Rectificación de Cursos</h1>
+        <form action="/logout" method="POST" style="margin:0;">
+          <button type="submit" class="logout-btn" aria-label="Logout">
+            <span>Cerrar Sesión</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg>
+          </button>
+        </form>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div class="header">
+          <div class="header-row">
+            <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
+            <div class="header-main"><%= (_firstName + " " + _lastName).toUpperCase() %></div>
+          </div>
+          <div class="profile-cards">
+            <div class="profile-card"><span class="profile-label">Código</span><span class="profile-value"><%= _studentId %></span></div>
+            <div class="profile-card"><span class="profile-label">DNI</span><span class="profile-value"><%= _dni %></span></div>
+            <div class="profile-card"><span class="profile-label">Programa</span><span class="profile-value"><%= _specialtyName %></span></div>
+            <div class="profile-card"><span class="profile-label">Facultad</span><span class="profile-value"><%= _facultyName || "—" %></span></div>
+            <div class="profile-card"><span class="profile-label">Periodo</span><span class="profile-value"><%= _semester %></span></div>
+            <div class="profile-card"><span class="profile-label">Modalidad</span><span class="profile-value"><%= _mode || "—" %></span></div>
+            <% if (_email) { %><div class="profile-card"><span class="profile-label">Correo</span><span class="profile-value"><%= _email %></span></div><% } %>
+            <% if (_phone) { %><div class="profile-card"><span class="profile-label">Teléfono</span><span class="profile-value"><%= _phone %></span></div><% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENROLLED -->
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3 style="margin:0;">Cursos Matriculados</h3>
+          <button id="aiSuggestBtn" class="btn-ia"
+            style="--btn-h:64px; --btn-px:28px; --btn-fs:18px; --btn-radius:16px;">
+            <span class="btn-ia__inner"><span class="btn-ia__label">Generar con IA</span></span>
+          </button>
+        </div>
+
+        <% if (!_enrolled.length) { %>
+          <p class="muted">No hay cursos inscritos.</p>
+        <% } else { %>
+          <div class="course-container">
+            <% _enrolled.forEach(function(course, idx){ %>
+              <div class="course" id="c-<%= idx %>" data-code="<%= course.courseCode %>" data-name="<%= course.courseName %>" data-period="<%= course.period || _periodRaw %>">
+                <div class="course-code">
+                  <span class="badge purple"><%= course.courseCode || "—" %></span>
+                </div>
+                <div class="course-details">
+                  <h4 class="course-title"><%= course.courseName || "—" %></h4>
+                  <div class="course-meta">
+                    <span class="meta-item"><span>Docente:</span> <strong><%= course.teacherName || "—" %></strong></span>
+                    <span class="meta-item"><span>Grupo:</span> <strong><%= course.groupCode || course.section || "—" %></strong></span>
+                    <span class="meta-item"><span>Día:</span> <strong><%= course.day || "—" %></strong></span>
+                    <span class="meta-item"><span>Hora:</span> <strong><%= course.hour || "—" %></strong></span>
+                    <span class="meta-item"><span>Modalidad:</span> <strong><%= course.modality || "—" %></strong></span>
+                  </div>
+                </div>
+
+                <details class="repl">
+                  <summary>Reemplazar curso</summary>
+                  <div class="replacement-options" id="opts-<%= idx %>">
+                    <div class="option"><em>Open to load options…</em></div>
+                  </div>
+                </details>
+              </div>
+
+              <div id="chg-<%= idx %>"></div>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <!-- ACTIONS -->
+        <div class="actions-center">
+          <button id="seeTimetableBtn" class="btn-primary">Ver nuevo horario</button>
+          <button id="confirmBtn" class="btn-primary" style="background:#16a34a;border-color:#16a34a;">Confirmar y Descargar PDF</button>
+        </div>
+
+        <!-- Timetable output -->
+        <div id="timetablePanel" class="timetable hidden">
+          <div class="tt-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h3>Mi Horario (<span id="courseCount">0</span> cursos)</h3>
+            <button id="closeTimetable" class="tt-close">Cerrar</button>
+          </div>
+          <div id="ttGrid"></div>
+        </div>
+
+        <!-- Confirm modal -->
+        <div id="confirmModal" class="modal-overlay">
+          <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+            <div class="modal-header">
+              <div id="confirmTitle" class="modal-title">Confirmar cambios</div>
+              <button id="confirmClose" class="modal-close" aria-label="Cerrar">×</button>
+            </div>
+            <div class="modal-body">
+              <p style="margin:0 0 6px;">¿Estás seguro de confirmar esta rectificación?</p>
+              <p style="margin:0;color:#6b7280;"><strong>Después de enviar</strong> no podrás volver a cambiar los horarios.</p>
+            </div>
+            <div class="modal-actions">
+              <button id="confirmCancel" class="btn-ghost">Seguir editando</button>
+              <button id="confirmSend" class="btn-danger">Enviar y descargar PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:18px; text-align:center;">
+        <p class="muted">¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.</p>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div>
+      <dotlottie-wc src="https://lottie.host/5a9c4467-dd56-41ee-9a40-6d62dda81d54/ZcE9bNMdwI.lottie" style="width: 200px; height: 200px;" speed="1" autoplay loop></dotlottie-wc>
+      <div style="text-align:center;color:#f02454;font-weight:600;">Cargando datos...</div>
+    </div>
+  </div>
+
+  <!-- ===== AI PREFERENCES MODAL (only this, old inline panel removed) ===== -->
+  <div id="aiPreferencesModal" class="ai-modal-overlay">
+    <div class="preferences-card">
+      <div class="card-header">
+        <h1 class="card-title">Configurar preferencias para IA</h1>
+        <p class="card-subtitle">Selecciona los días que prefieres libres</p>
+      </div>
+
+      
+
+      <div class="section-title">Días libres</div>
+      <div class="days-grid">
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Lunes">
+            <div class="checkbox-custom">L</div>
+          </label>
+          <span class="day-name">Lunes</span>
+        </div>
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Martes">
+            <div class="checkbox-custom">M</div>
+          </label>
+          <span class="day-name">Martes</span>
+        </div>
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Miércoles">
+            <div class="checkbox-custom">X</div>
+          </label>
+          <span class="day-name">Miércoles</span>
+        </div>
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Jueves">
+            <div class="checkbox-custom">J</div>
+          </label>
+          <span class="day-name">Jueves</span>
+        </div>
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Viernes">
+            <div class="checkbox-custom">V</div>
+          </label>
+          <span class="day-name">Viernes</span>
+        </div>
+        <div class="day-checkbox">
+          <label class="checkbox-label">
+            <input type="checkbox" class="checkbox-input" value="Sábado">
+            <div class="checkbox-custom">S</div>
+          </label>
+          <span class="day-name">Sábado</span>
+        </div>
+      </div>
+
+      <div class="buttons-container">
+        <button class="btn btn-cancel" id="aiModalCancel">Cancelar</button>
+        <button class="btn btn-generate" id="aiModalGenerate">Generar horario</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // show spinner on login submit
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) loginForm.addEventListener('submit', () => document.getElementById('loadingOverlay').classList.add('active'));
+    window.addEventListener('load', () => document.getElementById('loadingOverlay').classList.remove('active'));
+
+    /* ===== AI Preferences Modal: open/close + count ===== */
+    const aiSuggestBtn = document.getElementById('aiSuggestBtn');
+    const aiPreferencesModal = document.getElementById('aiPreferencesModal');
+    const aiModalCancel = document.getElementById('aiModalCancel');
+    const aiModalGenerate = document.getElementById('aiModalGenerate');
+    const aiModalCheckboxes = aiPreferencesModal?.querySelectorAll('.checkbox-input');
+    const aiModalSelectedCount = aiPreferencesModal?.querySelector('#selectedCount');
+
+    function showAiModal() {
+      if (!aiPreferencesModal) return;
+      aiPreferencesModal.style.display = 'flex';
+      document.body.classList.add('ai-modal-open');
+      updateAiModalSelectedCount();
+    }
+    function hideAiModal() {
+      if (!aiPreferencesModal) return;
+      aiPreferencesModal.style.display = 'none';
+      document.body.classList.remove('ai-modal-open');
+    }
+    function updateAiModalSelectedCount() {
+      if (!aiModalCheckboxes || !aiModalSelectedCount) return;
+      const checkedCount = Array.from(aiModalCheckboxes).filter(cb => cb.checked).length;
+      aiModalSelectedCount.textContent = checkedCount;
+    }
+    if (aiModalCheckboxes) aiModalCheckboxes.forEach(cb => cb.addEventListener('change', updateAiModalSelectedCount));
+    if (aiSuggestBtn) aiSuggestBtn.addEventListener('click', showAiModal);
+    if (aiModalCancel) aiModalCancel.addEventListener('click', hideAiModal);
+
+    // IMPORTANT: Use LOCAL LOGIC on Generate
+    if (aiModalGenerate) aiModalGenerate.addEventListener('click', async function() {
+      const freeDays = Array.from(aiModalCheckboxes || []).filter(cb => cb.checked).map(cb => cb.value);
+      window._aiFreeDays = freeDays;               // make available to readPreferences()
+      hideAiModal();
+      await autoAssignFromAvailable({ freeDays }); // <— call our local logic with override
+      document.getElementById('seeTimetableBtn')?.click(); // open visual timetable
+    });
+
+    /* ===== Tiny utils and normalizers ===== */
+    const norm = (s) => String(s || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const stripAcc = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const canonicalDay = s => {
+      const k = stripAcc(String(s||'')).toLowerCase();
+      const map = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles', jueves:'Jueves', viernes:'Viernes', sabado:'Sábado', domingo:'Domingo' };
+      return map[k] || (s || '—');
+    };
+
+    // Modality display + short letter
+    const modalityDisplayNames = {
+      'TEORÍA VIRTUAL':'TEORÍA VIRTUAL','TEORIA VIRTUAL':'TEORÍA VIRTUAL','VIRTUAL':'TEORÍA VIRTUAL','TEV':'TEORÍA VIRTUAL',
+      'TEORÍA PRESENCIAL':'TEORÍA PRESENCIAL','TEORIA PRESENCIAL':'TEORÍA PRESENCIAL','PRESENCIAL':'TEORÍA PRESENCIAL','TEP':'TEORÍA PRESENCIAL',
+      'LABORATORIO PRESENCIAL':'LABORATORIO PRESENCIAL','LAB PRESENCIAL':'LABORATORIO PRESENCIAL','LBP':'LABORATORIO PRESENCIAL',
+      'V':'TEORÍA VIRTUAL', 'P':'TEORÍA PRESENCIAL','L':'LABORATORIO PRESENCIAL','PRE':'PRE'
+    };
+    function normalizeModalityDisplay(m){
+      const t = stripAcc(String(m||'')).toUpperCase().trim();
+      return modalityDisplayNames[t] || (m || '—');
+    }
+    function modalityLetter(mod){
+      const m = stripAcc(String(normalizeModalityDisplay(mod)||'')).toUpperCase();
+      if (m.includes('LAB')) return 'L';
+      if (m.includes('VIRTUAL')) return 'V';
+      if (m.includes('PRE')) return 'P';
+      return '—';
+    }
+
+    // normalize "HH:MM–HH:MM"
+    function normalizeTime(t){
+      const s = String(t || '').trim();
+      const m = s.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+      if (m) return `${String(m[1]).padStart(2,'0')}:${m[2]}–${String(m[3]).padStart(2,'0')}:${m[4]}`;
+      return s.replace(/\s*-\s*/g,'–').replace(/\s*–\s*/g,'–').replace(/\s+to\s+/i,'–').replace(/\s{2,}/g,' ');
+    }
+    const sameDayKey = d => stripAcc(String(d||'')).toLowerCase();
+    function parseRange(range){
+      const m = String(range || '').match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+      if (!m) return null;
+      const a = (+m[1])*60 + (+m[2]);
+      const b = (+m[3])*60 + (+m[4]);
+      return a < b ? { start: a, end: b } : { start: b, end: a };
+    }
+    const overlap = (a,b) => a && b && a.start < b.end && b.start < a.end;
+
+    // true-duplicate filter
+    function removeTrueDuplicates(entries){
+      const seen = new Set();
+      return entries.filter(e=>{
+        const r = parseRange(e.time);
+        const key = [
+          norm(e.code), norm(e.groupCode || ''), sameDayKey(e.day),
+          r ? r.start : e.time, r ? r.end : '', norm(e.modality || '')
+        ].join('|');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    // read current / originals / changes
+    const originals = {};
+    const changes   = {};
+    function readCurrent(row){
+      const badge = row.querySelector('.badge');
+      const metaItems = row.querySelectorAll('.course-meta .meta-item');
+      return {
+        code: (badge && badge.textContent || '—').trim(),
+        name: (row.querySelector('.course-title')?.textContent || '—').trim(),
+        group: metaItems[1] ? metaItems[1].querySelector('strong').textContent.trim() : '—',
+        day:   canonicalDay(metaItems[2] ? metaItems[2].querySelector('strong').textContent.trim() : '—'),
+        time:  normalizeTime(metaItems[3] ? metaItems[3].querySelector('strong').textContent.trim() : '—'),
+        modality: normalizeModalityDisplay(metaItems[4] ? metaItems[4].querySelector('strong').textContent.trim() : '—')
+      };
+    }
+
+    function renderChange(idx, before, after){
+      const host = document.getElementById('chg-' + idx);
+      if (!host) return;
+      host.className = 'change-wrapper';
+      host.innerHTML = `
+        <div class="change-title">Cambios</div>
+        <div class="change-compare">
+          <div class="change-card">
+            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(before.group)}</span></div>
+            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(before.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(before.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(before.modality)}</span></div>
+          </div>
+          <div class="change-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+          <div class="change-card">
+            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(after.group)}</span></div>
+            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(after.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(after.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(after.modality)}</span></div>
+          </div>
+        </div>`;
+    }
+
+    function buildPlanExcept(excludeRowId){
+      const entries = [];
+      document.querySelectorAll('.course').forEach(row => {
+        if (excludeRowId && row.id === excludeRowId) return;
+        const base = originals[row.id] || readCurrent(row);
+        const sel  = changes[row.id];
+        const day  = canonicalDay(sel?.day || base.day);
+        const time = normalizeTime(sel?.time || base.time);
+        const range = parseRange(time);
+        if (!range) return;
+        const code = row.getAttribute('data-code') || base.code;
+        entries.push({ code, day, time, start: range.start, end: range.end });
+      });
+      return entries;
+    }
+
+    function getConflict(plan, day, time){
+      const r = parseRange(time);
+      if (!r) return null;
+      const key = sameDayKey(day);
+      for (const p of plan) {
+        if (sameDayKey(p.day) !== key) continue;
+        if (overlap(r, p)) return p;
+      }
+      return null;
+    }
+
+    function parseDayTimeFromOption(o){
+      let day = o.day || "", time = normalizeTime(o.hour || o.time || "");
+      if ((!day || !time) && o.scheduleText) {
+        const first = String(o.scheduleText).split("•")[0].trim();
+        const m = first.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)\s+(\d{1,2}:\d{2}\s*[-–]?\s*\d{1,2}:\d{2})/);
+        if (m) { day = day || m[1]; time = normalizeTime(m[2]); }
+        else if (!day) { day = first.split(/\s+/)[0]; }
+      }
+      return { day: canonicalDay(day || "—"), time: time || "—" };
+    }
+
+    // Build originals once
+    document.querySelectorAll('.course').forEach((row, idx) => {
+      originals[row.id] = readCurrent(row);
+      const details = row.querySelector('.repl');
+      const container = row.querySelector('#opts-' + idx);
+      if (!details || !container) return;
+
+      details.addEventListener('toggle', async () => {
+        if (!details.open) return;
+        if (container.dataset.loaded === '1') return;
+
+        const courseCode = row.getAttribute('data-code') || (row.querySelector('.badge')?.textContent || '').trim();
+        const period     = row.getAttribute('data-period') || '';
+        container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
+
+        try {
+          const resp = await fetch('/available', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ period, courseCode })
+          });
+          const json = await resp.json();
+
+          let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
+          const currentGroup = norm(getGroup(row));
+          opts = opts.filter(o => norm(o.groupCode) !== currentGroup);
+
+          // same modality as original
+          const originalModality = normalizeModalityDisplay(row.querySelectorAll('.course-meta .meta-item strong')[4]?.textContent || '');
+          opts = opts.filter(o => normalizeModalityDisplay(o.modality || '') === originalModality);
+
+          if (!opts.length) {
+            container.innerHTML = '<div class="option muted">No hay opciones de reemplazo para este curso.</div>';
+            container.dataset.loaded = '1';
+            return;
+          }
+
+          const currentPlan = buildPlanExcept(row.id);
+
+          container.innerHTML = opts.map(o => {
+            const { day, time } = parseDayTimeFromOption(o);
+            const conflictWith = getConflict(currentPlan, day, time);
+
+            const payload = safeJson({ ...o, day, time });
+            const btnAttrs = conflictWith
+              ? 'class="option-btn" disabled'
+              : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
+
+            return `
+              <div class="option">
+                <div class="option-code">${escapeHtml(o.courseCode || "—")}</div>
+                <div class="option-fields">
+                  <div class="field"><span class="label">Grupo</span><span class="value">${escapeHtml(o.groupCode || "—")}</span></div>
+                  <div class="field"><span class="label">Día</span><span class="value">${escapeHtml(day)}</span></div>
+                  <div class="field"><span class="label">Hora</span><span class="value">${escapeHtml(time)}</span></div>
+                  <div class="field"><span class="label">Modalidad</span><span class="value">${escapeHtml(normalizeModalityDisplay(o.modality || "—"))}</span></div>
+                </div>
+                <div class="option-cta">
+                  <button ${btnAttrs}>${conflictWith ? 'Horario en conflicto' : 'Usar este'}</button>
+                  ${conflictWith ? `<div class="conflict-note">Entra en conflicto con ${escapeHtml(conflictWith.code)}. Selecciona otro horario de este curso.</div>` : ''}
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          container.dataset.loaded = '1';
+        } catch (e) {
+          console.error(e);
+          container.innerHTML = '<div class="option">Error cargando opciones.</div>';
+        }
+      });
+    });
+
+    window.getGroup = function(row) {
+      const meta = row.querySelectorAll('.course-meta .meta-item strong');
+      return meta && meta[1] ? (meta[1].textContent || '').trim() : '';
+    };
+
+    window.previewReplace = function(rowIndex, opt){
+      const row = document.getElementById('c-' + rowIndex);
+      if (!row) return;
+
+      const plan = buildPlanExcept(row.id);
+      const conflict = getConflict(plan, opt.day, normalizeTime(opt.time || opt.hour));
+      if (conflict) { alert(`Ese horario choca con ${conflict.code}. Selecciona otro tiempo de ese curso.`); return; }
+
+      const original = originals[row.id] || readCurrent(row);
+      const details = row.querySelector('.repl'); if (details) details.open = false;
+
+      const after = {
+        code: original.code,
+        name: row.getAttribute('data-name') || original.name,
+        group: opt.groupCode || '—',
+        day:   canonicalDay(opt.day || original.day),
+        time:  normalizeTime(opt.time || opt.hour || original.time),
+        modality: normalizeModalityDisplay(opt.modality || original.modality)
+      };
+
+      changes[row.id] = after;
+      renderChange(rowIndex, { group: original.group, day: original.day, time: original.time, modality: original.modality }, after);
+    };
+    function buildFinalEntries() {
+      const entries = [];
+      document.querySelectorAll('.course').forEach(row => {
+        const base = originals[row.id] || readCurrent(row);
+        const sel  = changes[row.id];
+        const code = row.getAttribute('data-code') || base.code;
+        const name = row.getAttribute('data-name') || base.name;
+        const day   = canonicalDay((sel?.day || base.day || '—'));
+        const time  = normalizeTime(sel?.time || base.time || '—');
+        const group = sel?.group || base.group || '—';
+        const mod   = normalizeModalityDisplay(sel?.modality || base.modality || '—');
+        entries.push({ code, name, day, time, group, modality: mod });
+      });
+      return entries;
+    }
+
+    function findConflicts(entries){
+      const byDay = {};
+      entries.forEach(e => {
+        const r = parseRange(e.time);
+        if (!r) return;
+        const key = sameDayKey(e.day);
+        byDay[key] = byDay[key] || [];
+        byDay[key].push({ code:e.code, start:r.start, end:r.end, time:e.time });
+      });
+      const problems = [];
+      Object.values(byDay).forEach(list => {
+        list.sort((a,b)=>a.start-b.start);
+        for (let i=0;i<list.length-1;i++){
+          const A=list[i], B=list[i+1];
+          if (overlap(A,B)) problems.push([A,B]);
+        }
+      });
+      return problems;
+    }
+
+    function shortMod(mod){
+      const t = (mod||'').toUpperCase();
+      if (t.includes('LAB')) return 'L';
+      if (t.includes('VIRT')) return 'V';
+      if (t.includes('PRE') || t.includes('TEORÍA PRESENCIAL') || t.includes('TEORIA PRESENCIAL')) return 'P';
+      return (t[0]||'—');
+    }
+
+    function renderTimetableStacked(entries){
+      const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']; // Domingo removed
+
+      const head = `<div class="tt-head">${DAYS.map(d=>`<div class="cell">${d}</div>`).join('')}</div>`;
+      const grid = `<div class="tt-grid">${DAYS.map(d=>`<div class="tt-col" data-day="${d}"></div>`).join('')}</div>`;
+      const legend = `
+        <div class="tt-legend">
+          <span><span class="dot"></span>Curso</span>
+          <span class="chip">P Presencial</span>
+          <span class="chip">V Virtual</span>
+          <span class="chip">L Laboratorio</span>
+        </div>`;
+
+      const panel = document.getElementById('ttGrid');
+      panel.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
+      document.getElementById('courseCount').textContent = entries.length;
+
+      // Fixed regex and function
+      const toStart = (t) => {
+        const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t||''));
+        return m ? (+m[1])*60 + (+m[2]) : 24*60;
+      };
+      const byDay = Object.fromEntries(DAYS.map(d=>[d,[]]));
+      entries.forEach(e => { const d = (e.day||''); if (byDay[d]) byDay[d].push(e); });
+      DAYS.forEach(d => byDay[d].sort((a,b)=> toStart(a.time) - toStart(b.time)));
+
+      const gridEl = panel.querySelector('.tt-grid');
+      DAYS.forEach(d => {
+        const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
+        byDay[d].forEach(e=>{
+          const card = document.createElement('div');
+          card.className = 'card-mini';
+          card.innerHTML = `
+            <span class="code">${escapeHtml(e.code)}</span>
+            <div class="name">${escapeHtml(e.name||'')}</div>
+            <div class="meta">
+              <span class="chip">${escapeHtml(e.time || 'No asignada')}</span>
+              <span class="chip mod">${escapeHtml(shortMod(e.modality||''))}</span>
+            </div>`;
+          col.appendChild(card);
+        });
+      });
+    }
+
+    // Hook timetable open/close
+    const seeBtn = document.getElementById('seeTimetableBtn');
+    if (seeBtn){
+      seeBtn.addEventListener('click', () => {
+        const entries = removeTrueDuplicates(buildFinalEntries());
+        renderTimetableStacked(entries);
+        document.getElementById('timetablePanel').classList.remove('hidden');
+        document.getElementById('timetablePanel').scrollIntoView({ behavior:'smooth', block:'start' });
+      });
+    }
+    document.getElementById('closeTimetable')?.addEventListener('click', () => {
+      document.getElementById('timetablePanel').classList.add('hidden');
+    });
+
+    // Confirm modal (unchanged)
+    const confirmBtn     = document.getElementById('confirmBtn');
+    const confirmModal   = document.getElementById('confirmModal');
+    const confirmClose   = document.getElementById('confirmClose');
+    const confirmCancel  = document.getElementById('confirmCancel');
+    const confirmSendBtn = document.getElementById('confirmSend');
+    function openConfirmModal(){ confirmModal.classList.add('active'); }
+    function closeConfirmModal(){ confirmModal.classList.remove('active'); }
+    if (confirmBtn) confirmBtn.addEventListener('click', (e) => { e.preventDefault(); openConfirmModal(); });
+    if (confirmClose)  confirmClose.addEventListener('click', closeConfirmModal);
+    if (confirmCancel) confirmCancel.addEventListener('click', closeConfirmModal);
+    if (confirmModal) {
+      confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) closeConfirmModal(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirmModal(); });
+    }
+    if (confirmSendBtn) {
+      confirmSendBtn.addEventListener('click', async () => {
+        try {
+          confirmSendBtn.disabled = true;
+          const finalCourses = removeTrueDuplicates(buildFinalEntries());
+          const problems = findConflicts(finalCourses);
+          if (problems.length){
+            const lines = problems.map(([a,b]) => `• ${a.code} (${formatMins(a.start)}–${formatMins(a.end)}) con ${b.code} (${formatMins(b.start)}–${formatMins(b.end)})`).join('\n');
+            alert('Hay conflictos de horario. Cambia uno de los horarios:\n\n' + lines);
+            confirmSendBtn.disabled = false;
+            return;
+          }
+
+          const changesArr = [];
+          document.querySelectorAll('.course').forEach(row => {
+            const base = originals[row.id] || readCurrent(row);
+            const sel  = changes[row.id];
+            if (sel) {
+              changesArr.push({
+                code: row.getAttribute('data-code') || base.code,
+                name: row.getAttribute('data-name') || base.name,
+                from: { group: base.group, day: base.day, time: base.time, modality: base.modality },
+                to:   { group: sel.group,  day: sel.day,  time: sel.time,  modality: sel.modality }
+              });
+            }
+          });
+
+          const student = {
+            name: '<%= (_firstName + " " + _lastName) %>',
+            code: '<%= _studentId %>',
+            dni:  '<%= _dni %>',
+            facultyName: '<%= _facultyName %>',
+            specialtyName: '<%= _specialtyName %>',
+            period: '<%= _semester %>',
+            mode: '<%= _mode %>',
+            email: '<%= _email %>',
+            phone: '<%= _phone %>'
+          };
+
+          document.getElementById('loadingOverlay')?.classList.add('active');
+
+          const resp = await fetch('/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student, changes: changesArr, finalCourses })
+          });
+          if (!resp.ok) throw new Error('PDF generation failed');
+
+          closeConfirmModal();
+
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `rectification_${student.code}.pdf`;
+          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        } catch (e) {
+          alert('No se pudo generar el PDF.');
+          console.error(e);
+        } finally {
+          confirmSendBtn.disabled = false;
+          document.getElementById('loadingOverlay')?.classList.remove('active');
+        }
+      });
+    }
+
+    /* ===== Preferences + LOCAL AI ===== */
+    function readPreferences(){
+      // prefer modal selection if present
+      const freeDays = Array.isArray(window._aiFreeDays)
+        ? window._aiFreeDays.slice()
+        : Array.from(document.querySelectorAll('.pref-free:checked')).map(i => i.value);
+      const timePreference = 'no-preference';
+      const keepChangesLow = true;
+      return { timePreference, freeDays, keepChangesLow };
+    }
+
+    // === YOUR LOCAL LOGIC, now accepts prefsOverride ===
+    async function autoAssignFromAvailable(prefsOverride) {
+      const overlay = document.getElementById('loadingOverlay');
+      try {
+        overlay?.classList.add('active');
+
+        const prefs = prefsOverride || readPreferences();
+        const freeDayKeys = new Set((prefs.freeDays || []).map(d => sameDayKey(d)));
+
+        const chosenTemp = [];
+        const noTurno = [];
+        const rows = Array.from(document.querySelectorAll('.course'));
+
+        for (const row of rows) {
+          const rowId = row.id;
+          const idx   = Number(rowId.split('-')[1]);
+          const base  = originals[rowId] || readCurrent(row);
+          const courseCode = (row.getAttribute('data-code') || base.code || '').trim();
+          const period     = row.getAttribute('data-period') || '';
+
+          const currentDayKey = sameDayKey(base.day);
+
+          const currentPlan = [...buildPlanExcept(rowId), ...chosenTemp];
+
+          // fetch options
+          let opts = [];
+          try {
+            const r = await fetch('/available', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ period, courseCode })
+            });
+            const j = await r.json();
+            opts = (j.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
+          } catch { opts = []; }
+
+          // normalize + filter by SAME MODALITY and NOT on a free day
+          const originalMod = normalizeModalityDisplay(base.modality || '');
+          const allNormalized = opts.map(o => {
+            const parsed = parseDayTimeFromOption(o);
+            return {
+              code: courseCode,
+              name: row.getAttribute('data-name') || base.name,
+              group: o.groupCode || o.group || o.section || '',
+              day: canonicalDay(parsed.day || ''),
+              time: normalizeTime(parsed.time || ''),
+              modality: normalizeModalityDisplay(o.modality || '')
+            };
+          });
+
+          const outsideFree = allNormalized
+            .filter(c => c.modality === originalMod)
+            .filter(c => !freeDayKeys.has(sameDayKey(c.day)));
+
+          let chosen = null;
+          for (const cand of outsideFree) {
+            const rng = parseRange(cand.time);
+            if (!rng) continue;
+
+            const sameSlot = sameDayKey(cand.day) === currentDayKey &&
+                             cand.time === normalizeTime(base.time || base.hour || '');
+            if (sameSlot && freeDayKeys.has(currentDayKey)) continue;
+
+            const conflict = getConflict(currentPlan, cand.day, cand.time);
+            if (!conflict) { chosen = { cand, rng }; break; }
+          }
+          if (!chosen && outsideFree.length) {
+            const cand = outsideFree[0];
+            const rng  = parseRange(cand.time);
+            if (rng) chosen = { cand, rng };
+          }
+
+          if (!chosen) {
+            if (freeDayKeys.has(currentDayKey)) {
+              noTurno.push(`${base.code} — ${base.name}`);
+            }
+            continue;
+          }
+
+          const after = {
+            code: base.code,
+            name: row.getAttribute('data-name') || base.name,
+            group: chosen.cand.group || base.group,
+            day:   chosen.cand.day,
+            time:  chosen.cand.time,
+            modality: originalMod
+          };
+          changes[rowId] = after;
+          renderChange(idx, { group: base.group, day: base.day, time: base.time, modality: base.modality }, after);
+
+          chosenTemp.push({ code: base.code, day: after.day, ...chosen.rng });
+        }
+
+        if (noTurno.length) {
+          alert('No hay turnos fuera de los días libres para:\n\n' + noTurno.join('\n'));
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Ocurrió un error generando el horario.');
+      } finally {
+        overlay?.classList.remove('active');
+      }
+    }
+
+    // helpers
+    function formatMins(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
+    function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
+  });
+  </script>
+</body>
+</html>

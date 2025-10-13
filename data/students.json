@@ -1,0 +1,26 @@
+[
+  {
+    "codigo": "2020231",
+    "dni": "75394710",
+    "nombre": "André Yoshuwa Matos",
+    "correo": "yoshuwa@uma.edu.pe",
+    "facultad": "FACULTAD DE CIENCIAS DE LA SALUD",
+    "periodo": "2025-2",
+    "cursos": [
+      {"nombre": "Matemáticas I", "turno": "Mañana", "horario": "08:00-10:00"},
+      {"nombre": "Física II", "turno": "Tarde", "horario": "14:00-16:00"}
+    ]
+  },
+  {
+    "codigo": "2020456",
+    "dni": "12345678",
+    "nombre": "María Pérez",
+    "correo": "maria.perez@uma.edu.pe",
+    "facultad": "FACULTAD DE INGENIERÍA",
+    "periodo": "2025-1",
+    "cursos": [
+      {"nombre": "Programación I", "turno": "Mañana", "horario": "10:00-12:00"},
+      {"nombre": "Bases de Datos", "turno": "Tarde", "horario": "16:00-18:00"}
+    ]
+  }
+]

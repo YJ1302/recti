@@ -8,16 +8,10 @@ const session = require("express-session");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
-// ---- optional require for nodemailer (prevents crash if not installed)
-let nodemailer = null;
-try {
-  // install with: npm i nodemailer
-  nodemailer = require("nodemailer");
-} catch (e) {
-  console.warn(
-    " 'nodemailer' is not installed. Emails will be skipped. Run `npm i nodemailer` to enable emailing."
-  );
-}
+// === Resend Email API (Path 1) ===
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@uma.edu.pe";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,63 +48,6 @@ app.use(
     },
   })
 );
-
-/* ------------ mail transport (no-reply) ------------ */
-const FROM_EMAIL =
-  process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
-
-const mailer = nodemailer
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
-      auth:
-        process.env.SMTP_USER && process.env.SMTP_PASS
-          ? {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            }
-          : undefined,
-      logger: true,
-      debug: true,
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 20000,
-      // tls: { rejectUnauthorized: false }, // <- uncomment only for temporary TLS diagnosis
-    })
-  : null;
-
-if (mailer) {
-  console.log(
-    "SMTP settings",
-    JSON.stringify(
-      {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: String(process.env.SMTP_SECURE),
-        from: FROM_EMAIL,
-      },
-      null,
-      2
-    )
-  );
-
-  mailer.verify((err) => {
-    if (err) {
-      console.error("SMTP verify failed:", err.message);
-    } else {
-      console.log("SMTP verify OK. From:", FROM_EMAIL);
-    }
-  });
-  console.log("SMTP settings",
-    JSON.stringify({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: String(process.env.SMTP_SECURE),
-      from: FROM_EMAIL
-    })
-  );
-}
 
 /* ------------ helpers ------------ */
 function jsonHeaders(token) {
@@ -342,76 +279,42 @@ function pdfToBuffer(doc) {
   });
 }
 
+/** Resend mail helper (Path 1) */
+async function sendEmail({ to, subject, text, html, attachments = [] }) {
+  const toArray = Array.isArray(to) ? to : [to];
+
+  const att = attachments.map(a => ({
+    filename: a.filename,
+    // Resend accepts Buffer; base64 is safest across runtimes
+    content: Buffer.isBuffer(a.content) ? a.content.toString("base64") : String(a.content || ""),
+    contentType: a.contentType || "application/pdf",
+  }));
+
+  const footer = "\n\nEste es un correo generado automáticamente. No responda a este mensaje.";
+
+  const payload = {
+    from: FROM_EMAIL,
+    to: toArray,
+    subject,
+    text: text ? text + footer : undefined,
+    html: html ? html + `<br/><br/><em>${footer}</em>` : undefined,
+    headers: { "X-Auto-Response-Suppress": "All" },
+  };
+
+  if (process.env.REPLY_TO) payload.reply_to = process.env.REPLY_TO;
+  if (att.length) payload.attachments = att;
+
+  const res = await resend.emails.send(payload);
+  if (res?.error) {
+    throw new Error(res.error?.message || "Resend API error");
+  }
+  console.log("Email queued via Resend:", res?.data?.id || res?.id || "(no id)");
+}
+
 /* ------------ health check (Render) ------------ */
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
 
 /* ------------ routes ------------ */
-
-// --- Diagnostics: SMTP TCP connectivity + simple email test ---
-// Visit /smtp-check to test raw TCP to your SMTP provider
-app.get("/smtp-check", async (req, res) => {
-  const net = require("net");
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  if (!host) return res.status(400).send("Set SMTP_HOST first");
-  const socket = new net.Socket();
-  let responded = false;
-
-  socket.setTimeout(8000);
-  socket
-    .connect(port, host, () => {
-      responded = true;
-      socket.destroy();
-      res.send(`TCP connect to ${host}:${port} OK`);
-    })
-    .on("timeout", () => {
-      if (!responded) {
-        responded = true;
-        res.status(504).send(`TCP timeout to ${host}:${port}`);
-        socket.destroy();
-      }
-    })
-    .on("error", (e) => {
-      if (!responded) {
-        responded = true;
-        res
-          .status(502)
-          .send(`TCP error to ${host}:${port} → ${e.message || e}`);
-      }
-    });
-});
-
-// Visit /email-test to send a tiny test email (no attachment)
-// Requires: FROM_EMAIL, SMTP_* envs and ADMIN_PDF_TO or ADMIN_EMAIL
-app.get("/email-test", async (req, res) => {
-  try {
-    if (!mailer) return res.status(500).send("Mailer not available");
-    const targets = (
-      process.env.ADMIN_PDF_TO ||
-      process.env.ADMIN_EMAIL ||
-      ""
-    )
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!targets.length)
-      return res.status(400).send("Set ADMIN_PDF_TO or ADMIN_EMAIL");
-
-    const info = await mailer.sendMail({
-      from: FROM_EMAIL,
-      to: targets.join(","),
-      subject: "UMA Rectification — email test",
-      text: "Test email from Render.",
-    });
-
-    console.log("email-test sent:", info.messageId);
-    res.send("Email sent; check inbox/spam.");
-  } catch (e) {
-    console.error("email-test error:", e);
-    res.status(500).send("Failed: " + e.message);
-  }
-});
-// --- End diagnostics ---
 
 app.get("/", (_, res) => {
   res.render("index", {
@@ -680,7 +583,7 @@ app.post("/ai-suggest", async (req, res) => {
   }
 });
 
-/** Generate PDF + email only to admins (student email kept as commented block) */
+/** Generate PDF + email (admins via Resend; student optional) */
 app.post("/confirm", async (req, res) => {
   try {
     const clientStudent = req.body?.student || {};
@@ -721,7 +624,7 @@ app.post("/confirm", async (req, res) => {
       return t.replace('-', '–');
     };
 
-    // Changes (normalized) — accept {from,to} or {before,after} and sanitize values
+    // Changes (normalized)
     const toDisp = (t) => (t ? displayTime(t) : "—");
 
     const changesList = (Array.isArray(clientChanges) ? clientChanges : []).map(ch => {
@@ -1094,44 +997,50 @@ app.post("/confirm", async (req, res) => {
     // Finish PDF → Buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
-    // ======== EMAIL ONLY TO ADMINS ========
+    // ======== EMAIL TO ADMINS (Resend, Path 1) ========
     const adminTargets = (process.env.ADMIN_PDF_TO || process.env.ADMIN_CC || ADMIN_EMAIL || "")
       .split(",")
       .map(s => s.trim())
       .filter(Boolean);
 
-    if (mailer && adminTargets.length) {
+    if (adminTargets.length) {
       try {
-        await mailer.sendMail({
-          from: FROM_EMAIL, // your no-reply address
-          to: adminTargets.join(","),
+        await sendEmail({
+          to: adminTargets,
           subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
           text:
-            `No responder a este correo (noreply).\n\n` +
-            `Adjunto PDF de rectificación para ${info.name} (${info.code}).\n` +
-            `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
+`Adjunto PDF de rectificación para ${info.name} (${info.code}).
+Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}`,
           attachments: [
-            { filename: `rectification_${info.code}.pdf`, content: pdfBuffer }
+            { filename: `rectification_${info.code}.pdf`, content: pdfBuffer, contentType: "application/pdf" }
           ]
         });
       } catch (e) {
         console.error("  Email send failed:", e.message);
       }
-    } else if (!mailer) {
-      console.warn("  Skipping email: nodemailer not available. Run `npm i nodemailer`.");
     }
 
-    // ======== STUDENT EMAIL (disabled for now) ========
-    // const studentRecipient = info.email; // institutional student email
-    // if (mailer && studentRecipient) {
-    //   await mailer.sendMail({
-    //     from: FROM_EMAIL,
-    //     to: studentRecipient,
-    //     subject: `Tu rectificación de matrícula – ${info.code}`,
-    //     text: `Hola ${info.name}, adjuntamos tu PDF de rectificación.`,
-    //     attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }]
-    //   });
-    // }
+    // ======== EMAIL TO STUDENT (Resend) — optional, enable if desired ========
+    if (info.email) {
+      try {
+        await sendEmail({
+          to: info.email,
+          subject: `Tu rectificación de matrícula – ${info.code}`,
+          text:
+`Hola ${info.name},
+
+Adjuntamos tu PDF de rectificación.
+
+Saludos,
+Universidad María Auxiliadora`,
+          attachments: [
+            { filename: `rectification_${info.code}.pdf`, content: pdfBuffer, contentType: "application/pdf" }
+          ]
+        });
+      } catch (e) {
+        console.error("  Student email failed:", e.message);
+      }
+    }
 
     // Return the same PDF in the HTTP response (download)
     const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;

@@ -59,27 +59,43 @@ app.use(
 const FROM_EMAIL =
   process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
 
-const mailer =
-  nodemailer &&
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
-    auth:
-      process.env.SMTP_USER && process.env.SMTP_PASS
-        ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          }
-        : undefined,
-  });
+const mailer = nodemailer
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
+      auth:
+        process.env.SMTP_USER && process.env.SMTP_PASS
+          ? {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            }
+          : undefined,
+      logger: true,
+      debug: true,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      // tls: { rejectUnauthorized: false }, // <- uncomment only for temporary TLS diagnosis
+    })
+  : null;
 
-  if (mailer) {
-  // Turn on nodemailer internal logging (shows SMTP dialog in logs)
-  mailer.logger = true;
-  mailer.debug = true;
+if (mailer) {
+  console.log(
+    "SMTP settings",
+    JSON.stringify(
+      {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: String(process.env.SMTP_SECURE),
+        from: FROM_EMAIL,
+      },
+      null,
+      2
+    )
+  );
 
-  mailer.verify((err, success) => {
+  mailer.verify((err) => {
     if (err) {
       console.error("SMTP verify failed:", err.message);
     } else {
@@ -330,6 +346,73 @@ function pdfToBuffer(doc) {
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
 
 /* ------------ routes ------------ */
+
+// --- Diagnostics: SMTP TCP connectivity + simple email test ---
+// Visit /smtp-check to test raw TCP to your SMTP provider
+app.get("/smtp-check", async (req, res) => {
+  const net = require("net");
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  if (!host) return res.status(400).send("Set SMTP_HOST first");
+  const socket = new net.Socket();
+  let responded = false;
+
+  socket.setTimeout(8000);
+  socket
+    .connect(port, host, () => {
+      responded = true;
+      socket.destroy();
+      res.send(`TCP connect to ${host}:${port} OK`);
+    })
+    .on("timeout", () => {
+      if (!responded) {
+        responded = true;
+        res.status(504).send(`TCP timeout to ${host}:${port}`);
+        socket.destroy();
+      }
+    })
+    .on("error", (e) => {
+      if (!responded) {
+        responded = true;
+        res
+          .status(502)
+          .send(`TCP error to ${host}:${port} → ${e.message || e}`);
+      }
+    });
+});
+
+// Visit /email-test to send a tiny test email (no attachment)
+// Requires: FROM_EMAIL, SMTP_* envs and ADMIN_PDF_TO or ADMIN_EMAIL
+app.get("/email-test", async (req, res) => {
+  try {
+    if (!mailer) return res.status(500).send("Mailer not available");
+    const targets = (
+      process.env.ADMIN_PDF_TO ||
+      process.env.ADMIN_EMAIL ||
+      ""
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!targets.length)
+      return res.status(400).send("Set ADMIN_PDF_TO or ADMIN_EMAIL");
+
+    const info = await mailer.sendMail({
+      from: FROM_EMAIL,
+      to: targets.join(","),
+      subject: "UMA Rectification — email test",
+      text: "Test email from Render.",
+    });
+
+    console.log("email-test sent:", info.messageId);
+    res.send("Email sent; check inbox/spam.");
+  } catch (e) {
+    console.error("email-test error:", e);
+    res.status(500).send("Failed: " + e.message);
+  }
+});
+// --- End diagnostics ---
+
 app.get("/", (_, res) => {
   res.render("index", {
     firstName: null,

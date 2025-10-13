@@ -74,6 +74,28 @@ const mailer =
         : undefined,
   });
 
+  if (mailer) {
+  // Turn on nodemailer internal logging (shows SMTP dialog in logs)
+  mailer.logger = true;
+  mailer.debug = true;
+
+  mailer.verify((err, success) => {
+    if (err) {
+      console.error("SMTP verify failed:", err.message);
+    } else {
+      console.log("SMTP verify OK. From:", FROM_EMAIL);
+    }
+  });
+  console.log("SMTP settings",
+    JSON.stringify({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: String(process.env.SMTP_SECURE),
+      from: FROM_EMAIL
+    })
+  );
+}
+
 /* ------------ helpers ------------ */
 function jsonHeaders(token) {
   const h = { "Content-Type": "application/json" };

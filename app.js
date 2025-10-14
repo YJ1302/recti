@@ -58,8 +58,14 @@ app.use(
 );
 
 /* ------------ mail transport (no-reply via SMTP) ------------ */
+// Define the envelope sender used for all emails
+const FROM_EMAIL =
+  process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
+
+// Feature flags / routing
 const STUDENT_EMAIL_ENABLED = String(process.env.STUDENT_EMAIL_ENABLED || "false").toLowerCase() === "true";
 const OSAR_EMAIL = (process.env.OSAR_EMAIL || "").trim();
+
 const mailer = nodemailer
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,                     // e.g. smtp.office365.com / smtp.gmail.com

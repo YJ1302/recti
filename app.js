@@ -58,8 +58,8 @@ app.use(
 );
 
 /* ------------ mail transport (no-reply via SMTP) ------------ */
-const FROM_EMAIL = process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
-
+const STUDENT_EMAIL_ENABLED = String(process.env.STUDENT_EMAIL_ENABLED || "false").toLowerCase() === "true";
+const OSAR_EMAIL = (process.env.OSAR_EMAIL || "").trim();
 const mailer = nodemailer
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,                     // e.g. smtp.office365.com / smtp.gmail.com
@@ -1085,48 +1085,50 @@ app.post("/confirm", async (req, res) => {
 
     // ======== EMAIL: ADMINS (always) ========
     const adminTargets = (process.env.ADMIN_PDF_TO || process.env.ADMIN_CC || ADMIN_EMAIL || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
 
-    if (mailer && adminTargets.length) {
-      try {
-        await mailer.sendMail({
-          from: FROM_EMAIL, // no-reply mailbox
-          to: adminTargets.join(","),
-          subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
-          text:
-            "Este es un correo generado por el sistema. Por favor, no responda.\n\n" +
-            `Adjunto PDF de rectificación para ${info.name} (${info.code}).\n` +
-            `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
-          attachments: [
-            { filename: `rectification_${info.code}.pdf`, content: pdfBuffer }
-          ]
-        });
-      } catch (e) {
-        console.error("  Email send failed (admins):", e.message);
-      }
-    } else if (!mailer) {
-      console.warn("  Skipping email: nodemailer not available. Run `npm i nodemailer`.");
-    }
+// if OSAR_EMAIL is present, add it (won’t duplicate if already in ADMIN_PDF_TO)
+const allAdminTargets = Array.from(new Set([...adminTargets, ...(OSAR_EMAIL ? [OSAR_EMAIL] : [])]));
+
+if (mailer && allAdminTargets.length) {
+  try {
+    await mailer.sendMail({
+      from: FROM_EMAIL,
+      to: allAdminTargets.join(","),
+      subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
+      text:
+        "Este es un correo generado automáticamente por el sistema. **No responder**.\n\n" +
+        `Adjuntamos el PDF de rectificación para ${info.name} (${info.code}).\n` +
+        `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
+      attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }],
+    });
+  } catch (e) {
+    console.error("  Admin/OSAR email failed:", e.message);
+  }
+} else if (!mailer) {
+  console.warn("  Skipping admin/OSAR email: nodemailer not available.");
+}
 
     // ======== EMAIL: STUDENT (optional; enable if desired) ========
-    const studentRecipient = info.email; // institutional student email
-    if (mailer && studentRecipient) {
-      try {
-        await mailer.sendMail({
-          from: FROM_EMAIL,
-          to: studentRecipient,
-          subject: `Tu rectificación de matrícula – ${info.code}`,
-          text:
-            "Este es un correo generado por el sistema. Por favor, no responda.\n\n" +
-            `Hola ${info.name}, adjuntamos tu PDF de rectificación.`,
-          attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }]
-        });
-      } catch (e) {
-        console.error("  Student email failed:", e.message);
-      }
-    }
+    const studentRecipient = (info.email || "").trim();
+if (mailer && STUDENT_EMAIL_ENABLED && studentRecipient) {
+  try {
+    await mailer.sendMail({
+      from: FROM_EMAIL,
+      to: studentRecipient,
+      subject: `Tu rectificación de matrícula – ${info.code}`,
+      text:
+        "Este es un correo generado automáticamente por el sistema. **No responder**.\n\n" +
+        `Hola ${info.name}, adjuntamos tu PDF de rectificación.\n` +
+        `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
+      attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }],
+    });
+  } catch (e) {
+    console.error("  Student email failed:", e.message);
+  }
+}
 
     // Return the same PDF in the HTTP response (download)
     const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;

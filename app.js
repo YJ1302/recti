@@ -65,24 +65,31 @@ const FROM_EMAIL = (process.env.FROM_EMAIL || process.env.SMTP_USER || "").trim(
 
 const mailer = nodemailer
   ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,                     // e.g. smtp.office365.com / in-v3.mailjet.com
-      port: Number(process.env.SMTP_PORT || 587),      // 587 (STARTTLS) or 465 (SSL)
-      secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true", // true only for 465
-      auth:
-        process.env.SMTP_USER && process.env.SMTP_PASS
-          ? {
-              user: process.env.SMTP_USER,             // mailbox (e.g., noreply@domain)
-              pass: process.env.SMTP_PASS,             // mailbox/app password
-            }
-          : undefined,
+      host: process.env.SMTP_HOST,                 // smtp-legacy.office365.com
+      port: Number(process.env.SMTP_PORT || 587),  // 587
+      secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
+      auth: (process.env.SMTP_USER && process.env.SMTP_PASS) ? {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      } : undefined,
+
+      // ---- harden connection for O365 behind cloud egress ----
+      requireTLS: true,                // enforce STARTTLS upgrade
+      family: 4,                       // prefer IPv4 (avoids some IPv6 route issues)
+      tls: {
+        servername: process.env.SMTP_HOST, // SNI
+        minVersion: "TLSv1.2",
+        // ciphers below are generally fine for O365; omit if unnecessary:
+        // ciphers: "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256",
+        // rejectUnauthorized: false, // <— leave commented; only for debugging
+      },
+
+      // timeouts & logs
       logger: true,
       debug: true,
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 25000,
-      // requireTLS: true, // <- uncomment for 587 STARTTLS if your provider requires it
-      // tls: { servername: process.env.SMTP_HOST }, // helps SNI with some providers
-      // tls: { rejectUnauthorized: false }, // TEMP ONLY for custom certs
     })
   : null;
 

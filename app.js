@@ -58,23 +58,20 @@ app.use(
 );
 
 /* ------------ mail transport (no-reply via SMTP) ------------ */
-// Define the envelope sender used for all emails
-const FROM_EMAIL =
-  process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
-
-// Feature flags / routing
 const STUDENT_EMAIL_ENABLED = String(process.env.STUDENT_EMAIL_ENABLED || "false").toLowerCase() === "true";
-const OSAR_EMAIL = (process.env.OSAR_EMAIL || "").trim();
+
+// IMPORTANT: define FROM_EMAIL (use the SMTP mailbox as default)
+const FROM_EMAIL = (process.env.FROM_EMAIL || process.env.SMTP_USER || "").trim();
 
 const mailer = nodemailer
   ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,                     // e.g. smtp.office365.com / smtp.gmail.com
+      host: process.env.SMTP_HOST,                     // e.g. smtp.office365.com / in-v3.mailjet.com
       port: Number(process.env.SMTP_PORT || 587),      // 587 (STARTTLS) or 465 (SSL)
       secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true", // true only for 465
       auth:
         process.env.SMTP_USER && process.env.SMTP_PASS
           ? {
-              user: process.env.SMTP_USER,             // mailbox (e.g., noreply@uma.edu.pe)
+              user: process.env.SMTP_USER,             // mailbox (e.g., noreply@domain)
               pass: process.env.SMTP_PASS,             // mailbox/app password
             }
           : undefined,
@@ -82,8 +79,10 @@ const mailer = nodemailer
       debug: true,
       connectionTimeout: 20000,
       greetingTimeout: 20000,
-      socketTimeout: 25000
-      // tls: { rejectUnauthorized: false }, // uncomment only if your provider uses custom certs
+      socketTimeout: 25000,
+      // requireTLS: true, // <- uncomment for 587 STARTTLS if your provider requires it
+      // tls: { servername: process.env.SMTP_HOST }, // helps SNI with some providers
+      // tls: { rejectUnauthorized: false }, // TEMP ONLY for custom certs
     })
   : null;
 
@@ -96,6 +95,7 @@ if (mailer) {
         port: process.env.SMTP_PORT,
         secure: String(process.env.SMTP_SECURE),
         from: FROM_EMAIL,
+        user: process.env.SMTP_USER ? "(set)" : "(missing)"
       },
       null,
       2
@@ -1089,52 +1089,53 @@ app.post("/confirm", async (req, res) => {
     // Finish PDF → Buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
-    // ======== EMAIL: ADMINS (always) ========
-    const adminTargets = (process.env.ADMIN_PDF_TO || process.env.ADMIN_CC || ADMIN_EMAIL || "")
+// ======== EMAIL: ADMINS (always) — send ONLY to my personal email ========
+const adminTargets = (
+  process.env.ADMIN_PDF_TO ||        // set this in Render to your personal email
+  process.env.ADMIN_EMAIL ||         // or this (backup)
+  "my.personal@email.com"            // FINAL fallback hardcoded for now
+)
   .split(",")
   .map(s => s.trim())
   .filter(Boolean);
 
-// if OSAR_EMAIL is present, add it (won’t duplicate if already in ADMIN_PDF_TO)
-const allAdminTargets = Array.from(new Set([...adminTargets, ...(OSAR_EMAIL ? [OSAR_EMAIL] : [])]));
-
-if (mailer && allAdminTargets.length) {
+if (mailer && adminTargets.length) {
   try {
     await mailer.sendMail({
       from: FROM_EMAIL,
-      to: allAdminTargets.join(","),
+      to: adminTargets.join(","), // ONLY your personal email(s)
       subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
       text:
-        "Este es un correo generado automáticamente por el sistema. **No responder**.\n\n" +
+        "Este es un correo generado automáticamente por el sistema. No responder.\n\n" +
         `Adjuntamos el PDF de rectificación para ${info.name} (${info.code}).\n` +
         `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
       attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }],
     });
   } catch (e) {
-    console.error("  Admin/OSAR email failed:", e.message);
+    console.error("  Admin email failed:", e.message);
   }
 } else if (!mailer) {
-  console.warn("  Skipping admin/OSAR email: nodemailer not available.");
+  console.warn("  Skipping admin email: nodemailer not available.");
 }
 
     // ======== EMAIL: STUDENT (optional; enable if desired) ========
-    const studentRecipient = (info.email || "").trim();
-if (mailer && STUDENT_EMAIL_ENABLED && studentRecipient) {
-  try {
-    await mailer.sendMail({
-      from: FROM_EMAIL,
-      to: studentRecipient,
-      subject: `Tu rectificación de matrícula – ${info.code}`,
-      text:
-        "Este es un correo generado automáticamente por el sistema. **No responder**.\n\n" +
-        `Hola ${info.name}, adjuntamos tu PDF de rectificación.\n` +
-        `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
-      attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }],
-    });
-  } catch (e) {
-    console.error("  Student email failed:", e.message);
-  }
-}
+    //const studentRecipient = (info.email || "").trim();
+//if (mailer && STUDENT_EMAIL_ENABLED && studentRecipient) {
+ // try {
+   // await mailer.sendMail({
+    //  from: FROM_EMAIL,
+     // to: studentRecipient,
+     // subject: `Tu rectificación de matrícula – ${info.code}`,
+     // text:
+     //   "Este es un correo generado automáticamente por el sistema. **No responder**.\n\n" +
+      //  `Hola ${info.name}, adjuntamos tu PDF de rectificación.\n` +
+       // `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
+     // attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }],
+   // });
+  //} catch (e) {
+   // console.error("  Student email failed:", e.message);
+  //}
+// }
 
     // Return the same PDF in the HTTP response (download)
     const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;

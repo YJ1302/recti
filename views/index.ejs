@@ -112,6 +112,7 @@
 
     .error{ color:#b00; background:#630606; border:1px solid #fbb; padding:10px; border-radius:8px; margin-bottom:16px; }
     .title-container{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .uma-header-logo { width:84px; height:auto; display:block; object-fit:contain; }
     .loading-overlay{ position:fixed; z-index:9999; inset:0; background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
     .loading-overlay.active{ opacity:1; pointer-events:all; }
     .hidden{ display:none; }
@@ -317,7 +318,10 @@
 
     <% } else { %>
       <div class="title-container">
-        <h1 style="font-size:2rem; font-weight:800; color:#1e293b;">Portal de Rectificación de Cursos</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
+          <h1 style="font-size:2rem; font-weight:800; color:#1e293b; margin:0;">Portal de Rectificación de Cursos</h1>
+        </div>
         <form action="/logout" method="POST" style="margin:0;">
           <button type="submit" class="logout-btn" aria-label="Logout">
             <span>Cerrar Sesión</span>
@@ -1128,6 +1132,7 @@
             name: '<%= (_firstName + " " + _lastName) %>',
             code: '<%= _studentId %>',
             dni:  '<%= _dni %>',
+           
             facultyName: '<%= _facultyName %>',
             specialtyName: '<%= _specialtyName %>',
             period: '<%= _semester %>',

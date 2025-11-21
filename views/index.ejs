@@ -42,22 +42,54 @@
       border:1px solid var(--border); border-radius:12px; background:#fff; transition:box-shadow .15s ease, transform .15s ease;
     }
     .course:hover{ box-shadow:0 2px 8px rgba(0,0,0,.05); transform: translateY(-1px); }
+    .course-hidden-segment { display: none !important;}
     .course-code{ display:flex; align-items:center; justify-content:center; }
     .course-details{ display:flex; flex-direction:column; gap:8px; }
     .course-title{ font-weight:700; font-size:1.02rem; color:#111827; margin:0; }
     .course-meta{ display:flex; flex-wrap:wrap; gap:10px 14px; font-size:.9rem; color:#374151; }
     .meta-item{ display:flex; gap:6px; }
     .meta-item:not(:last-child)::after{ content:"•"; margin-left:6px; color:#d1d5db; }
-    .repl{ grid-column:3; justify-self:end; }
-    .repl[open]{ grid-column:1 / -1; }
-    .repl[open] > summary{ justify-self:end; margin-bottom:8px; }
+    .repl{
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    /* When open, the <details> spans the full width of the course card */
+    .repl[open]{
+      grid-column: 1 / -1;
+      justify-self: stretch;
+      margin-top: 8px;
+    }
+
+    .repl[open] > summary{
+      text-align: right;   /* arrow text stays on the right */
+      margin-bottom: 8px;
+    }
+
 
     /* replacement options */
-    .replacement-options{ width:100%; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; }
-    .option{ display:grid; grid-template-columns:120px 1fr 200px; align-items:center; gap:16px; padding:14px 16px; border-top:1px solid var(--border); }
+        .replacement-options{
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      margin-top: 4px; /* tiny gap under “Reemplazar curso” */
+    }
+
+    .option{
+      display: grid;
+      grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+    }
+
     .option:first-child{ border-top:none; }
     .option-code{ width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; border-radius:10px; padding:10px; font-weight:800; letter-spacing:1px; }
-    .option-fields{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px 16px; }
+    /* auto-fit to any number of segments (TEV+LBP+TEP...) */
+    .option-fields{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px 16px; }
     .field .label{ display:block; color:#6b7280; font-size:.78rem; margin-bottom:4px; }
     .field .value{ font-weight:700; font-size:.92rem; color:#111827; }
     .option-cta{ display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; }
@@ -114,133 +146,28 @@
       border-bottom: none;
       background: none;
     }
-    .tt-head .cell:first-child {
-      border-left: none;
-      border-radius: 14px 0 0 0;
-    }
-    .tt-head .cell:last-child {
-      border-radius: 0 14px 0 0;
-    }
-    .tt-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      padding: 0;
-      box-sizing: border-box;
-      border-top: none;
-      width: 100%;
-      min-width: 0;
-    }
-    .tt-col {
-      min-height: 180px;
-      padding: 12px 0;
-      border-left: 1px solid #f3f4f6;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #fff;
-      align-items: center;
-      width: 100%;
-      min-width: 0;
-    }
-    .tt-col:first-child {
-      border-left: none;
-    }
-    .card-mini {
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
-      min-height: 110px;
-      max-height: unset;
-      background: #fff;
-      border: 1px solid #eef0f6;
-      border-radius: 16px;
-      padding: 14px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.06);
-      align-items: flex-start;
-      justify-content: center;
-      margin: 0;
-      box-sizing: border-box;
-    }
-    .card-mini .code {
-      display: inline-block;
-      background: linear-gradient(90deg,#f02454,#c81e47);
-      color: #fff;
-      font-weight: 900;
-      letter-spacing: .8px;
-      border-radius: 12px;
-      padding: 4px 10px;
-      font-size: 1rem;
-      align-self: flex-start;
-    }
-    .card-mini .name {
-      font-weight: 800;
-      color: #0f172a;
-      line-height: 1.15;
-      font-size: 0.93rem; /* reduced from 1.01rem */
-      max-width: 180px;
-      white-space: normal; /* allow wrapping */
-      overflow-wrap: break-word; /* break long words */
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      line-clamp: 2; /* standard property for compatibility */
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-height: 2.2em; /* reserve space for 2 lines */
-    }
-    .card-mini .meta {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      font-size: 0.97rem;
-    }
-    .chip {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-weight: 800;
-      font-size: .93rem;
-    }
-    .chip.mod {
-      min-width: 1.75rem;
-      text-align: center;
-    }
+    .tt-head .cell:first-child { border-left: none; border-radius: 14px 0 0 0; }
+    .tt-head .cell:last-child  { border-radius: 0 14px 0 0; }
+    .tt-grid { display: grid; grid-template-columns: repeat(6, 1fr); padding: 0; box-sizing: border-box; border-top: none; width: 100%; min-width: 0; }
+    .tt-col { min-height: 180px; padding: 12px 0; border-left: 1px solid #f3f4f6; display: flex; flex-direction: column; gap: 12px; background: #fff; align-items: center; width: 100%; min-width: 0; }
+    .tt-col:first-child { border-left: none; }
+
+    .card-mini { width: 100%; min-width: 0; max-width: 100%; min-height: 110px; background: #fff; border: 1px solid #eef0f6; border-radius: 16px; padding: 14px 12px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 4px 12px rgba(0,0,0,.06); align-items: flex-start; justify-content: center; margin: 0; box-sizing: border-box; }
+    .card-mini .code { display: inline-block; background: linear-gradient(90deg,#f02454,#c81e47); color: #fff; font-weight: 900; letter-spacing: .8px; border-radius: 12px; padding: 4px 10px; font-size: 1rem; align-self: flex-start; }
+    .card-mini .name { font-weight: 800; color: #0f172a; line-height: 1.15; font-size: 0.93rem; max-width: 180px; white-space: normal; overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden; text-overflow: ellipsis; min-height: 2.2em; }
+    .card-mini .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.97rem; }
+    .chip { background: #f8fafc; border: 1px solid #e5e7eb; padding: 3px 8px; border-radius: 999px; font-weight: 800; font-size: .93rem; }
+    .chip.mod { min-width: 1.75rem; text-align: center; }
     .tt-legend{ padding:12px 16px; background:#f8fafc; border-top:1px solid #eef0f6; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
     .dot{ width:8px; height:8px; background:#e11d48; border-radius:999px; display:inline-block; margin-right:8px; }
     @media (max-width: 900px){ .tt-head .cell{ padding:14px 10px; } }
 
     /* ===== AI Preferences MODAL (blur background) ===== */
-    .ai-modal-overlay {
-      position: fixed; z-index: 10000; inset: 0;
-      background: rgba(60,60,80,0.18);
-      backdrop-filter: blur(6px);
-      display: none; /* toggled to flex */
-      align-items: center; justify-content: center;
-      transition: opacity 0.3s;
-    }
-    body.ai-modal-open > .wrap,
-    body.ai-modal-open > .loading-overlay {
-      filter: blur(6px) brightness(0.95);
-      pointer-events: none;
-      user-select: none;
-    }
+    .ai-modal-overlay { position: fixed; z-index: 10000; inset: 0; background: rgba(60,60,80,0.18); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; transition: opacity 0.3s; }
+    body.ai-modal-open > .wrap, body.ai-modal-open > .loading-overlay { filter: blur(6px) brightness(0.95); pointer-events: none; user-select: none; }
 
     /* ===== Pretty “preferences-card” UI ===== */
-    .preferences-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 32px 28px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      max-width: 520px;
-      width: 92vw;
-    }
+    .preferences-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); max-width: 520px; width: 92vw; }
     .card-header { text-align: center; margin-bottom: 20px; }
     .card-title { font-size: 1.6rem; font-weight: 800; color: #2d3748; margin-bottom: 6px; }
     .card-subtitle { color: #718096; font-size: 0.95rem; }
@@ -256,15 +183,8 @@
     .day-checkbox{ display:flex; flex-direction:column; align-items:center; gap:8px; }
     .checkbox-label { position: relative; width: 62px; height: 62px; cursor: pointer; }
     .checkbox-input { position: absolute; opacity: 0; width: 0; height: 0; }
-    .checkbox-custom {
-      width: 100%; height: 100%; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-weight: 800; color: #718096;
-    }
-    .checkbox-input:checked + .checkbox-custom {
-      background: linear-gradient(135deg, #e53860, #e53860);
-      border-color: #dd6990; color: white; transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-    }
+    .checkbox-custom { width: 100%; height: 100%; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-weight: 800; color: #718096; }
+    .checkbox-input:checked + .checkbox-custom { background: linear-gradient(135deg, #e53860, #e53860); border-color: #dd6990; color: white; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
     .checkbox-input:checked + .checkbox-custom::after { content: "✓"; font-size: 1rem; margin-left: 6px; }
     .day-name { font-size: 0.88rem; color: #4a5568; font-weight: 600; }
 
@@ -276,152 +196,31 @@
     .btn-generate:hover{ transform: translateY(-1px); }
 
     /* From Uiverse.io by MuhammadHasann */
-    .button {
-      --black-700: hsla(0 0% 12% / 1);
-      --border_radius: 9999px;
-      --transtion: 0.3s ease-in-out;
-      --offset: 2px;
-      cursor: pointer;
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transform-origin: center;
-      padding: 1rem 2rem;
-      background-color: transparent;
-      border: none;
-      border-radius: var(--border_radius);
-      transform: scale(calc(1 + (var(--active, 0) * 0.1)));
-      transition: transform var(--transtion);
-    }
-    .button::before {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      height: 100%;
-      background-color: var(--black-700);
-      border-radius: var(--border_radius);
-      box-shadow: inset 0 0.5px hsl(0, 0%, 100%), inset 0 -1px 2px 0 hsl(0, 0%, 0%),
-        0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))),
-        0 0 0 calc(var(--active, 0) * 0.375rem) hsl(260 97% 50% / 0.75);
-      transition: all var(--transtion);
-      z-index: 0;
-    }
-    .button::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      height: 100%;
-      background-color: hsla(260 97% 61% / 0.75);
-      background-image: radial-gradient(
-          at 51% 89%,
-          hsla(266, 45%, 74%, 1) 0px,
-          transparent 50%
-        ),
-        radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 1) 0px, transparent 50%),
-        radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 1) 0px, transparent 50%);
-      background-position: top;
-      opacity: var(--active, 0);
-      border-radius: var(--border_radius);
-      transition: opacity var(--transtion);
-      z-index: 2;
-    }
-    .button:is(:hover, :focus-visible) {
-      --active: 1;
-    }
-    .button:active {
-      transform: scale(1);
-    }
-    .button .dots_border {
-      --size_border: calc(100% + 2px);
-      overflow: hidden;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: var(--size_border);
-      height: var(--size_border);
-      background-color: transparent;
-      border-radius: var(--border_radius);
-      z-index: -10;
-    }
-    .button .dots_border::before {
-      content: "";
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      transform-origin: left;
-      transform: rotate(0deg);
-      width: 100%;
-      height: 2rem;
-      background-color: white;
-      mask: linear-gradient(transparent 0%, white 120%);
-      animation: rotate 2s linear infinite;
-    }
-    @keyframes rotate {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    .button .sparkle {
-      position: relative;
-      z-index: 10;
-      width: 1.75rem;
-    }
-    .button .sparkle .path {
-      fill: currentColor;
-      stroke: currentColor;
-      transform-origin: center;
-      color: hsl(0, 0%, 100%);
-    }
-    .button:is(:hover, :focus) .sparkle .path {
-      animation: path 1.5s linear 0.5s infinite;
-    }
-    .button .sparkle .path:nth-child(1) {
-      --scale_path_1: 1.2;
-    }
-    .button .sparkle .path:nth-child(2) {
-      --scale_path_2: 1.2;
-    }
-    .button .sparkle .path:nth-child(3) {
-      --scale_path_3: 1.2;
-    }
-    @keyframes path {
-      0%,
-      34%,
-      71%,
-      100% {
-        transform: scale(1);
-      }
-      17% {
-        transform: scale(var(--scale_path_1, 1));
-      }
-      49% {
-        transform: scale(var(--scale_path_2, 1));
-      }
-      83% {
-        transform: scale(var(--scale_path_3, 1));
-      }
-    }
-    .button .text_button {
-      position: relative;
-      z-index: 10;
-      background-image: linear-gradient(
-        90deg,
-        hsla(0 0% 100% / 1) 0%,
-        hsla(0 0% 100% / var(--active, 0)) 120%
-      );
-      background-clip: text;
-      font-size: 1rem;
-      color: transparent;
-    }
+    .button { --black-700: hsla(0 0% 12% / 1); --border_radius: 9999px; --transtion: 0.3s ease-in-out; --offset: 2px; cursor: pointer; position: relative; display: flex; align-items: center; gap: 0.5rem; transform-origin: center; padding: 1rem 2rem; background-color: transparent; border: none; border-radius: var(--border_radius); transform: scale(calc(1 + (var(--active, 0) * 0.1))); transition: transform var(--transtion); }
+    .button::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-color: var(--black-700); border-radius: var(--border_radius); box-shadow: inset 0 0.5px hsl(0, 0%, 100%), inset 0 -1px 2px 0 hsl(0, 0%, 0%), 0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))), 0 0 0 calc(var(--active, 0) * 0.375rem) hsl(260 97% 50% / 0.75); transition: all var(--transtion); z-index: 0; }
+    .button::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-color: hsla(260 97% 61% / 0.75); background-image: radial-gradient(at 51% 89%, hsla(266, 45%, 74%, 1) 0px, transparent 50%), radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 1) 0px, transparent 50%), radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 1) 0px, transparent 50%); background-position: top; opacity: var(--active, 0); border-radius: var(--border_radius); transition: opacity var(--transtion); z-index: 2; }
+    .button:is(:hover, :focus-visible) { --active: 1; }
+    .button:active { transform: scale(1); }
+    .button .dots_border { --size_border: calc(100% + 2px); overflow: hidden; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: var(--size_border); height: var(--size_border); background-color: transparent; border-radius: var(--border_radius); z-index: -10; }
+    .button .dots_border::before { content: ""; position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); transform-origin: left; transform: rotate(0deg); width: 100%; height: 2rem; background-color: white; mask: linear-gradient(transparent 0%, white 120%); animation: rotate 2s linear infinite; }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    .button .sparkle { position: relative; z-index: 10; width: 1.75rem; }
+    .button .sparkle .path { fill: currentColor; stroke: currentColor; transform-origin: center; color: hsl(0, 0%, 100%); }
+    .button:is(:hover, :focus) .sparkle .path { animation: path 1.5s linear 0.5s infinite; }
+    .button .sparkle .path:nth-child(1) { --scale_path_1: 1.2; }
+    .button .sparkle .path:nth-child(2) { --scale_path_2: 1.2; }
+    .button .sparkle .path:nth-child(3) { --scale_path_3: 1.2; }
+    @keyframes path { 0%,34%,71%,100% { transform: scale(1); } 17% { transform: scale(var(--scale_path_1, 1)); } 49% { transform: scale(var(--scale_path_2, 1)); } 83% { transform: scale(var(--scale_path_3, 1)); } }
+    .button .text_button { position: relative; z-index: 10; background-image: linear-gradient(90deg, hsla(0 0% 100% / 1) 0%, hsla(0 0% 100% / var(--active, 0)) 120%); background-clip: text; font-size: 1rem; color: transparent; }
+
+    /* Glow outline for "Generar con IA" button */
+    .btn-ia { --glow-color-1: rgba(240,36,84,0.95); --glow-color-2: rgba(102,126,234,0.9); position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 0; border-radius: 18px; background: linear-gradient(90deg, var(--glow-color-1), var(--glow-color-2)); color: #fff; font-weight: 800; border: none; cursor: pointer; }
+    .btn-ia__inner{ display: inline-flex; align-items: center; justify-content: center; background: #0e0c0c; color: #fafbff; font-weight: 900; padding: 14px 40px; }
+    .btn-ia__label{ font-size:1.05rem; }
+    .btn-ia::after { content: ''; position: absolute; opacity: 0.55; transition: opacity .28s ease, transform .28s ease, filter .28s ease, background .28s ease; z-index: 0; pointer-events: none; mix-blend-mode: screen; }
+    .btn-ia:hover, .btn-ia:focus { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(16,24,40,0.12); background: transparent; }
+    .btn-ia:hover::after, .btn-ia:focus::after { opacity: 1; transform: scale(1.04); filter: blur(12px); animation: iaGlow 2.2s ease-in-out infinite; }
+    @keyframes iaGlow { 0% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); } 50% { transform: scale(1.06); opacity: 1; filter: blur(10px); } 100% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); } }
 
     @media (max-width: 900px) {
       .wrap { max-width: 100vw; padding: 0 2vw; }
@@ -445,6 +244,15 @@
       .btn-primary, .btn { width: 100%; font-size: 1rem; }
       .ai-modal-overlay .preferences-card { padding: 12px 2px; max-width: 99vw; }
     }
+
+    /* Login card (white box with logo above inputs) */
+    .login-card { max-width:420px; margin: 28px auto; background:#fff; border-radius:14px; padding:26px 22px; box-shadow:0 10px 30px rgba(16,24,40,0.08); text-align:center; }
+    .login-card__logo { width:190px; height:90px; display:block; margin: 4px auto 12px; }
+    .login-card__title { font-weight:800; color:#0f172a; margin-bottom:12px; font-size:1.05rem; }
+    .login-card .form-section { text-align:left; margin-top:8px; }
+    .login-card .form-group label { display:block; margin-bottom:6px; font-weight:700; color:#374151; }
+    .login-card .input-with-icon { display:flex; align-items:center; gap:8px; border:1px solid var(--border); padding:10px 12px; border-radius:10px; }
+    .login-card .input-with-icon input { border:0; outline:none; width:100%; font-size:1rem; }
   </style>
 </head>
 <body class="<%= firstName ? '' : 'is-login' %>">
@@ -475,35 +283,34 @@
     <% if (error) { %><div class="error"><%= error %></div><% } %>
 
     <% if (!_firstName) { %>
-      <div class="login-container">
-        <div class="logo-section">
-          <img src="/images/umalogo1.png" alt="UMA" class="logo-image" onerror="this.style.display='none'">
-          <div style="margin-top:8px;font-weight:800;letter-spacing:.4px;">Universidad María Auxiliadora</div>
+      <div class="login-card">
+        <div id="loginTitle" class="login-card__title">
+          <img src="/images/umalogo1.jpg" alt="Universidad María Auxiliadora" class="login-card__logo">
         </div>
-
-        <div class="form-section">
-          <form action="/login" method="POST" id="loginForm">
-            <div class="form-group">
-              <label for="codigo">Código</label>
-              <div class="input-with-icon">
-                <i class="fas fa-user"></i>
-                <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
+          <div class="form-section">
+            <form action="/login" method="POST" id="loginForm">
+              <div class="form-group">
+                <label for="codigo">Código</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-user" style="color:#9ca3af"></i>
+                  <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
+                </div>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label for="dni">DNI</label>
-              <div class="input-with-icon">
-                <i class="fas fa-id-card"></i>
-                <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
+              <div class="form-group" style="margin-top:12px;">
+                <label for="dni">DNI</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-id-card" style="color:#9ca3af"></i>
+                  <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
+                </div>
               </div>
-            </div>
 
-            <button type="submit" class="login-btn pulse">Ingresar</button>
-          </form>
+              <div style="margin-top:18px; text-align:center;">
+                <button type="submit" class="login-btn pulse">Ingresar</button>
+              </div>
+            </form>
 
-          <div class="login-footer">
-            ¿Problemas para acceder? Contacta con soporte técnico.
+            <div class="login-footer" style="margin-top:12px;text-align:center;color:#6b7280;">¿Problemas para acceder? Contacta con soporte técnico.</div>
           </div>
         </div>
       </div>
@@ -637,8 +444,6 @@
         <p class="card-subtitle">Selecciona los días que prefieres libres</p>
       </div>
 
-      
-
       <div class="section-title">Días libres</div>
       <div class="days-grid">
         <div class="day-checkbox">
@@ -728,12 +533,19 @@
 
     // IMPORTANT: Use LOCAL LOGIC on Generate
     if (aiModalGenerate) aiModalGenerate.addEventListener('click', async function() {
-      const freeDays = Array.from(aiModalCheckboxes || []).filter(cb => cb.checked).map(cb => cb.value);
-      window._aiFreeDays = freeDays;               // make available to readPreferences()
-      hideAiModal();
-      await autoAssignFromAvailable({ freeDays }); // <— call our local logic with override
-      document.getElementById('seeTimetableBtn')?.click(); // open visual timetable
-    });
+    const freeDays = Array.from(aiModalCheckboxes || [])
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+
+    window._aiFreeDays = freeDays;
+    hideAiModal();
+
+    const ok = await autoAssignFromAvailable({ freeDays });
+    if (!ok) return; // IA failed → nothing changed, don’t open timetable
+
+    document.getElementById('seeTimetableBtn')?.click(); // open visual timetable
+  });
+
 
     /* ===== Tiny utils and normalizers ===== */
     const norm = (s) => String(s || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -746,7 +558,7 @@
 
     // Modality display + short letter
     const modalityDisplayNames = {
-      'TEORÍA VIRTUAL':'TEORÍA VIRTUAL','TEORIA VIRTUAL':'TEORÍA VIRTUAL','VIRTUAL':'TEORÍA VIRTUAL','TEV':'TEORÍA VIRTUAL',
+      'TEORÍA VIRTUAL':'TEORÍA VIRTUAL','TEORIA VIRTUAL':'TEORÍA VIRTUAL','VIRTUAL':'TEORÍA VIRTUAL','TEV':'TEORÍA VIRTUAL','VIR':'TEORÍA VIRTUAL',
       'TEORÍA PRESENCIAL':'TEORÍA PRESENCIAL','TEORIA PRESENCIAL':'TEORÍA PRESENCIAL','PRESENCIAL':'TEORÍA PRESENCIAL','TEP':'TEORÍA PRESENCIAL',
       'LABORATORIO PRESENCIAL':'LABORATORIO PRESENCIAL','LAB PRESENCIAL':'LABORATORIO PRESENCIAL','LBP':'LABORATORIO PRESENCIAL',
       'V':'TEORÍA VIRTUAL', 'P':'TEORÍA PRESENCIAL','L':'LABORATORIO PRESENCIAL','PRE':'PRE'
@@ -855,6 +667,33 @@
       return entries;
     }
 
+    // Build timetable excluding ALL rows of a given course (by courseCode)
+    function buildPlanWithoutCourse(courseCode) {
+      const excludeKey = norm(courseCode || '');
+      const entries = [];
+      document.querySelectorAll('.course').forEach(row => {
+        const base = originals[row.id] || readCurrent(row);
+        const code = row.getAttribute('data-code') || base.code;
+        if (excludeKey && norm(code) === excludeKey) return;
+
+        const sel  = changes[row.id];
+        const day  = canonicalDay(sel?.day || base.day);
+        const time = normalizeTime(sel?.time || base.time);
+        const range = parseRange(time);
+        if (!range) return;
+        entries.push({ code, day, time, start: range.start, end: range.end });
+      });
+      return entries;
+    }
+
+    // helper: remove all IA changes and clear "Cambios" boxes
+    function resetChanges() {
+      Object.keys(changes).forEach(k => delete changes[k]);
+      document.querySelectorAll('.change-wrapper').forEach(el => {
+        el.className = '';
+        el.innerHTML = '';
+      });
+    }
     function getConflict(plan, day, time){
       const r = parseRange(time);
       if (!r) return null;
@@ -866,7 +705,55 @@
       return null;
     }
 
-    function parseDayTimeFromOption(o){
+    // classify modality to group segments (T = teoría/virtual, L = laboratorio)
+    function classifyModType(mod) {
+      const m = normalizeModalityDisplay(mod || '').toUpperCase();
+      if (m.includes('LAB')) return 'L';
+      if (m.includes('VIRT') || m.includes('TEOR')) return 'T';
+      return 'O';
+    }
+
+    // Check if ANY segment of a turno conflicts with the current plan
+    function getGroupConflict(plan, option) {
+      const sessions = Array.isArray(option.sessions) ? option.sessions : [];
+      if (sessions.length) {
+        for (const s of sessions) {
+          const day = canonicalDay(s.day || s.dayName || "—");
+          const time = normalizeTime(
+            s.time ||
+            `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+          );
+          const conflict = getConflict(plan, day, time);
+          if (conflict) return conflict;
+        }
+        return null;
+      }
+
+      // fallback: old behaviour using a single slot
+      const dt = parseDayTimeFromOption(option);
+      return getConflict(plan, dt.day, dt.time);
+    }
+
+    function parseDayTimeFromOption(o, preferredModality){
+      const sessions = Array.isArray(o.sessions) ? o.sessions : null;
+
+      if (sessions && sessions.length) {
+        let seg = null;
+        if (preferredModality) {
+          const prefType = classifyModType(preferredModality);
+          seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === prefType) || null;
+        }
+        if (!seg) seg = sessions[0];
+
+        const day = canonicalDay(seg.day || seg.dayName || "—");
+        const time = normalizeTime(
+          seg.time ||
+          `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}`
+        );
+        return { day, time };
+      }
+
+      // ---- fallback: previous behaviour (no sessions[]) ----
       let day = o.day || "", time = normalizeTime(o.hour || o.time || "");
       if ((!day || !time) && o.scheduleText) {
         const first = String(o.scheduleText).split("•")[0].trim();
@@ -877,10 +764,60 @@
       return { day: canonicalDay(day || "—"), time: time || "—" };
     }
 
+        // ===== Show only ONE card per course (combine teoría + laboratorio) =====
+    (function groupEnrolledCards() {
+      const byCode = {};
+      document.querySelectorAll('.course').forEach(row => {
+        const code = row.getAttribute('data-code') || '';
+        if (!byCode[code]) byCode[code] = [];
+        byCode[code].push(row);
+      });
+
+      Object.values(byCode).forEach(rows => {
+        if (rows.length <= 1) return;
+
+        // pick main row: prefer teoría/virtual if available
+        const withData = rows.map(r => ({ row: r, data: readCurrent(r) }));
+        let mainEntry =
+          withData.find(e => classifyModType(e.data.modality) === 'T') ||
+          withData[0];
+
+        const mainRow = mainEntry.row;
+        const others  = rows.filter(r => r !== mainRow);
+
+        // Add a small "Componentes: Teoría + laboratorio" tag on the main card
+        const hasTheory = withData.some(e => classifyModType(e.data.modality) === 'T');
+        const hasLab    = withData.some(e => classifyModType(e.data.modality) === 'L');
+
+        const meta = mainRow.querySelector('.course-meta');
+        if (meta) {
+          const span = document.createElement('span');
+          span.className = 'meta-item';
+          const text =
+            hasTheory && hasLab ? 'Teoría + laboratorio' :
+            hasTheory           ? 'Solo teoría' :
+            hasLab              ? 'Solo laboratorio' :
+                                   `${rows.length} sesiones`;
+          span.innerHTML = `<span>Componentes:</span> <strong>${text}</strong>`;
+          meta.appendChild(span);
+        }
+
+        // Hide the extra rows + their change panels
+        others.forEach(r => {
+          r.classList.add('course-hidden-segment');
+          const idxStr = r.id && r.id.split('-')[1];
+          if (idxStr) {
+            const chgEl = document.getElementById('chg-' + idxStr);
+            if (chgEl) chgEl.style.display = 'none';
+          }
+        });
+      });
+    })();
+
     // Build originals once
     document.querySelectorAll('.course').forEach((row, idx) => {
       originals[row.id] = readCurrent(row);
-      const details = row.querySelector('.repl');
+      const details   = row.querySelector('.repl');
       const container = row.querySelector('#opts-' + idx);
       if (!details || !container) return;
 
@@ -888,8 +825,12 @@
         if (!details.open) return;
         if (container.dataset.loaded === '1') return;
 
-        const courseCode = row.getAttribute('data-code') || (row.querySelector('.badge')?.textContent || '').trim();
+        const base       = originals[row.id] || readCurrent(row);
+        const courseCode = row.getAttribute('data-code') || base.code;
         const period     = row.getAttribute('data-period') || '';
+        const originalModality = normalizeModalityDisplay(base.modality || '');
+        const currentGroupKey  = norm(getGroup(row));
+
         container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
 
         try {
@@ -900,48 +841,65 @@
           });
           const json = await resp.json();
 
+          // each item from backend is already a FULL TURNO with sessions[]
           let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
-          const currentGroup = norm(getGroup(row));
-          opts = opts.filter(o => norm(o.groupCode) !== currentGroup);
 
-          // same modality as original
-          const originalModality = normalizeModalityDisplay(row.querySelectorAll('.course-meta .meta-item strong')[4]?.textContent || '');
-          opts = opts.filter(o => normalizeModalityDisplay(o.modality || '') === originalModality);
+          // remove the current group
+          opts = opts.filter(o => norm(o.groupCode || o.section || '') !== currentGroupKey);
 
           if (!opts.length) {
-            container.innerHTML = '<div class="option muted">No hay opciones de reemplazo para este curso.</div>';
+            container.innerHTML = '<div class="option muted">No hay turnos de reemplazo para este curso.</div>';
             container.dataset.loaded = '1';
             return;
           }
 
-          const currentPlan = buildPlanExcept(row.id);
+          const currentPlan = buildPlanWithoutCourse(courseCode); // exclude all rows of this course
+          const blocks = [];
 
-          container.innerHTML = opts.map(o => {
-            const { day, time } = parseDayTimeFromOption(o);
-            const conflictWith = getConflict(currentPlan, day, time);
+          opts.forEach(o => {
+            const conflictWith = getGroupConflict(currentPlan, o);
 
-            const payload = safeJson({ ...o, day, time });
+            const payload = safeJson({
+              courseCode,
+              groupCode: o.groupCode || o.section || '',
+              sessions: Array.isArray(o.sessions) ? o.sessions : []
+            });
+
             const btnAttrs = conflictWith
               ? 'class="option-btn" disabled'
               : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
 
-            return `
+            // Show ALL sessions of the turno (TEV/VIR + LBP/TEP, etc.)
+            const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
+              const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
+              const day = canonicalDay(s.dayName || s.day || '—');
+              const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
+              return `
+                <div class="field">
+                  <span class="label">${escapeHtml(mod)}</span>
+                  <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
+                </div>`;
+            }).join('');
+
+            blocks.push(`
               <div class="option">
-                <div class="option-code">${escapeHtml(o.courseCode || "—")}</div>
+                <div class="option-code">${escapeHtml(courseCode || "—")}</div>
                 <div class="option-fields">
-                  <div class="field"><span class="label">Grupo</span><span class="value">${escapeHtml(o.groupCode || "—")}</span></div>
-                  <div class="field"><span class="label">Día</span><span class="value">${escapeHtml(day)}</span></div>
-                  <div class="field"><span class="label">Hora</span><span class="value">${escapeHtml(time)}</span></div>
-                  <div class="field"><span class="label">Modalidad</span><span class="value">${escapeHtml(normalizeModalityDisplay(o.modality || "—"))}</span></div>
+                  <div class="field">
+                    <span class="label">Grupo</span>
+                    <span class="value">${escapeHtml(o.groupCode || o.section || "—")}</span>
+                  </div>
+                  ${sessionsHtml}
                 </div>
                 <div class="option-cta">
-                  <button ${btnAttrs}>${conflictWith ? 'Horario en conflicto' : 'Usar este'}</button>
-                  ${conflictWith ? `<div class="conflict-note">Entra en conflicto con ${escapeHtml(conflictWith.code)}. Selecciona otro horario de este curso.</div>` : ''}
+                  <button ${btnAttrs}>${conflictWith ? 'Horario en conflicto' : 'Usar este turno completo'}</button>
+                  ${conflictWith ? `<div class="conflict-note">Alguna parte de este turno choca con ${escapeHtml(conflictWith.code)}. Elige otro turno del curso.</div>` : ''}
                 </div>
               </div>
-            `;
-          }).join('');
+            `);
+          });
 
+          container.innerHTML = blocks.join('');
           container.dataset.loaded = '1';
         } catch (e) {
           console.error(e);
@@ -955,29 +913,73 @@
       return meta && meta[1] ? (meta[1].textContent || '').trim() : '';
     };
 
+    // Apply a FULL turno (all sessions) to ALL rows of the same course
     window.previewReplace = function(rowIndex, opt){
       const row = document.getElementById('c-' + rowIndex);
       if (!row) return;
 
-      const plan = buildPlanExcept(row.id);
-      const conflict = getConflict(plan, opt.day, normalizeTime(opt.time || opt.hour));
-      if (conflict) { alert(`Ese horario choca con ${conflict.code}. Selecciona otro tiempo de ese curso.`); return; }
+      const courseCode = opt.courseCode ||
+        row.getAttribute('data-code') ||
+        (originals[row.id] || readCurrent(row)).code;
 
-      const original = originals[row.id] || readCurrent(row);
-      const details = row.querySelector('.repl'); if (details) details.open = false;
+      const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
+      if (!sessions.length) return;
 
-      const after = {
-        code: original.code,
-        name: row.getAttribute('data-name') || original.name,
-        group: opt.groupCode || '—',
-        day:   canonicalDay(opt.day || original.day),
-        time:  normalizeTime(opt.time || opt.hour || original.time),
-        modality: normalizeModalityDisplay(opt.modality || original.modality)
-      };
+      // 1) re-check conflicts for the WHOLE turno
+      const plan = buildPlanWithoutCourse(courseCode);
+      for (const s of sessions) {
+        const day = canonicalDay(s.day || s.dayName || "—");
+        const time = normalizeTime(
+          s.time ||
+          `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+        );
+        const conflict = getConflict(plan, day, time);
+        if (conflict) {
+          alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
+          return;
+        }
+      }
 
-      changes[row.id] = after;
-      renderChange(rowIndex, { group: original.group, day: original.day, time: original.time, modality: original.modality }, after);
+      // 2) apply this turno to ALL rows of this course (teoría + lab, etc.)
+      const courseRows = Array.from(document.querySelectorAll('.course'))
+        .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
+
+      courseRows.forEach(r => {
+        const rowId = r.id;
+        const original = originals[rowId] || readCurrent(r);
+        const origType = classifyModType(original.modality);
+
+        // find matching segment (T/L) for this row; fallback to first session
+        let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
+
+        const idxStr = rowId.split('-')[1];
+        const idxNum = Number(idxStr);
+
+        const after = {
+          code: original.code,
+          name: r.getAttribute('data-name') || original.name,
+          group: opt.groupCode || original.group,
+          day: canonicalDay(seg.day || seg.dayName || original.day),
+          time: normalizeTime(
+            seg.time ||
+            `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
+            original.time
+          ),
+          modality: normalizeModalityDisplay(seg.modality || original.modality)
+        };
+
+        changes[rowId] = after;
+        renderChange(
+          idxNum,
+          { group: original.group, day: original.day, time: original.time, modality: original.modality },
+          after
+        );
+      });
+
+      // close all "Reemplazar curso" panels
+      document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
     };
+
     function buildFinalEntries() {
       const entries = [];
       document.querySelectorAll('.course').forEach(row => {
@@ -1039,7 +1041,6 @@
       panel.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
       document.getElementById('courseCount').textContent = entries.length;
 
-      // Fixed regex and function
       const toStart = (t) => {
         const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t||''));
         return m ? (+m[1])*60 + (+m[2]) : 24*60;
@@ -1049,17 +1050,18 @@
       DAYS.forEach(d => byDay[d].sort((a,b)=> toStart(a.time) - toStart(b.time)));
 
       const gridEl = panel.querySelector('.tt-grid');
-      DAYS.forEach(d => {
+            DAYS.forEach(d => {
         const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
         byDay[d].forEach(e=>{
           const card = document.createElement('div');
           card.className = 'card-mini';
           card.innerHTML = `
             <span class="code">${escapeHtml(e.code)}</span>
-            <div class="name">${escapeHtml(e.name||'')}</div>
+            <div class="name">${escapeHtml(e.name || '')}</div>
             <div class="meta">
               <span class="chip">${escapeHtml(e.time || 'No asignada')}</span>
-              <span class="chip mod">${escapeHtml(shortMod(e.modality||''))}</span>
+              <span class="chip">Gr. ${escapeHtml(e.group || '—')}</span>
+              <span class="chip mod">${escapeHtml(shortMod(e.modality || ''))}</span>
             </div>`;
           col.appendChild(card);
         });
@@ -1080,7 +1082,7 @@
       document.getElementById('timetablePanel').classList.add('hidden');
     });
 
-    // Confirm modal (unchanged)
+    // Confirm modal
     const confirmBtn     = document.getElementById('confirmBtn');
     const confirmModal   = document.getElementById('confirmModal');
     const confirmClose   = document.getElementById('confirmClose');
@@ -1162,7 +1164,6 @@
 
     /* ===== Preferences + LOCAL AI ===== */
     function readPreferences(){
-      // prefer modal selection if present
       const freeDays = Array.isArray(window._aiFreeDays)
         ? window._aiFreeDays.slice()
         : Array.from(document.querySelectorAll('.pref-free:checked')).map(i => i.value);
@@ -1171,110 +1172,131 @@
       return { timePreference, freeDays, keepChangesLow };
     }
 
-    // === YOUR LOCAL LOGIC, now accepts prefsOverride ===
     async function autoAssignFromAvailable(prefsOverride) {
-      const overlay = document.getElementById('loadingOverlay');
+  const overlay = document.getElementById('loadingOverlay');
+  // will accumulate courses where we **couldn’t** find a valid turno
+  const unsatisfied = [];
+
+  try {
+    overlay?.classList.add('active');
+
+    const prefs = prefsOverride || readPreferences();
+    const freeDayKeys = new Set((prefs.freeDays || []).map(d => sameDayKey(d)));
+
+    const chosenTemp = [];
+    const rows = Array.from(document.querySelectorAll('.course'));
+
+    for (const row of rows) {
+      const rowId = row.id;
+      const idx   = Number(rowId.split('-')[1]);
+      const base  = originals[rowId] || readCurrent(row);
+      const courseCode = (row.getAttribute('data-code') || base.code || '').trim();
+      const period     = row.getAttribute('data-period') || '';
+
+      const currentDayKey = sameDayKey(base.day);
+      const currentPlan   = [...buildPlanExcept(rowId), ...chosenTemp];
+
+      // fetch options
+      let opts = [];
       try {
-        overlay?.classList.add('active');
-
-        const prefs = prefsOverride || readPreferences();
-        const freeDayKeys = new Set((prefs.freeDays || []).map(d => sameDayKey(d)));
-
-        const chosenTemp = [];
-        const noTurno = [];
-        const rows = Array.from(document.querySelectorAll('.course'));
-
-        for (const row of rows) {
-          const rowId = row.id;
-          const idx   = Number(rowId.split('-')[1]);
-          const base  = originals[rowId] || readCurrent(row);
-          const courseCode = (row.getAttribute('data-code') || base.code || '').trim();
-          const period     = row.getAttribute('data-period') || '';
-
-          const currentDayKey = sameDayKey(base.day);
-
-          const currentPlan = [...buildPlanExcept(rowId), ...chosenTemp];
-
-          // fetch options
-          let opts = [];
-          try {
-            const r = await fetch('/available', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ period, courseCode })
-            });
-            const j = await r.json();
-            opts = (j.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
-          } catch { opts = []; }
-
-          // normalize + filter by SAME MODALITY and NOT on a free day
-          const originalMod = normalizeModalityDisplay(base.modality || '');
-          const allNormalized = opts.map(o => {
-            const parsed = parseDayTimeFromOption(o);
-            return {
-              code: courseCode,
-              name: row.getAttribute('data-name') || base.name,
-              group: o.groupCode || o.group || o.section || '',
-              day: canonicalDay(parsed.day || ''),
-              time: normalizeTime(parsed.time || ''),
-              modality: normalizeModalityDisplay(o.modality || '')
-            };
-          });
-
-          const outsideFree = allNormalized
-            .filter(c => c.modality === originalMod)
-            .filter(c => !freeDayKeys.has(sameDayKey(c.day)));
-
-          let chosen = null;
-          for (const cand of outsideFree) {
-            const rng = parseRange(cand.time);
-            if (!rng) continue;
-
-            const sameSlot = sameDayKey(cand.day) === currentDayKey &&
-                             cand.time === normalizeTime(base.time || base.hour || '');
-            if (sameSlot && freeDayKeys.has(currentDayKey)) continue;
-
-            const conflict = getConflict(currentPlan, cand.day, cand.time);
-            if (!conflict) { chosen = { cand, rng }; break; }
-          }
-          if (!chosen && outsideFree.length) {
-            const cand = outsideFree[0];
-            const rng  = parseRange(cand.time);
-            if (rng) chosen = { cand, rng };
-          }
-
-          if (!chosen) {
-            if (freeDayKeys.has(currentDayKey)) {
-              noTurno.push(`${base.code} — ${base.name}`);
-            }
-            continue;
-          }
-
-          const after = {
-            code: base.code,
-            name: row.getAttribute('data-name') || base.name,
-            group: chosen.cand.group || base.group,
-            day:   chosen.cand.day,
-            time:  chosen.cand.time,
-            modality: originalMod
-          };
-          changes[rowId] = after;
-          renderChange(idx, { group: base.group, day: base.day, time: base.time, modality: base.modality }, after);
-
-          chosenTemp.push({ code: base.code, day: after.day, ...chosen.rng });
-        }
-
-        if (noTurno.length) {
-          alert('No hay turnos fuera de los días libres para:\n\n' + noTurno.join('\n'));
-        }
-
-      } catch (err) {
-        console.error(err);
-        alert('Ocurrió un error generando el horario.');
-      } finally {
-        overlay?.classList.remove('active');
+        const r = await fetch('/available', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ period, courseCode })
+        });
+        const j = await r.json();
+        opts = (j.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
+      } catch {
+        opts = [];
       }
+
+      const originalMod = normalizeModalityDisplay(base.modality || '');
+      const allNormalized = opts.map(o => {
+        const parsed = parseDayTimeFromOption(o);
+        return {
+          code: courseCode,
+          name: row.getAttribute('data-name') || base.name,
+          group: o.groupCode || o.group || o.section || '',
+          day: canonicalDay(parsed.day || ''),
+          time: normalizeTime(parsed.time || ''),
+          modality: normalizeModalityDisplay(o.modality || '')
+        };
+      });
+
+      const outsideFree = allNormalized
+        .filter(c => c.modality === originalMod)
+        .filter(c => !freeDayKeys.has(sameDayKey(c.day)));
+
+      let chosen = null;
+      for (const cand of outsideFree) {
+        const rng = parseRange(cand.time);
+        if (!rng) continue;
+
+        const sameSlot = sameDayKey(cand.day) === currentDayKey &&
+                         cand.time === normalizeTime(base.time || base.hour || '');
+        if (sameSlot && freeDayKeys.has(currentDayKey)) continue;
+
+        const conflict = getConflict(currentPlan, cand.day, cand.time);
+        if (!conflict) {
+          chosen = { cand, rng };
+          break;
+        }
+      }
+      if (!chosen && outsideFree.length) {
+        const cand = outsideFree[0];
+        const rng  = parseRange(cand.time);
+        if (rng) chosen = { cand, rng };
+      }
+
+      // ── nothing valid found → remember this course and DO NOT change it
+      if (!chosen) {
+        unsatisfied.push(`${base.code} — ${base.name}`);
+        continue;
+      }
+
+      const after = {
+        code: base.code,
+        name: row.getAttribute('data-name') || base.name,
+        group: chosen.cand.group || base.group,
+        day:   chosen.cand.day,
+        time:  chosen.cand.time,
+        modality: originalMod
+      };
+      changes[rowId] = after;
+      renderChange(
+        idx,
+        { group: base.group, day: base.day, time: base.time, modality: base.modality },
+        after
+      );
+
+      chosenTemp.push({ code: base.code, day: after.day, ...chosen.rng });
     }
+
+    // ❌ if at least one course had no valid turno → revert everything
+    if (unsatisfied.length) {
+      resetChanges();
+      alert(
+        'No se encontró un turno que cumpla todas las restricciones para:\n\n' +
+        unsatisfied.join('\n') +
+        '\n\nTu horario NO se ha modificado. Prueba cambiando las preferencias o ajusta esos cursos manualmente.'
+      );
+      return false;
+    }
+
+    // ✅ IA assignment ok
+    return true;
+
+  } catch (err) {
+    console.error(err);
+    resetChanges();  // be safe
+    alert('Ocurrió un error generando el horario.');
+    return false;
+  } finally {
+    overlay?.classList.remove('active');
+  }
+}
+
+
 
     // helpers
     function formatMins(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }

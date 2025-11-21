@@ -11,12 +11,9 @@ const fs = require("fs");
 // ---- optional require for nodemailer (prevents crash if not installed)
 let nodemailer = null;
 try {
-  // install with: npm i nodemailer
-  nodemailer = require("nodemailer");
+  nodemailer = require("nodemailer"); // npm i nodemailer
 } catch (e) {
-  console.warn(
-    " 'nodemailer' is not installed. Emails will be skipped. Run `npm i nodemailer` to enable emailing."
-  );
+  console.warn(" 'nodemailer' is not installed. Emails will be skipped. Run `npm i nodemailer` to enable emailing.");
 }
 
 const app = express();
@@ -50,7 +47,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production", // auto-secure on Render
+      secure: process.env.NODE_ENV === "production",
     },
   })
 );
@@ -74,17 +71,10 @@ const mailer =
         : undefined,
   });
 
-  if (mailer) {
-  // Turn on nodemailer internal logging (shows SMTP dialog in logs)
-  mailer.logger = true;
-  mailer.debug = true;
-
-  mailer.verify((err, success) => {
-    if (err) {
-      console.error("SMTP verify failed:", err.message);
-    } else {
-      console.log("SMTP verify OK. From:", FROM_EMAIL);
-    }
+if (mailer) {
+  mailer.verify((err) => {
+    if (err) console.error("SMTP verify failed:", err.message);
+    else console.log("SMTP verify OK. From:", FROM_EMAIL);
   });
   console.log("SMTP settings",
     JSON.stringify({
@@ -110,15 +100,7 @@ function fmtPeriod(p) {
   return s.length === 5 ? `${s.slice(0, 4)}-${s.slice(4)}` : s;
 }
 function dayNameFromNumber(n) {
-  const map = {
-    1: "Lunes",
-    2: "Martes",
-    3: "Miércoles",
-    4: "Jueves",
-    5: "Viernes",
-    6: "Sábado",
-    7: "Domingo",
-  };
+  const map = { 1:"Lunes",2:"Martes",3:"Miércoles",4:"Jueves",5:"Viernes",6:"Sábado",7:"Domingo" };
   return map[n] || "";
 }
 function norm(s) {
@@ -130,41 +112,18 @@ function stripAcc(s) {
 function normMod(m) {
   const t = stripAcc(String(m || "").toUpperCase().trim());
   if (t.includes("LAB")) return "LABORATORIO PRESENCIAL";
-  if (t.includes("VIRT") || t.includes("TEV")) return "TEORÍA VIRTUAL";
-  if (
-    t.includes("PRE") ||
-    t.includes("TEP") ||
-    t.includes("TEORIA PRESENCIAL") ||
-    t.includes("TEORÍA PRESENCIAL")
-  )
+  if (t.includes("VIR") || t.includes("TEV") || t.includes("VIRT")) return "TEORÍA VIRTUAL"; // include VIR here
+  if (t.includes("PRE") || t.includes("TEP") || t.includes("TEORIA PRESENCIAL") || t.includes("TEORÍA PRESENCIAL"))
     return "TEORÍA PRESENCIAL";
   return t || "—";
 }
 function dayToNumber(d) {
   const k = stripAcc(String(d || "").toLowerCase());
-  const map = {
-    lunes: 1,
-    martes: 2,
-    miercoles: 3,
-    miércoles: 3,
-    jueves: 4,
-    viernes: 5,
-    sabado: 6,
-    sábado: 6,
-    domingo: 7,
-  };
+  const map = { lunes:1, martes:2, miercoles:3, miércoles:3, jueves:4, viernes:5, sabado:6, sábado:6, domingo:7 };
   return map[k] || 0;
 }
 function numberToDay(n) {
-  const map = {
-    1: "Lunes",
-    2: "Martes",
-    3: "Miércoles",
-    4: "Jueves",
-    5: "Viernes",
-    6: "Sábado",
-    7: "Domingo",
-  };
+  const map = { 1:"Lunes",2:"Martes",3:"Miércoles",4:"Jueves",5:"Viernes",6:"Sábado",7:"Domingo" };
   return map[n] || "—";
 }
 
@@ -174,22 +133,11 @@ function extractCoursesMap(root) {
   if (root.courseList && typeof root.courseList === "object") return root.courseList;
 
   const wrappers = [
-    "data",
-    "result",
-    "payload",
-    "available",
-    "availableCourses",
-    "items",
-    "courses",
+    "data","result","payload","available","availableCourses","items","courses",
   ];
   for (const w of wrappers) {
     const obj = root[w];
-    if (
-      obj &&
-      typeof obj === "object" &&
-      obj.courseList &&
-      typeof obj.courseList === "object"
-    ) {
+    if (obj && typeof obj === "object" && obj.courseList && typeof obj.courseList === "object") {
       return obj.courseList;
     }
   }
@@ -199,24 +147,21 @@ function extractCoursesMap(root) {
   const plausible = keys.filter((k) => !metaKey.test(k));
   if (plausible.length) {
     const sample = root[plausible[0]];
-    if (
-      sample &&
-      typeof sample === "object" &&
-      ("groups" in sample || "courseName" in sample)
-    ) {
-      return plausible.reduce((acc, k) => {
-        acc[k] = root[k];
-        return acc;
-      }, {});
+    if (sample && typeof sample === "object" && ("groups" in sample || "courseName" in sample)) {
+      return plausible.reduce((acc, k) => { acc[k] = root[k]; return acc; }, {});
     }
   }
   return {};
 }
 
-/** Flatten for the UI replacement-panel */
+/** Flatten for the UI replacement-panel
+ *  - Aggregates sessions by groupCode
+ *  - If a course has both TEORÍA and LAB, only keeps groups that have BOTH
+ */
 function flattenAvailable(coursesMap) {
   const out = [];
   const codes = Object.keys(coursesMap || {});
+
   for (const code of codes) {
     const courseObj = coursesMap[code] || {};
     const name = courseObj.courseName || "";
@@ -227,37 +172,78 @@ function flattenAvailable(coursesMap) {
       ? groups.map((g) => [g.courseGroup || g.group || g.section || "", g])
       : Object.entries(groups);
 
+    // 1) Aggregate all sessions by groupCode
+    const groupMap = {};
+    let courseHasTheory = false;
+    let courseHasLab = false;
+
     for (const [gKey, gRaw] of groupEntries) {
       const g = gRaw || {};
       const groupCode = g.courseGroup || g.group || g.section || gKey;
+      if (!groupCode) continue;
+
+      const mapKey = norm(groupCode);
+      if (!groupMap[mapKey]) {
+        groupMap[mapKey] = { groupCode, sessions: [] };
+      }
 
       const sessions = Array.isArray(g.sessions) ? g.sessions : (Array.isArray(g) ? g : []);
-      const pieces = sessions.map((s) => {
-        const dn = s.dayName || dayNameFromNumber(s.day);
-        const start = s.start || s.hourStart || "";
-        const end = s.end || s.hourEnd || "";
-        const mod = s.modality ? ` (${s.modality})` : "";
-        return `${dn} ${start}${end ? "–" + end : ""}${mod}`;
+      sessions.forEach((s) => {
+        const day = s.dayName || dayNameFromNumber(s.day);
+        const start = s.start || s.hourStart || s.hourIni || "";
+        const end   = s.end   || s.hourEnd   || s.hourFin || "";
+        const modalityRaw = s.modality || g.modality || courseObj.modality || "";
+        const modalityNorm = normMod(modalityRaw);
+
+        // classify modality
+        let type = "O";
+        if (modalityNorm.includes("LABORATORIO")) type = "L";
+        else if (modalityNorm.includes("TEORÍA") || modalityNorm.includes("TEORIA") || modalityNorm.includes("VIRTUAL")) type = "T";
+
+        if (type === "T") courseHasTheory = true;
+        if (type === "L") courseHasLab = true;
+
+        groupMap[mapKey].sessions.push({
+          day, start, end, modality: modalityRaw, modalityNorm, type
+        });
+      });
+    }
+
+    // 2) If course has BOTH theory and lab, require each group to have both
+    const requirePair = courseHasTheory && courseHasLab;
+
+    Object.values(groupMap).forEach((gInfo) => {
+      const hasT = gInfo.sessions.some((s) => s.type === "T");
+      const hasL = gInfo.sessions.some((s) => s.type === "L");
+      if (requirePair && !(hasT && hasL)) return;
+
+      const pieces = gInfo.sessions.map((s) => {
+        const t = [s.start, s.end].filter(Boolean).join("–");
+        const modSuffix = s.modality ? ` (${s.modality})` : "";
+        return `${s.day} ${t}${modSuffix}`;
       });
 
+      const first = gInfo.sessions[0] || {};
       out.push({
         courseCode: code,
         courseName: name,
         courseCycle: theCycle,
-        groupCode: groupCode,
+        groupCode: gInfo.groupCode,
         scheduleText: pieces.join(" • "),
-        modality: (sessions[0] && sessions[0].modality) ? sessions[0].modality : "",
+        modality: first.modality || "",
         teacherName: "—",
         day: "",
         hour: "",
+        sessions: gInfo.sessions
       });
-    }
+    });
   }
+
   out.sort((a, b) => String(a.groupCode).localeCompare(String(b.groupCode)));
   return out;
 }
 
-/** Flatten for AI: { CODE: [ {courseCode, group, day, time, teacherName, modality} ] } */
+/** Flatten for AI (kept as in your version) */
 function flattenAvailableForAI(coursesMap) {
   const out = {};
   Object.keys(coursesMap || {}).forEach((code) => {
@@ -514,7 +500,7 @@ app.post("/available", async (req, res) => {
 
     const root = (sa.data && sa.data.data) || sa.data;
     const coursesMap = extractCoursesMap(root);
-    const theKeys = Object.keys(coursesMap || {}); // fixed: no accidental global
+    const theKeys = Object.keys(coursesMap || {});
     const bestKey = pickBestKey(courseCode, theKeys);
 
     let filtered = [];
@@ -539,7 +525,6 @@ app.post("/available", async (req, res) => {
     res.status(500).json({ error: "failed_to_load_available" });
   }
 });
-
 /* ---------- AI suggest route (proxy to your Python microservice) ---------- */
 app.post("/ai-suggest", async (req, res) => {
   try {
@@ -568,7 +553,7 @@ app.post("/ai-suggest", async (req, res) => {
     const coursesMap = extractCoursesMap(root);
     const available = flattenAvailableForAI(coursesMap);
 
-    // 3) preferences from client (pass through)
+    // 3) preferences from client
     const preferences = {
       timePreference:
         (req.body?.preferences?.timePreference) ??
@@ -638,7 +623,6 @@ app.post("/confirm", async (req, res) => {
       return t.replace('-', '–');
     };
 
-    // Changes (normalized) — accept {from,to} or {before,after} and sanitize values
     const toDisp = (t) => (t ? displayTime(t) : "—");
 
     const changesList = (Array.isArray(clientChanges) ? clientChanges : []).map(ch => {
@@ -715,7 +699,7 @@ app.post("/confirm", async (req, res) => {
       doc.restore();
     }
 
-    // ----- Header with ribbon + white title + logo
+    // Header ribbon
     const headerX = doc.page.margins.left;
     const headerW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const barH    = 42;
@@ -750,7 +734,7 @@ app.post("/confirm", async (req, res) => {
       { width: ribbonW - 24, align: "left" }
     );
 
-    // ----- Student card
+    // Student card
     doc.moveDown(1.5);
     const cardX   = doc.page.margins.left;
     const cardW   = headerW;
@@ -788,7 +772,7 @@ app.post("/confirm", async (req, res) => {
 
     doc.y = cardTop + cardH + 8;
 
-    // ----- Changes
+    // Changes
     let currentY = drawSectionHeader("Cambios solicitados", doc.y);
     const CHG_GAP   = 50;
     const CHG_BOX_W = Math.floor((headerW - CHG_GAP) / 2);
@@ -873,7 +857,7 @@ app.post("/confirm", async (req, res) => {
       changesList.forEach(drawChangeRow);
     }
 
-    // ----- Final timetable
+    // Final timetable
     currentY = drawSectionHeader("Horario final", currentY);
 
     const ORDER_DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
@@ -1020,7 +1004,7 @@ app.post("/confirm", async (req, res) => {
     if (mailer && adminTargets.length) {
       try {
         await mailer.sendMail({
-          from: FROM_EMAIL, // your no-reply address
+          from: FROM_EMAIL,
           to: adminTargets.join(","),
           subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
           text:
@@ -1037,18 +1021,6 @@ app.post("/confirm", async (req, res) => {
     } else if (!mailer) {
       console.warn("  Skipping email: nodemailer not available. Run `npm i nodemailer`.");
     }
-
-    // ======== STUDENT EMAIL (disabled for now) ========
-    // const studentRecipient = info.email; // institutional student email
-    // if (mailer && studentRecipient) {
-    //   await mailer.sendMail({
-    //     from: FROM_EMAIL,
-    //     to: studentRecipient,
-    //     subject: `Tu rectificación de matrícula – ${info.code}`,
-    //     text: `Hola ${info.name}, adjuntamos tu PDF de rectificación.`,
-    //     attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }]
-    //   });
-    // }
 
     // Return the same PDF in the HTTP response (download)
     const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;

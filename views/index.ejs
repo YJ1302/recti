@@ -496,24 +496,63 @@
         </form>
       </div>
 
-      <div class="card" style="margin-bottom:18px;">
-        <div class="header">
-          <div class="header-row">
-            <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
-            <div class="header-main"><%= (_firstName + " " + _lastName).toUpperCase() %></div>
-          </div>
-          <div class="profile-cards">
-            <div class="profile-card"><span class="profile-label">Código</span><span class="profile-value"><%= _studentId %></span></div>
-            <div class="profile-card"><span class="profile-label">DNI</span><span class="profile-value"><%= _dni %></span></div>
-            <div class="profile-card"><span class="profile-label">Programa</span><span class="profile-value"><%= _specialtyName %></span></div>
-            <div class="profile-card"><span class="profile-label">Facultad</span><span class="profile-value"><%= _facultyName || "—" %></span></div>
-            <div class="profile-card"><span class="profile-label">Periodo</span><span class="profile-value"><%= _semester %></span></div>
-            <div class="profile-card"><span class="profile-label">Modalidad</span><span class="profile-value"><%= _mode || "—" %></span></div>
-            <% if (_email) { %><div class="profile-card"><span class="profile-label">Correo</span><span class="profile-value"><%= _email %></span></div><% } %>
-            <% if (_phone) { %><div class="profile-card"><span class="profile-label">Teléfono</span><span class="profile-value"><%= _phone %></span></div><% } %>
-          </div>
+      <div class="card profile-shell" style="margin-bottom:18px;">
+      <!-- Top pink header only for name/avatar -->
+      <div class="header">
+        <div class="header-row">
+          <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
+          <div class="header-main"><%= (_firstName + " " + _lastName).toUpperCase() %></div>
         </div>
       </div>
+
+      <!-- White info grid below -->
+      <div class="profile-cards">
+        <div class="profile-card">
+          <span class="profile-label">Código</span>
+          <span class="profile-value"><%= _studentId %></span>
+        </div>
+
+        <div class="profile-card">
+          <span class="profile-label">DNI</span>
+          <span class="profile-value"><%= _dni %></span>
+        </div>
+
+        <div class="profile-card">
+          <span class="profile-label">Programa</span>
+          <span class="profile-value"><%= _specialtyName %></span>
+        </div>
+
+        <div class="profile-card">
+          <span class="profile-label">Facultad</span>
+          <span class="profile-value"><%= _facultyName || "—" %></span>
+        </div>
+
+        <div class="profile-card">
+          <span class="profile-label">Periodo</span>
+          <span class="profile-value"><%= _semester %></span>
+        </div>
+
+        <div class="profile-card">
+          <span class="profile-label">Modalidad</span>
+          <span class="profile-value"><%= _mode || "—" %></span>
+        </div>
+
+        <% if (_email) { %>
+          <div class="profile-card">
+            <span class="profile-label">Correo</span>
+            <span class="profile-value"><%= _email %></span>
+          </div>
+        <% } %>
+
+        <% if (_phone) { %>
+          <div class="profile-card">
+            <span class="profile-label">Teléfono</span>
+            <span class="profile-value"><%= _phone %></span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
 
             <!-- ENROLLED -->
       <div class="panel">

@@ -16,11 +16,8 @@
     "express-session": "^1.17.3",
     "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.1",
-<<<<<<< HEAD
     "resend": "^6.1.2"
-=======
-    "resend": "^3.2.0"
->>>>>>> 39974b280b324bbff1ec18cc622d442542bdfafa
+
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

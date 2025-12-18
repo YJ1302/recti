@@ -453,6 +453,9 @@ app.post("/login", async (req, res) => {
     const adminToken = admin.data && admin.data.access_token;
     if (!adminToken) throw new Error("Admin login failed (no token).");
 
+    // keep admin token in session for /grupoa/* calls (course-number-enrolled, etc.)
+    req.session.adminToken = String(adminToken);
+
     // 3) Profile
     const code = req.session.student.codigo;
     const periodFromLogin = req.session.student.defaultPeriod;
@@ -604,6 +607,69 @@ app.post("/available", async (req, res) => {
     res.status(500).json({ error: "failed_to_load_available" });
   }
 });
+
+/** AJAX: number of students enrolled per group for ONE course */
+app.post("/course-number-enrolled", async (req, res) => {
+  try {
+    const student = req.session.student;
+    if (!student || !student.codigo) {
+      return res
+        .status(401)
+        .json({ status: 401, message: "not_logged_in", data: [] });
+    }
+
+    const period = String(
+      (req.body && req.body.period) || student.defaultPeriod || ""
+    );
+    const courseCode = String((req.body && req.body.courseCode) || "").trim();
+
+    if (!period || !courseCode) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "period and courseCode required", data: [] });
+    }
+
+    // get admin token (from session or login again as fallback)
+    let adminToken = req.session.adminToken;
+    if (!adminToken) {
+      const adminLoginUrl = LOGIN_URL + "/login";
+      console.log("Admin login (fallback) for course-number-enrolled");
+      const admin = await axios.post(
+        adminLoginUrl,
+        { email: ADMIN_EMAIL, password: ADMIN_PASS },
+        jsonHeaders()
+      );
+      adminToken = admin.data && admin.data.access_token;
+      if (!adminToken) throw new Error("Admin login failed (no token).");
+      req.session.adminToken = String(adminToken);
+    }
+
+    const url = DATA_URL + "/course-number-enrolled";
+    const body = { period, courseCode };
+    log("Course number enrolled", url, body);
+
+    const resp = await axios.post(url, body, jsonHeaders(adminToken));
+    const payload = resp.data || {};
+    const data = Array.isArray(payload.data) ? payload.data : [];
+
+    return res.json({
+      status: payload.status || 200,
+      data,
+    });
+  } catch (err) {
+    console.error(
+      " /course-number-enrolled error:",
+      err.response && err.response.status,
+      err.response ? err.response.data : err.message
+    );
+    return res.status(500).json({
+      status: 500,
+      message: "failed_to_load_course_number_enrolled",
+      data: [],
+    });
+  }
+});
+
 
 /* ---------- AI suggest route (proxy to your Python microservice) ---------- */
 app.post("/ai-suggest", async (req, res) => {

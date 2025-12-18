@@ -19,14 +19,84 @@
     body{ background:linear-gradient(135deg,#f8fafc,#eef2ff,#e0e7ff); min-height:100vh; padding:24px; font-family:system-ui,Arial,sans-serif; }
     .wrap{ max-width:1100px; margin:0 auto; }
     .card{ background:#fff; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
-    .header{ background:linear-gradient(90deg,var(--main-pink),var(--main-pink-dark)); color:#fff; padding:28px 32px; border-radius:18px 18px 0 0; }
-    .header-row{ display:flex; align-items:center; gap:18px; }
-    .avatar{ background:rgba(255,255,255,.18); border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.75rem; }
-    .header-main{ font-size:1.8rem; font-weight:800; letter-spacing:.5px; }
-    .profile-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px; }
-    .profile-card{ background:rgba(255,255,255,.12); border-radius:10px; padding:12px 16px; min-height:64px; }
-    .profile-label{ color:#ffd6e1; font-size:12px; font-weight:600; margin-bottom:4px; display:block; letter-spacing:.2px; }
-    .profile-value{ color:#fff; font-size:14px; font-weight:700; word-break:break-word; }
+    .header{
+  background:linear-gradient(90deg,var(--main-pink),var(--main-pink-dark));
+  color:#fff;
+  padding:24px 28px;
+  border-radius:18px 18px 0 0;
+}
+.header-row{
+  display:flex;
+  align-items:center;
+  gap:18px;
+}
+.avatar{
+  background:rgba(255,255,255,.18);
+  border-radius:50%;
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:1.75rem;
+}
+.header-main{
+  font-size:1.8rem;
+  font-weight:800;
+  letter-spacing:.5px;
+}
+
+/* WHITE info area under the pink header */
+.profile-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+  padding:18px 20px 16px;
+  background:#ffffff;
+}
+.profile-card{
+  background:#f9fafb;
+  border-radius:12px;
+  padding:10px 14px;
+  min-height:58px;
+  border:1px solid #e5e7eb;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.profile-label{
+  color:#6b7280;
+  font-size:12px;
+  font-weight:600;
+  margin-bottom:4px;
+  letter-spacing:.2px;
+}
+.profile-value{
+  color:#111827;        /* <-- dark text so it’s visible */
+  font-size:14px;
+  font-weight:700;
+  word-break:break-word;
+}
+.tt-tab[disabled],
+.tt-tab.tt-tab-disabled{
+  opacity: .45;
+  cursor: default;
+}
+
+@media (max-width: 640px){
+  .header{
+    padding:18px 16px;
+  }
+  .header-main{
+    font-size:1.4rem;
+  }
+  .profile-cards{
+    padding:12px 12px 10px;
+    grid-template-columns:1fr;
+  }
+}
+
 
     .grid{ display:grid; gap:16px; }
     .grid-3{ grid-template-columns:repeat(3,1fr); }
@@ -95,18 +165,24 @@
     }
 
     .option{
-      display: grid;
-      grid-template-columns: minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
-      align-items: center;
-      gap: 16px;
-      padding: 14px 16px;
-      border-top: 1px solid var(--border);
-    }
+  display:grid;
+  grid-template-columns:minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
+  align-items:flex-start;
+  gap:16px;
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+}
 
     .option:first-child{ border-top:none; }
     .option-code{ width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; border-radius:10px; padding:10px; font-weight:800; letter-spacing:1px; }
     /* auto-fit to any number of segments (TEV+LBP+TEP...) */
-    .option-fields{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px 16px; }
+    .option-fields{
+  display:grid;
+  grid-template-columns:minmax(0,140px) minmax(0,1fr);
+  column-gap:16px;
+  row-gap:8px;
+  align-items:flex-start;
+}
     .field .label{ display:block; color:#6b7280; font-size:.78rem; margin-bottom:4px; }
     .field .value{ font-weight:700; font-size:.92rem; color:#111827; }
     .option-cta{ display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; }
@@ -139,13 +215,48 @@
   margin-top: 18px; 
 }
 
-/* Header: left-aligned close + title on same line */
+
+/* Header: title + toggle + close */
 .tt-header{
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 10px;
+}
+.tt-toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.tt-tabs{
+  display:inline-flex;
+  background:#f3f4f6;
+  padding:3px;
+  border-radius:999px;
+  gap:4px;
+}
+
+.tt-tab{
+  border:none;
+  background:transparent;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:0.85rem;
+  font-weight:700;
+  color:#4b5563;
+  cursor:pointer;
+}
+
+.tt-tab-active{
+  background:#111827;
+  color:#fff;
+}
+
+.ttGridWrapper{
+  width:100%;
 }
 
 /* Simple pink close button */
@@ -604,14 +715,43 @@
           <button id="confirmBtn" class="btn-primary" style="background:#16a34a;border-color:#16a34a;">Confirmar y Descargar PDF</button>
         </div>
 
-        <!-- Timetable output -->
+                <!-- Timetable output -->
         <div id="timetablePanel" class="timetable hidden">
-        <div class="tt-header">
-          <h3 style="margin:0 0 0 8px;">Mi Horario (<span id="courseCount">0</span> cursos)</h3>
-          <button id="closeTimetable" class="tt-close">Cerrar</button>  
+          <div class="tt-header">
+            <h3 style="margin:0 0 0 8px;">
+              Mi Horario (<span id="courseCount">0</span> cursos)
+            </h3>
+
+            <!-- Toggle: original vs new -->
+            <div class="tt-toggle-row">
+              <div class="tt-tabs" role="tablist">
+                <button
+                  type="button"
+                  id="ttTabOriginal"
+                  class="tt-tab tt-tab-active"
+                  data-target="original"
+                >
+                  Horario original
+                </button>
+                <button
+                  type="button"
+                  id="ttTabNew"
+                  class="tt-tab"
+                  data-target="new"
+                >
+                  Horario nuevo
+                </button>
+              </div>
+            </div>
+
+            <button id="closeTimetable" class="tt-close">Cerrar</button>
+          </div>
+
+          <!-- two timetable containers: original vs new -->
+          <div id="ttGridOriginal" class="ttGridWrapper"></div>
+          <div id="ttGridNew" class="ttGridWrapper hidden"></div>
         </div>
-        <div id="ttGrid"></div>
-      </div>
+
 
 
         <!-- Confirm modal -->
@@ -978,6 +1118,30 @@
       return { day: canonicalDay(day || "—"), time: time || "—" };
     }
 
+        // === Fetch number_enrolled per group for a course ===
+    async function fetchEnrolledCounts(period, courseCode) {
+      try {
+        const resp = await fetch('/course-number-enrolled', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ period, courseCode })
+        });
+        const json = await resp.json();
+        const map = {};
+        (json.data || []).forEach(r => {
+          const g = norm(r.courseGroup || r.groupCode || r.section || '');
+          if (!g) return;
+          const n = Number(r.number_enrolled);
+          map[g] = Number.isFinite(n) ? n : 0;
+        });
+        return map;   // e.g. { "A2": 7, "M1": 32 }
+      } catch (e) {
+        console.error('fetchEnrolledCounts error', e);
+        return {};
+      }
+    }
+
+
         // ===== Show only ONE card per course (combine teoría + laboratorio) =====
     (function groupEnrolledCards() {
       const byCode = {};
@@ -1028,7 +1192,7 @@
       });
     })();
 
-    // Build originals once
+        // Build originals once
     document.querySelectorAll('.course').forEach((row, idx) => {
       originals[row.id] = readCurrent(row);
       const details   = row.querySelector('.repl');
@@ -1048,12 +1212,17 @@
         container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
 
         try {
-          const resp = await fetch('/available', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ period, courseCode })
-          });
-          const json = await resp.json();
+          // get available turnos + enrolled counts in parallel
+          const [availableResp, enrolledMap] = await Promise.all([
+            fetch('/available', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ period, courseCode })
+            }).then(r => r.json()),
+            fetchEnrolledCounts(period, courseCode)   // { "A2":7, "M1":32, ... }
+          ]);
+
+          const json = availableResp;
 
           // each item from backend is already a FULL TURNO with sessions[]
           let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
@@ -1073,9 +1242,14 @@
           opts.forEach(o => {
             const conflictWith = getGroupConflict(currentPlan, o);
 
+            const groupCodeStr = o.groupCode || o.section || '';
+            const enrolledKey  = norm(groupCodeStr);
+            const enrolled     = enrolledMap[enrolledKey];
+            const enrolledText = (enrolled === 0 || enrolled) ? String(enrolled) : '—';
+
             const payload = safeJson({
               courseCode,
-              groupCode: o.groupCode || o.section || '',
+              groupCode: groupCodeStr,
               sessions: Array.isArray(o.sessions) ? o.sessions : []
             });
 
@@ -1101,7 +1275,11 @@
                 <div class="option-fields">
                   <div class="field">
                     <span class="label">Grupo</span>
-                    <span class="value">${escapeHtml(o.groupCode || o.section || "—")}</span>
+                    <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
+                  </div>
+                  <div class="field">
+                    <span class="label">Matriculados</span>
+                    <span class="value">${escapeHtml(enrolledText)}</span>
                   </div>
                   ${sessionsHtml}
                 </div>
@@ -1122,6 +1300,7 @@
       });
     });
 
+
     window.getGroup = function(row) {
       const meta = row.querySelectorAll('.course-meta .meta-item strong');
       return meta && meta[1] ? (meta[1].textContent || '').trim() : '';
@@ -1129,70 +1308,94 @@
 
     // Apply a FULL turno (all sessions) to ALL rows of the same course
     window.previewReplace = function(rowIndex, opt){
-      const row = document.getElementById('c-' + rowIndex);
-      if (!row) return;
+  const row = document.getElementById('c-' + rowIndex);
+  if (!row) return;
 
-      const courseCode = opt.courseCode ||
-        row.getAttribute('data-code') ||
-        (originals[row.id] || readCurrent(row)).code;
+  const courseCode = opt.courseCode ||
+    row.getAttribute('data-code') ||
+    (originals[row.id] || readCurrent(row)).code;
 
-      const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
-      if (!sessions.length) return;
+  const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
+  if (!sessions.length) return;
 
-      // 1) re-check conflicts for the WHOLE turno
-      const plan = buildPlanWithoutCourse(courseCode);
-      for (const s of sessions) {
-        const day = canonicalDay(s.day || s.dayName || "—");
-        const time = normalizeTime(
-          s.time ||
-          `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
-        );
-        const conflict = getConflict(plan, day, time);
-        if (conflict) {
-          alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
-          return;
-        }
-      }
+  // 1) re-check conflicts for the WHOLE turno
+  const plan = buildPlanWithoutCourse(courseCode);
+  for (const s of sessions) {
+    const day = canonicalDay(s.day || s.dayName || "—");
+    const time = normalizeTime(
+      s.time ||
+      `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+    );
+    const conflict = getConflict(plan, day, time);
+    if (conflict) {
+      alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
+      return;
+    }
+  }
 
-      // 2) apply this turno to ALL rows of this course (teoría + lab, etc.)
-      const courseRows = Array.from(document.querySelectorAll('.course'))
-        .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
+  // 2) apply this turno to ALL rows of this course (teoría + lab, etc.)
+  const courseRows = Array.from(document.querySelectorAll('.course'))
+    .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
 
-      courseRows.forEach(r => {
-        const rowId = r.id;
-        const original = originals[rowId] || readCurrent(r);
-        const origType = classifyModType(original.modality);
+  courseRows.forEach(r => {
+    const rowId = r.id;
+    const original = originals[rowId] || readCurrent(r);
+    const origType = classifyModType(original.modality);
 
-        // find matching segment (T/L) for this row; fallback to first session
-        let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
+    // find matching segment (T/L) for this row; fallback to first session
+    let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
 
-        const idxStr = rowId.split('-')[1];
-        const idxNum = Number(idxStr);
+    const idxStr = rowId.split('-')[1];
+    const idxNum = Number(idxStr);
 
-        const after = {
-          code: original.code,
-          name: r.getAttribute('data-name') || original.name,
-          group: opt.groupCode || original.group,
-          day: canonicalDay(seg.day || seg.dayName || original.day),
-          time: normalizeTime(
-            seg.time ||
-            `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
-            original.time
-          ),
-          modality: normalizeModalityDisplay(seg.modality || original.modality)
-        };
-
-        changes[rowId] = after;
-        renderChange(
-          idxNum,
-          { group: original.group, day: original.day, time: original.time, modality: original.modality },
-          after
-        );
-      });
-
-      // close all "Reemplazar curso" panels
-      document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
+    const after = {
+      code: original.code,
+      name: r.getAttribute('data-name') || original.name,
+      group: opt.groupCode || original.group,
+      day: canonicalDay(seg.day || seg.dayName || original.day),
+      time: normalizeTime(
+        seg.time ||
+        `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
+        original.time
+      ),
+      modality: normalizeModalityDisplay(seg.modality || original.modality)
     };
+
+    changes[rowId] = after;
+    renderChange(
+      idxNum,
+      { group: original.group, day: original.day, time: original.time, modality: original.modality },
+      after
+    );
+  });
+
+  // 🔓 mark that we now have a "new timetable" (manual change)
+  hasNewTimetable = true;
+  if (ttToggleNew) {
+    ttToggleNew.disabled = false;
+    ttToggleNew.classList.remove('tt-toggle-btn-disabled');
+  }
+
+  // close all "Reemplazar curso" panels
+  document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
+};
+ 
+    // build timetable ONLY with original data (before any IA changes)
+    function buildOriginalEntries() {
+      const entries = [];
+      document.querySelectorAll('.course').forEach(row => {
+        const base = originals[row.id] || readCurrent(row);
+        const code = row.getAttribute('data-code') || base.code;
+        const name = row.getAttribute('data-name') || base.name;
+        const day   = canonicalDay(base.day || '—');
+        const time  = normalizeTime(base.time || '—');
+        const group = base.group || '—';
+        const mod   = normalizeModalityDisplay(base.modality || '—');
+        entries.push({ code, name, day, time, group, modality: mod });
+      });
+      return entries;
+    }
+
 
     function buildFinalEntries() {
       const entries = [];
@@ -1238,8 +1441,11 @@
       return (t[0]||'—');
     }
 
-    function renderTimetableStacked(entries){
+        // Render a timetable into a specific container (original / new)
+    function renderTimetableStacked(entries, containerId){
       const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']; // Domingo removed
+      const container = document.getElementById(containerId);
+      if (!container) return;
 
       const head = `<div class="tt-head">${DAYS.map(d=>`<div class="cell">${d}</div>`).join('')}</div>`;
       const grid = `<div class="tt-grid">${DAYS.map(d=>`<div class="tt-col" data-day="${d}"></div>`).join('')}</div>`;
@@ -1251,9 +1457,7 @@
           <span class="chip">L Laboratorio Presencial</span>
         </div>`;
 
-      const panel = document.getElementById('ttGrid');
-      panel.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
-      document.getElementById('courseCount').textContent = entries.length;
+      container.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
 
       const toStart = (t) => {
         const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t||''));
@@ -1263,8 +1467,8 @@
       entries.forEach(e => { const d = (e.day||''); if (byDay[d]) byDay[d].push(e); });
       DAYS.forEach(d => byDay[d].sort((a,b)=> toStart(a.time) - toStart(b.time)));
 
-      const gridEl = panel.querySelector('.tt-grid');
-            DAYS.forEach(d => {
+      const gridEl = container.querySelector('.tt-grid');
+      DAYS.forEach(d => {
         const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
         byDay[d].forEach(e=>{
           const card = document.createElement('div');
@@ -1282,19 +1486,97 @@
       });
     }
 
-    // Hook timetable open/close
+
+        // store last counts for each timetable
+    let lastOriginalCount = 0;
+    let lastNewCount = 0;
+
+        function lockToggleToOriginal(){
+      const tabOrig = document.getElementById('ttTabOriginal');
+      const tabNew  = document.getElementById('ttTabNew');
+      if (!tabOrig || !tabNew) return;
+
+      setTimetableMode('original');
+      tabNew.disabled = true;
+      tabNew.classList.add('tt-tab-disabled');
+    }
+
+    function unlockToggle(){
+      const tabNew  = document.getElementById('ttTabNew');
+      if (!tabNew) return;
+      tabNew.disabled = false;
+      tabNew.classList.remove('tt-tab-disabled');
+    }
+
+    function setTimetableMode(mode){
+      const isOriginal = (mode === 'original');
+
+      const orig = document.getElementById('ttGridOriginal');
+      const neu  = document.getElementById('ttGridNew');
+      if (orig && neu){
+        orig.classList.toggle('hidden', !isOriginal);
+        neu.classList.toggle('hidden', isOriginal);
+      }
+
+      const tabOrig = document.getElementById('ttTabOriginal');
+      const tabNew  = document.getElementById('ttTabNew');
+      if (tabOrig && tabNew){
+        tabOrig.classList.toggle('tt-tab-active', isOriginal);
+        tabNew.classList.toggle('tt-tab-active', !isOriginal);
+      }
+
+      const countSpan = document.getElementById('courseCount');
+      if (countSpan){
+        countSpan.textContent = isOriginal
+          ? String(lastOriginalCount)
+          : String(lastNewCount);
+      }
+    }
+
     const seeBtn = document.getElementById('seeTimetableBtn');
     if (seeBtn){
       seeBtn.addEventListener('click', () => {
-        const entries = removeTrueDuplicates(buildFinalEntries());
-        renderTimetableStacked(entries);
-        document.getElementById('timetablePanel').classList.remove('hidden');
-        document.getElementById('timetablePanel').scrollIntoView({ behavior:'smooth', block:'start' });
+        const originalEntries = removeTrueDuplicates(buildOriginalEntries());
+        const newEntries      = removeTrueDuplicates(buildFinalEntries());
+
+        lastOriginalCount = originalEntries.length;
+        lastNewCount      = newEntries.length;
+
+        const hasChanges = Object.keys(changes).length > 0;
+
+        // always render original timetable
+        renderTimetableStacked(originalEntries, 'ttGridOriginal');
+
+        if (hasChanges){
+          // IA or manual changes exist → render new timetable and enable toggle
+          renderTimetableStacked(newEntries, 'ttGridNew');
+          unlockToggle();
+          setTimetableMode('new');
+        } else {
+          // BEFORE IA / no changes → only original, lock the toggle
+          const gridNew = document.getElementById('ttGridNew');
+          if (gridNew) gridNew.innerHTML = '';
+          lockToggleToOriginal();
+        }
+
+        const panel = document.getElementById('timetablePanel');
+        panel?.classList.remove('hidden');
+        panel?.scrollIntoView({ behavior:'smooth', block:'start' });
       });
     }
-    document.getElementById('closeTimetable')?.addEventListener('click', () => {
-      document.getElementById('timetablePanel').classList.add('hidden');
+
+    // tab buttons
+    document.getElementById('ttTabOriginal')?.addEventListener('click', () => {
+      setTimetableMode('original');
     });
+    document.getElementById('ttTabNew')?.addEventListener('click', () => {
+      setTimetableMode('new');
+    });
+
+    document.getElementById('closeTimetable')?.addEventListener('click', () => {
+      document.getElementById('timetablePanel')?.classList.add('hidden');
+    });
+
 
     // Confirm modal
     const confirmBtn     = document.getElementById('confirmBtn');
@@ -1387,6 +1669,7 @@
       return { timePreference, freeDays, keepChangesLow };
     }
 
+    
     async function autoAssignFromAvailable(prefsOverride) {
   const overlay = document.getElementById('loadingOverlay');
   // will accumulate courses where we **couldn’t** find a valid turno
@@ -1498,7 +1781,13 @@
       return false;
     }
 
-    // ✅ IA assignment ok
+     // ✅ IA assignment ok → unlock "Horario nuevo"
+    hasNewTimetable = true;
+    if (ttToggleNew) {
+      ttToggleNew.disabled = false;
+      ttToggleNew.classList.remove('tt-toggle-btn-disabled');
+    }
+
     return true;
 
   } catch (err) {

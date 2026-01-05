@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal de Rectificación de cursos</title>
 
-  <!-- (Optional) Font Awesome for login icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-
-  <!-- Your external stylesheet (if any) -->
   <link rel="stylesheet" href="/css/style.css" />
 
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
@@ -19,84 +16,80 @@
     body{ background:linear-gradient(135deg,#f8fafc,#eef2ff,#e0e7ff); min-height:100vh; padding:24px; font-family:system-ui,Arial,sans-serif; }
     .wrap{ max-width:1100px; margin:0 auto; }
     .card{ background:#fff; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+    .muted{ color:var(--muted); font-size:.95rem; }
+
     .header{
-  background:linear-gradient(90deg,var(--main-pink),var(--main-pink-dark));
-  color:#fff;
-  padding:24px 28px;
-  border-radius:18px 18px 0 0;
-}
-.header-row{
-  display:flex;
-  align-items:center;
-  gap:18px;
-}
-.avatar{
-  background:rgba(255,255,255,.18);
-  border-radius:50%;
-  width:60px;
-  height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:800;
-  font-size:1.75rem;
-}
-.header-main{
-  font-size:1.8rem;
-  font-weight:800;
-  letter-spacing:.5px;
-}
+      background:linear-gradient(90deg,var(--main-pink),var(--main-pink-dark));
+      color:#fff;
+      padding:24px 28px;
+      border-radius:18px 18px 0 0;
+    }
+    .header-row{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+    .avatar{
+      background:rgba(255,255,255,.18);
+      border-radius:50%;
+      width:60px;
+      height:60px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      font-size:1.75rem;
+    }
+    .header-main{
+      font-size:1.8rem;
+      font-weight:800;
+      letter-spacing:.5px;
+    }
 
-/* WHITE info area under the pink header */
-.profile-cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:12px;
-  padding:18px 20px 16px;
-  background:#ffffff;
-}
-.profile-card{
-  background:#f9fafb;
-  border-radius:12px;
-  padding:10px 14px;
-  min-height:58px;
-  border:1px solid #e5e7eb;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
-.profile-label{
-  color:#6b7280;
-  font-size:12px;
-  font-weight:600;
-  margin-bottom:4px;
-  letter-spacing:.2px;
-}
-.profile-value{
-  color:#111827;        /* <-- dark text so it’s visible */
-  font-size:14px;
-  font-weight:700;
-  word-break:break-word;
-}
-.tt-tab[disabled],
-.tt-tab.tt-tab-disabled{
-  opacity: .45;
-  cursor: default;
-}
+    .profile-cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:12px;
+      padding:18px 20px 16px;
+      background:#ffffff;
+    }
+    .profile-card{
+      background:#f9fafb;
+      border-radius:12px;
+      padding:10px 14px;
+      min-height:58px;
+      border:1px solid #e5e7eb;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    .profile-label{
+      color:#6b7280;
+      font-size:12px;
+      font-weight:600;
+      margin-bottom:4px;
+      letter-spacing:.2px;
+    }
+    .profile-value{
+      color:#111827;
+      font-size:14px;
+      font-weight:700;
+      word-break:break-word;
+    }
+    .tt-tab[disabled],
+    .tt-tab.tt-tab-disabled{
+      opacity: .45;
+      cursor: default;
+    }
 
-@media (max-width: 640px){
-  .header{
-    padding:18px 16px;
-  }
-  .header-main{
-    font-size:1.4rem;
-  }
-  .profile-cards{
-    padding:12px 12px 10px;
-    grid-template-columns:1fr;
-  }
-}
-
+    @media (max-width: 640px){
+      .header{ padding:18px 16px; }
+      .header-main{ font-size:1.4rem; }
+      .profile-cards{
+        padding:12px 12px 10px;
+        grid-template-columns:1fr;
+      }
+    }
 
     .grid{ display:grid; gap:16px; }
     .grid-3{ grid-template-columns:repeat(3,1fr); }
@@ -105,28 +98,15 @@
     .badge{ display:inline-block; padding:8px 12px; border-radius:10px; font-weight:800; letter-spacing:.8px; }
     .badge.purple{ background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; }
 
-    /* enrolled list */
     .course-container{ display:flex; flex-direction:column; gap:12px; }
-    /* ===== Mobile layout for course cards ===== */
-@media (max-width: 900px) {
-  .course {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    align-items: flex-start;
-  }
 
-  .course-code {
-    justify-content: flex-start;
-    margin-bottom: 6px;
-  }
-
-  .repl {
-    grid-column: 1;
-    justify-self: stretch;
-    width: 100%;
-    margin-top: 8px;
-  }
-}
+    @media (max-width: 900px) {
+      .course{ grid-template-columns: 1fr; grid-template-rows: auto auto auto; align-items: flex-start; }
+      .course-code{ justify-content: flex-start; margin-bottom: 6px; }
+      .repl{ grid-column: 1; justify-self: stretch; width: 100%; margin-top: 8px; }
+      .repl[open]{ grid-column: 1 / -1; justify-self: stretch; margin-top: 8px; }
+      .repl[open] > summary{ text-align: right; margin-bottom: 8px; }
+    }
 
     .course:hover{ box-shadow:0 2px 8px rgba(0,0,0,.05); transform: translateY(-1px); }
     .course-hidden-segment { display: none !important;}
@@ -141,87 +121,85 @@
       justify-self: end;
     }
 
-        /* Make "Reemplazar curso" look like a button */
+    /* make summary look like a button */
     .repl > summary{
-      list-style: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #f9fafb;
-      color: #111827;
-      font-weight: 700;
-      font-size: 0.9rem;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      list-style:none;
+      cursor:pointer;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-weight:700;
+      font-size:.9rem;
+      color:#111827;
+      background:#f9fafb;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
     }
-
-    /* Remove default triangle marker */
+    .repl > summary::marker,
     .repl > summary::-webkit-details-marker{
-      display: none;
+      display:none;
     }
-    .repl > summary::marker{
-      content: "";
+    .repl > summary::after{
+      content:"▾";
+      font-size:.7rem;
+      opacity:.7;
+      transform:translateY(1px);
     }
-
-    /* Hover + open states */
+    .repl[open] > summary::after{ content:"▴"; }
     .repl > summary:hover{
-      background: #111827;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+      background:#eef2ff;
+      border-color:#c7d2fe;
     }
 
-    .repl[open] > summary{
-      background: #111827;
-      color: #fff;
-    }
-
-
-    /* When open, the <details> spans the full width of the course card */
     .repl[open]{
       grid-column: 1 / -1;
       justify-self: stretch;
       margin-top: 8px;
     }
-
     .repl[open] > summary{
-      text-align: right;   /* arrow text stays on the right */
+      text-align: right;
       margin-bottom: 8px;
     }
 
-
-    /* replacement options */
-        .replacement-options{
+    .replacement-options{
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
       background: #fff;
-      margin-top: 4px; /* tiny gap under “Reemplazar curso” */
+      margin-top: 4px;
     }
 
     .option{
-  display:grid;
-  grid-template-columns:minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
-  align-items:flex-start;
-  gap:16px;
-  padding:14px 16px;
-  border-top:1px solid var(--border);
-}
+      display:grid;
+      grid-template-columns:minmax(0, 120px) minmax(0, 1fr) minmax(0, 220px);
+      align-items:flex-start;
+      gap:16px;
+      padding:14px 16px;
+      border-top:1px solid var(--border);
+    }
 
     .option:first-child{ border-top:none; }
-    .option-code{ width:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(90deg,#f02454,#c81e47); color:#fff; border-radius:10px; padding:10px; font-weight:800; letter-spacing:1px; }
-    /* auto-fit to any number of segments (TEV+LBP+TEP...) */
+    .option-code{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(90deg,#f02454,#c81e47);
+      color:#fff;
+      border-radius:10px;
+      padding:10px;
+      font-weight:800;
+      letter-spacing:1px;
+    }
     .option-fields{
-  display:grid;
-  grid-template-columns:minmax(0,140px) minmax(0,1fr);
-  column-gap:16px;
-  row-gap:8px;
-  align-items:flex-start;
-}
+      display:grid;
+      grid-template-columns:minmax(0,140px) minmax(0,1fr);
+      column-gap:16px;
+      row-gap:8px;
+      align-items:flex-start;
+    }
     .field .label{ display:block; color:#6b7280; font-size:.78rem; margin-bottom:4px; }
     .field .value{ font-weight:700; font-size:.92rem; color:#111827; }
     .option-cta{ display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; }
@@ -229,18 +207,21 @@
     .option-btn[disabled]{ opacity:.45; cursor:not-allowed; filter:grayscale(0.1); }
     .conflict-note{ color:#b91c1c; font-size:.85rem; text-align:center; }
 
-    /* change summary */
     .change-wrapper{ margin:10px 0 2px; padding:14px 16px; border:1px dashed #e6e8ee; border-radius:12px; background:#fcfcff; }
     .change-title{ font-weight:800; color:#0f172a; margin-bottom:10px; letter-spacing:.3px; }
     .change-compare{ display:grid; grid-template-columns:1fr 60px 1fr; gap:14px; align-items:stretch; }
     .change-card{ border:1px solid var(--border); background:#fff; border-radius:12px; padding:12px 14px; display:grid; grid-template-columns:repeat(4,minmax(0, 1fr)); gap:8px 16px; }
 
-    /* actions */
     .actions-center{ text-align:center; margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
     .btn-primary{ background:#2563eb; color:#fff; border:1px solid #2563eb; padding:10px 16px; border-radius:10px; font-weight:800; box-shadow:0 6px 14px rgba(37,99,235,.16); cursor:pointer; }
     .btn-primary:hover{ filter:brightness(0.96); }
+    .btn-primary[disabled]{ opacity:.5; cursor:not-allowed; }
+
     .btn-primary.btn-glow{ padding:8px 14px; font-size:1rem; border-radius:4px; box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1; animation:glowPulse 2s infinite alternate; border:2px solid #f02454; background:linear-gradient(90deg,#f02454,#c81e47); }
-    @keyframes glowPulse{0%{box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1;}100%{box-shadow:0 0 32px 6px #f02454,0 0 48px 8px #ffd6e1;}}
+    @keyframes glowPulse{
+      0%{box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1;}
+      100%{box-shadow:0 0 32px 6px #f02454,0 0 48px 8px #ffd6e1;}
+    }
 
     .error{ color:#b00; background:#630606; border:1px solid #fbb; padding:10px; border-radius:8px; margin-bottom:16px; }
     .title-container{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
@@ -249,86 +230,74 @@
     .loading-overlay.active{ opacity:1; pointer-events:all; }
     .hidden{ display:none; }
 
-    /* ===== Timetable ===== */
-    .timetable { 
-  margin-top: 18px; 
-}
+    .timetable { margin-top: 18px; }
 
+    .tt-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .tt-toggle-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-/* Header: title + toggle + close */
-.tt-header{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.tt-toggle-row{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+    .tt-tabs{
+      display:inline-flex;
+      background:#f3f4f6;
+      padding:3px;
+      border-radius:999px;
+      gap:4px;
+    }
 
-.tt-tabs{
-  display:inline-flex;
-  background:#f3f4f6;
-  padding:3px;
-  border-radius:999px;
-  gap:4px;
-}
+    .tt-tab{
+      border:none;
+      background:transparent;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:0.85rem;
+      font-weight:700;
+      color:#4b5563;
+      cursor:pointer;
+    }
+    .tt-tab-active{
+      background:#111827;
+      color:#fff;
+    }
+    .ttGridWrapper{ width:100%; }
 
-.tt-tab{
-  border:none;
-  background:transparent;
-  padding:6px 12px;
-  border-radius:999px;
-  font-size:0.85rem;
-  font-weight:700;
-  color:#4b5563;
-  cursor:pointer;
-}
-
-.tt-tab-active{
-  background:#111827;
-  color:#fff;
-}
-
-.ttGridWrapper{
-  width:100%;
-}
-
-/* Simple pink close button */
-.tt-close{
-  background: var(--main-pink);
-  color: #fff;
-  border: 1px solid var(--main-pink-dark);
-  padding: 6px 8px;
-  border-radius: 11px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.9rem;
-  line-height: 1;
-  transition: none;          /* no animation */
-}
-
-.tt-close:hover{
-  background: var(--main-pink);   /* stay the same color on hover */
-  color: #fff;
-}
-
-.tt-close:focus{
-  outline: 2px solid rgba(0,0,0,0.08);
-  outline-offset: 2px;
-}
-.tt-board{
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-  overflow-x: auto;        /* allow horizontal scroll on small screens */
-  -webkit-overflow-scrolling: touch;
-}
+    .tt-close{
+      background: var(--main-pink);
+      color: #fff;
+      border: 1px solid var(--main-pink-dark);
+      padding: 6px 8px;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.9rem;
+      line-height: 1;
+      transition: none;
+    }
+    .tt-close:hover{
+      background: var(--main-pink);
+      color: #fff;
+    }
+    .tt-close:focus{
+      outline: 2px solid rgba(0,0,0,0.08);
+      outline-offset: 2px;
+    }
+    .tt-board{
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
 
     .tt-head {
       display: grid;
@@ -343,9 +312,7 @@
       width: 100%;
       min-width: 0;
     }
-    .tt-grid {
-  min-width: 720px; /* adjust if you want wider columns */
-}
+    .tt-grid { min-width: 720px; }
     .tt-head .cell {
       padding: 18px 0 16px 0;
       font-weight: 900;
@@ -360,26 +327,100 @@
     }
     .tt-head .cell:first-child { border-left: none; border-radius: 14px 0 0 0; }
     .tt-head .cell:last-child  { border-radius: 0 14px 0 0; }
+
     .tt-grid { display: grid; grid-template-columns: repeat(6, 1fr); padding: 0; box-sizing: border-box; border-top: none; width: 100%; min-width: 0; }
     .tt-col { min-height: 180px; padding: 12px 0; border-left: 1px solid #f3f4f6; display: flex; flex-direction: column; gap: 12px; background: #fff; align-items: center; width: 100%; min-width: 0; }
     .tt-col:first-child { border-left: none; }
 
-    .card-mini { width: 100%; min-width: 0; max-width: 100%; min-height: 110px; background: #fff; border: 1px solid #eef0f6; border-radius: 16px; padding: 14px 12px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 4px 12px rgba(0,0,0,.06); align-items: flex-start; justify-content: center; margin: 0; box-sizing: border-box; }
-    .card-mini .code { display: inline-block; background: linear-gradient(90deg,#f02454,#c81e47); color: #fff; font-weight: 900; letter-spacing: .8px; border-radius: 12px; padding: 4px 10px; font-size: 1rem; align-self: flex-start; }
-    .card-mini .name { font-weight: 800; color: #0f172a; line-height: 1.15; font-size: 0.93rem; max-width: 180px; white-space: normal; overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden; text-overflow: ellipsis; min-height: 2.2em; }
-    .card-mini .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.97rem; }
+    .card-mini {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 110px;
+      background: #fff;
+      border: 1px solid #eef0f6;
+      border-radius: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+      align-items: flex-start;
+      justify-content: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    .card-mini .code {
+      display: inline-block;
+      background: linear-gradient(90deg,#f02454,#c81e47);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .8px;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 1rem;
+      align-self: flex-start;
+    }
+    .card-mini .name {
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+      font-size: 0.93rem;
+      max-width: 180px;
+      white-space: normal;
+      overflow-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 2.2em;
+    }
+    .card-mini .meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.97rem;
+    }
     .chip { background: #f8fafc; border: 1px solid #e5e7eb; padding: 3px 8px; border-radius: 999px; font-weight: 800; font-size: .93rem; }
     .chip.mod { min-width: 1.75rem; text-align: center; }
     .tt-legend{ padding:12px 16px; background:#f8fafc; border-top:1px solid #eef0f6; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
     .dot{ width:8px; height:8px; background:#e11d48; border-radius:999px; display:inline-block; margin-right:8px; }
-    @media (max-width: 900px){ .tt-head .cell{ padding:14px 10px; } }
 
-    /* ===== AI Preferences MODAL (blur background) ===== */
-    .ai-modal-overlay { position: fixed; z-index: 10000; inset: 0; background: rgba(60,60,80,0.18); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; transition: opacity 0.3s; }
-    body.ai-modal-open > .wrap, body.ai-modal-open > .loading-overlay { filter: blur(6px) brightness(0.95); pointer-events: none; user-select: none; }
+    @media (max-width: 900px){
+      .tt-head .cell{ padding:14px 10px; }
+    }
 
-    /* ===== Pretty “preferences-card” UI ===== */
-    .preferences-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); max-width: 520px; width: 92vw; }
+    .ai-modal-overlay {
+      position: fixed;
+      z-index: 10000;
+      inset: 0;
+      background: rgba(60,60,80,0.18);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s;
+    }
+    body.ai-modal-open > .wrap,
+    body.ai-modal-open > .loading-overlay {
+      filter: blur(6px) brightness(0.95);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .preferences-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      max-width: 520px;
+      width: 92vw;
+    }
     .card-header { text-align: center; margin-bottom: 20px; }
     .card-title { font-size: 1.6rem; font-weight: 800; color: #2d3748; margin-bottom: 6px; }
     .card-subtitle { color: #718096; font-size: 0.95rem; }
@@ -395,9 +436,31 @@
     .day-checkbox{ display:flex; flex-direction:column; align-items:center; gap:8px; }
     .checkbox-label { position: relative; width: 62px; height: 62px; cursor: pointer; }
     .checkbox-input { position: absolute; opacity: 0; width: 0; height: 0; }
-    .checkbox-custom { width: 100%; height: 100%; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-weight: 800; color: #718096; }
-    .checkbox-input:checked + .checkbox-custom { background: linear-gradient(135deg, #e53860, #e53860); border-color: #dd6990; color: white; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
-    .checkbox-input:checked + .checkbox-custom::after { content: "✓"; font-size: 1rem; margin-left: 6px; }
+    .checkbox-custom {
+      width: 100%;
+      height: 100%;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      font-weight: 800;
+      color: #718096;
+    }
+    .checkbox-input:checked + .checkbox-custom {
+      background: linear-gradient(135deg, #e53860, #e53860);
+      border-color: #dd6990;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102,126,234,0.3);
+    }
+    .checkbox-input:checked + .checkbox-custom::after {
+      content: "✓";
+      font-size: 1rem;
+      margin-left: 6px;
+    }
     .day-name { font-size: 0.88rem; color: #4a5568; font-weight: 600; }
 
     .buttons-container{ display:flex; gap:12px; }
@@ -407,37 +470,53 @@
     .btn-generate{ background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; box-shadow:0 4px 15px rgba(102,126,234,.3); }
     .btn-generate:hover{ transform: translateY(-1px); }
 
-    /* From Uiverse.io by MuhammadHasann */
-    .button { --black-700: hsla(0 0% 12% / 1); --border_radius: 9999px; --transtion: 0.3s ease-in-out; --offset: 2px; cursor: pointer; position: relative; display: flex; align-items: center; gap: 0.5rem; transform-origin: center; padding: 1rem 2rem; background-color: transparent; border: none; border-radius: var(--border_radius); transform: scale(calc(1 + (var(--active, 0) * 0.1))); transition: transform var(--transtion); }
-    .button::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-color: var(--black-700); border-radius: var(--border_radius); box-shadow: inset 0 0.5px hsl(0, 0%, 100%), inset 0 -1px 2px 0 hsl(0, 0%, 0%), 0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))), 0 0 0 calc(var(--active, 0) * 0.375rem) hsl(260 97% 50% / 0.75); transition: all var(--transtion); z-index: 0; }
-    .button::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-color: hsla(260 97% 61% / 0.75); background-image: radial-gradient(at 51% 89%, hsla(266, 45%, 74%, 1) 0px, transparent 50%), radial-gradient(at 100% 100%, hsla(266, 36%, 60%, 1) 0px, transparent 50%), radial-gradient(at 22% 91%, hsla(266, 36%, 60%, 1) 0px, transparent 50%); background-position: top; opacity: var(--active, 0); border-radius: var(--border_radius); transition: opacity var(--transtion); z-index: 2; }
-    .button:is(:hover, :focus-visible) { --active: 1; }
-    .button:active { transform: scale(1); }
-    .button .dots_border { --size_border: calc(100% + 2px); overflow: hidden; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: var(--size_border); height: var(--size_border); background-color: transparent; border-radius: var(--border_radius); z-index: -10; }
-    .button .dots_border::before { content: ""; position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); transform-origin: left; transform: rotate(0deg); width: 100%; height: 2rem; background-color: white; mask: linear-gradient(transparent 0%, white 120%); animation: rotate 2s linear infinite; }
-    @keyframes rotate { to { transform: rotate(360deg); } }
-    .button .sparkle { position: relative; z-index: 10; width: 1.75rem; }
-    .button .sparkle .path { fill: currentColor; stroke: currentColor; transform-origin: center; color: hsl(0, 0%, 100%); }
-    .button:is(:hover, :focus) .sparkle .path { animation: path 1.5s linear 0.5s infinite; }
-    .button .sparkle .path:nth-child(1) { --scale_path_1: 1.2; }
-    .button .sparkle .path:nth-child(2) { --scale_path_2: 1.2; }
-    .button .sparkle .path:nth-child(3) { --scale_path_3: 1.2; }
-    @keyframes path { 0%,34%,71%,100% { transform: scale(1); } 17% { transform: scale(var(--scale_path_1, 1)); } 49% { transform: scale(var(--scale_path_2, 1)); } 83% { transform: scale(var(--scale_path_3, 1)); } }
-    .button .text_button { position: relative; z-index: 10; background-image: linear-gradient(90deg, hsla(0 0% 100% / 1) 0%, hsla(0 0% 100% / var(--active, 0)) 120%); background-clip: text; font-size: 1rem; color: transparent; }
-
-    /* Glow outline for "Generar con IA" button */
-    .btn-ia { --glow-color-1: rgba(240,36,84,0.95); --glow-color-2: rgba(102,126,234,0.9); position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 0; border-radius: 18px; background: linear-gradient(90deg, var(--glow-color-1), var(--glow-color-2)); color: #fff; font-weight: 800; border: none; cursor: pointer; }
+    .btn-ia {
+      --glow-color-1: rgba(240,36,84,0.95);
+      --glow-color-2: rgba(102,126,234,0.9);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      border-radius: 18px;
+      background: linear-gradient(90deg, var(--glow-color-1), var(--glow-color-2));
+      color: #fff;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+    }
     .btn-ia__inner{ display: inline-flex; align-items: center; justify-content: center; background: #0e0c0c; color: #fafbff; font-weight: 900; padding: 14px 40px; }
     .btn-ia__label{ font-size:1.05rem; }
-    .btn-ia::after { content: ''; position: absolute; opacity: 0.55; transition: opacity .28s ease, transform .28s ease, filter .28s ease, background .28s ease; z-index: 0; pointer-events: none; mix-blend-mode: screen; }
-    .btn-ia:hover, .btn-ia:focus { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(16,24,40,0.12); background: transparent; }
-    .btn-ia:hover::after, .btn-ia:focus::after { opacity: 1; transform: scale(1.04); filter: blur(12px); animation: iaGlow 2.2s ease-in-out infinite; }
-    @keyframes iaGlow { 0% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); } 50% { transform: scale(1.06); opacity: 1; filter: blur(10px); } 100% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); } }
+    .btn-ia::after {
+      content: '';
+      position: absolute;
+      opacity: 0.55;
+      transition: opacity .28s ease, transform .28s ease, filter .28s ease, background .28s ease;
+      z-index: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+    .btn-ia:hover, .btn-ia:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px rgba(16,24,40,0.12);
+      background: transparent;
+    }
+    .btn-ia:hover::after, .btn-ia:focus::after {
+      opacity: 1;
+      transform: scale(1.04);
+      filter: blur(12px);
+      animation: iaGlow 2.2s ease-in-out infinite;
+    }
+    @keyframes iaGlow {
+      0% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); }
+      50% { transform: scale(1.06); opacity: 1; filter: blur(10px); }
+      100% { transform: scale(1.00); opacity: 0.55; filter: blur(20px); }
+    }
 
     @media (max-width: 900px) {
       .wrap { max-width: 100vw; padding: 0 2vw; }
       .profile-cards { grid-template-columns: 1fr 1fr; }
-      .tt-head, .tt-grid { grid-template-columns: repeat(6, 1fr) !important; font-size: 0.97rem; }
+      .tt-head, .tt-grid { grid-template-columns: repeat(6,1fr) !important; font-size: 0.97rem; }
       .tt-head .cell { padding: 10px 2px; font-size: 0.97rem; }
       .tt-col { min-height: 100px; gap: 8px; }
       .card-mini { font-size: 0.93rem; padding: 8px 4px; }
@@ -457,7 +536,6 @@
       .ai-modal-overlay .preferences-card { padding: 12px 2px; max-width: 99vw; }
     }
 
-    /* Login card (white box with logo above inputs) */
     .login-card { max-width:420px; margin: 28px auto; background:#fff; border-radius:14px; padding:26px 22px; box-shadow:0 10px 30px rgba(16,24,40,0.08); text-align:center; }
     .login-card__logo { width:190px; height:90px; display:block; margin: 4px auto 12px; }
     .login-card__title { font-weight:800; color:#0f172a; margin-bottom:12px; font-size:1.05rem; }
@@ -465,7 +543,7 @@
     .login-card .form-group label { display:block; margin-bottom:6px; font-weight:700; color:#374151; }
     .login-card .input-with-icon { display:flex; align-items:center; gap:8px; border:1px solid var(--border); padding:10px 12px; border-radius:10px; }
     .login-card .input-with-icon input { border:0; outline:none; width:100%; font-size:1rem; }
-      /* === Base desktop layout for course cards (in case it got removed) === */
+
     .course{
       display:grid;
       grid-template-columns:120px 1fr 240px;
@@ -478,7 +556,6 @@
       transition:box-shadow .15s ease, transform .15s ease;
     }
 
-    /* Header of "Cursos Matriculados" panel */
     .panel-header{
       display:flex;
       align-items:center;
@@ -493,7 +570,6 @@
       font-weight:700;
     }
 
-    /* Better conflict note text (wraps, no overlaps) */
     .conflict-note{
       color:#b91c1c;
       font-size:.8rem;
@@ -501,9 +577,7 @@
       text-align:center;
     }
 
-    /* ===== Tablet / small laptop layout ===== */
     @media (max-width: 900px){
-      /* course card stacks vertically */
       .course{
         grid-template-columns:1fr;
         align-items:flex-start;
@@ -520,8 +594,6 @@
       .repl[open]{
         grid-column:1 / -1;
       }
-
-      /* each replacement option stacks: code → fields → button */
       .option{
         grid-template-columns:1fr;
         align-items:flex-start;
@@ -545,9 +617,7 @@
       }
     }
 
-    /* ===== Phone layout ===== */
     @media (max-width: 600px){
-      /* header: title on top, IA button full width */
       .panel-header{
         flex-direction:column;
         align-items:stretch;
@@ -560,8 +630,6 @@
         width:100%;
         justify-content:center;
       }
-
-      /* one column for option fields on very small screens */
       .option-fields{
         grid-template-columns:1fr;
       }
@@ -604,30 +672,31 @@
         <div id="loginTitle" class="login-card__title">
           <img src="/images/umalogo1.jpg" alt="Universidad María Auxiliadora" class="login-card__logo">
         </div>
-          <div class="form-section">
-            <form action="/login" method="POST" id="loginForm">
-              <div class="form-group">
-                <label for="codigo">Código</label>
-                <div class="input-with-icon">
-                  <i class="fas fa-user" style="color:#9ca3af"></i>
-                  <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
-                </div>
+        <div class="form-section">
+          <form action="/login" method="POST" id="loginForm">
+            <div class="form-group">
+              <label for="codigo">Código</label>
+              <div class="input-with-icon">
+                <i class="fas fa-user" style="color:#9ca3af"></i>
+                <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
               </div>
+            </div>
 
-              <div class="form-group" style="margin-top:12px;">
-                <label for="dni">DNI</label>
-                <div class="input-with-icon">
-                  <i class="fas fa-id-card" style="color:#9ca3af"></i>
-                  <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
-                </div>
+            <div class="form-group" style="margin-top:12px;">
+              <label for="dni">DNI</label>
+              <div class="input-with-icon">
+                <i class="fas fa-id-card" style="color:#9ca3af"></i>
+                <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
               </div>
+            </div>
 
-              <div style="margin-top:18px; text-align:center;">
-                <button type="submit" class="login-btn pulse">Ingresar</button>
-              </div>
-            </form>
+            <div style="margin-top:18px; text-align:center;">
+              <button type="submit" class="login-btn pulse">Ingresar</button>
+            </div>
+          </form>
 
-            <div class="login-footer" style="margin-top:12px;text-align:center;color:#6b7280;">¿Problemas para acceder? Contacta con soporte técnico.</div>
+          <div class="login-footer" style="margin-top:12px;text-align:center;color:#6b7280;">
+            ¿Problemas para acceder? Contacta con soporte técnico.
           </div>
         </div>
       </div>
@@ -636,91 +705,86 @@
       <div class="title-container">
         <div style="display:flex;align-items:center;gap:12px;">
           <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
-          <h1 style="font-size:2rem; font-weight:800; color:#1e293b; margin:0;">Portal de Rectificación de Cursos</h1>
+          <h1 style="font-size:2rem; font-weight:800; color:#1e293b; margin:0;">
+            Portal de Rectificación de Cursos
+          </h1>
         </div>
         <form action="/logout" method="POST" style="margin:0;">
           <button type="submit" class="logout-btn" aria-label="Logout">
             <span>Cerrar Sesión</span>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"></path>
+            </svg>
           </button>
         </form>
       </div>
 
       <div class="card profile-shell" style="margin-bottom:18px;">
-      <!-- Top pink header only for name/avatar -->
-      <div class="header">
-        <div class="header-row">
-          <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
-          <div class="header-main"><%= (_firstName + " " + _lastName).toUpperCase() %></div>
+        <div class="header">
+          <div class="header-row">
+            <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
+            <div class="header-main"><%= (_firstName + " " + _lastName).toUpperCase() %></div>
+          </div>
+        </div>
+
+        <div class="profile-cards">
+          <div class="profile-card">
+            <span class="profile-label">Código</span>
+            <span class="profile-value"><%= _studentId %></span>
+          </div>
+          <div class="profile-card">
+            <span class="profile-label">DNI</span>
+            <span class="profile-value"><%= _dni %></span>
+          </div>
+          <div class="profile-card">
+            <span class="profile-label">Programa</span>
+            <span class="profile-value"><%= _specialtyName %></span>
+          </div>
+          <div class="profile-card">
+            <span class="profile-label">Facultad</span>
+            <span class="profile-value"><%= _facultyName || "—" %></span>
+          </div>
+          <div class="profile-card">
+            <span class="profile-label">Periodo</span>
+            <span class="profile-value"><%= _semester %></span>
+          </div>
+          <div class="profile-card">
+            <span class="profile-label">Modalidad</span>
+            <span class="profile-value"><%= _mode || "—" %></span>
+          </div>
+          <% if (_email) { %>
+            <div class="profile-card">
+              <span class="profile-label">Correo</span>
+              <span class="profile-value"><%= _email %></span>
+            </div>
+          <% } %>
+          <% if (_phone) { %>
+            <div class="profile-card">
+              <span class="profile-label">Teléfono</span>
+              <span class="profile-value"><%= _phone %></span>
+            </div>
+          <% } %>
         </div>
       </div>
 
-      <!-- White info grid below -->
-      <div class="profile-cards">
-        <div class="profile-card">
-          <span class="profile-label">Código</span>
-          <span class="profile-value"><%= _studentId %></span>
-        </div>
-
-        <div class="profile-card">
-          <span class="profile-label">DNI</span>
-          <span class="profile-value"><%= _dni %></span>
-        </div>
-
-        <div class="profile-card">
-          <span class="profile-label">Programa</span>
-          <span class="profile-value"><%= _specialtyName %></span>
-        </div>
-
-        <div class="profile-card">
-          <span class="profile-label">Facultad</span>
-          <span class="profile-value"><%= _facultyName || "—" %></span>
-        </div>
-
-        <div class="profile-card">
-          <span class="profile-label">Periodo</span>
-          <span class="profile-value"><%= _semester %></span>
-        </div>
-
-        <div class="profile-card">
-          <span class="profile-label">Modalidad</span>
-          <span class="profile-value"><%= _mode || "—" %></span>
-        </div>
-
-        <% if (_email) { %>
-          <div class="profile-card">
-            <span class="profile-label">Correo</span>
-            <span class="profile-value"><%= _email %></span>
-          </div>
-        <% } %>
-
-        <% if (_phone) { %>
-          <div class="profile-card">
-            <span class="profile-label">Teléfono</span>
-            <span class="profile-value"><%= _phone %></span>
-          </div>
-        <% } %>
-      </div>
-    </div>
-
-
-            <!-- ENROLLED -->
       <div class="panel">
         <div class="panel-header">
           <h3 class="panel-title">Cursos Matriculados</h3>
           <button id="aiSuggestBtn" class="btn-ia"
             style="--btn-h:64px; --btn-px:28px; --btn-fs:18px; --btn-radius:16px;">
-            <span class="btn-ia__inner"><span class="btn-ia__label">Generar con IA</span></span>
+            <span class="btn-ia__inner">
+              <span class="btn-ia__label">Generar con IA</span>
+            </span>
           </button>
         </div>
-
 
         <% if (!_enrolled.length) { %>
           <p class="muted">No hay cursos inscritos.</p>
         <% } else { %>
           <div class="course-container">
             <% _enrolled.forEach(function(course, idx){ %>
-              <div class="course" id="c-<%= idx %>" data-code="<%= course.courseCode %>" data-name="<%= course.courseName %>" data-period="<%= course.period || _periodRaw %>">
+              <div class="course" id="c-<%= idx %>" data-code="<%= course.courseCode %>"
+                   data-name="<%= course.courseName %>" data-period="<%= course.period || _periodRaw %>">
                 <div class="course-code">
                   <span class="badge purple"><%= course.courseCode || "—" %></span>
                 </div>
@@ -748,52 +812,37 @@
           </div>
         <% } %>
 
-        <!-- ACTIONS -->
         <div class="actions-center">
           <button id="seeTimetableBtn" class="btn-primary">Ver nuevo horario</button>
-          <button id="confirmBtn" class="btn-primary" style="background:#16a34a;border-color:#16a34a;">Confirmar y Descargar PDF</button>
+          <button id="confirmBtn" class="btn-primary"
+                  style="background:#16a34a;border-color:#16a34a;">
+            Confirmar y Descargar PDF
+          </button>
         </div>
 
-                <!-- Timetable output -->
         <div id="timetablePanel" class="timetable hidden">
           <div class="tt-header">
             <h3 style="margin:0 0 0 8px;">
               Mi Horario (<span id="courseCount">0</span> cursos)
             </h3>
-
-            <!-- Toggle: original vs new -->
             <div class="tt-toggle-row">
               <div class="tt-tabs" role="tablist">
-                <button
-                  type="button"
-                  id="ttTabOriginal"
-                  class="tt-tab tt-tab-active"
-                  data-target="original"
-                >
+                <button type="button" id="ttTabOriginal"
+                        class="tt-tab tt-tab-active" data-target="original">
                   Horario original
                 </button>
-                <button
-                  type="button"
-                  id="ttTabNew"
-                  class="tt-tab"
-                  data-target="new"
-                >
+                <button type="button" id="ttTabNew" class="tt-tab" data-target="new">
                   Horario nuevo
                 </button>
               </div>
             </div>
-
             <button id="closeTimetable" class="tt-close">Cerrar</button>
           </div>
 
-          <!-- two timetable containers: original vs new -->
           <div id="ttGridOriginal" class="ttGridWrapper"></div>
           <div id="ttGridNew" class="ttGridWrapper hidden"></div>
         </div>
 
-
-
-        <!-- Confirm modal -->
         <div id="confirmModal" class="modal-overlay">
           <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
             <div class="modal-header">
@@ -818,15 +867,14 @@
     <% } %>
   </div>
 
-  <!-- Loading overlay -->
   <div id="loadingOverlay" class="loading-overlay">
     <div>
-      <dotlottie-wc src="https://lottie.host/5a9c4467-dd56-41ee-9a40-6d62dda81d54/ZcE9bNMdwI.lottie" style="width: 200px; height: 200px;" speed="1" autoplay loop></dotlottie-wc>
+      <dotlottie-wc src="https://lottie.host/5a9c4467-dd56-41ee-9a40-6d62dda81d54/ZcE9bNMdwI.lottie"
+                    style="width: 200px; height: 200px;" speed="1" autoplay loop></dotlottie-wc>
       <div style="text-align:center;color:#f02454;font-weight:600;">Cargando datos...</div>
     </div>
   </div>
 
-  <!-- ===== AI PREFERENCES MODAL (only this, old inline panel removed) ===== -->
   <div id="aiPreferencesModal" class="ai-modal-overlay">
     <div class="preferences-card">
       <div class="card-header">
@@ -888,56 +936,70 @@
   </div>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // show spinner on login submit
     const loginForm = document.getElementById('loginForm');
-    if (loginForm) loginForm.addEventListener('submit', () => document.getElementById('loadingOverlay').classList.add('active'));
-    window.addEventListener('load', () => document.getElementById('loadingOverlay').classList.remove('active'));
+    if (loginForm) loginForm.addEventListener('submit', () =>
+      document.getElementById('loadingOverlay').classList.add('active')
+    );
+    window.addEventListener('load', () =>
+      document.getElementById('loadingOverlay').classList.remove('active')
+    );
 
-    /* ===== AI Preferences Modal: open/close + count ===== */
     const aiSuggestBtn = document.getElementById('aiSuggestBtn');
     const aiPreferencesModal = document.getElementById('aiPreferencesModal');
     const aiModalCancel = document.getElementById('aiModalCancel');
     const aiModalGenerate = document.getElementById('aiModalGenerate');
     const aiModalCheckboxes = aiPreferencesModal?.querySelectorAll('.checkbox-input');
-    const aiModalSelectedCount = aiPreferencesModal?.querySelector('#selectedCount');
+
+    const ttToggleNew = document.getElementById('ttTabNew');
+    let hasNewTimetable = false;
 
     function showAiModal() {
       if (!aiPreferencesModal) return;
       aiPreferencesModal.style.display = 'flex';
       document.body.classList.add('ai-modal-open');
-      updateAiModalSelectedCount();
     }
     function hideAiModal() {
       if (!aiPreferencesModal) return;
       aiPreferencesModal.style.display = 'none';
       document.body.classList.remove('ai-modal-open');
     }
-    function updateAiModalSelectedCount() {
-      if (!aiModalCheckboxes || !aiModalSelectedCount) return;
-      const checkedCount = Array.from(aiModalCheckboxes).filter(cb => cb.checked).length;
-      aiModalSelectedCount.textContent = checkedCount;
-    }
-    if (aiModalCheckboxes) aiModalCheckboxes.forEach(cb => cb.addEventListener('change', updateAiModalSelectedCount));
+
     if (aiSuggestBtn) aiSuggestBtn.addEventListener('click', showAiModal);
     if (aiModalCancel) aiModalCancel.addEventListener('click', hideAiModal);
 
-    // IMPORTANT: Use LOCAL LOGIC on Generate
+    // ==== SERVER-SIDE IA: call /ai-local and apply result ====
     if (aiModalGenerate) aiModalGenerate.addEventListener('click', async function() {
-    const freeDays = Array.from(aiModalCheckboxes || [])
-      .filter(cb => cb.checked)
-      .map(cb => cb.value);
+      const freeDays = Array.from(aiModalCheckboxes || [])
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
 
-    window._aiFreeDays = freeDays;
-    hideAiModal();
+      hideAiModal();
+      const overlay = document.getElementById('loadingOverlay');
+      overlay?.classList.add('active');
 
-    const ok = await autoAssignFromAvailable({ freeDays });
-    if (!ok) return; // IA failed → nothing changed, don’t open timetable
+      try {
+        const resp = await fetch('/ai-local', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences: { freeDays } })
+        });
+        const data = await resp.json();
 
-    document.getElementById('seeTimetableBtn')?.click(); // open visual timetable
-  });
+        if (!resp.ok || !data || data.ok === false) {
+          alert('No se pudo generar un horario con IA.');
+          return;
+        }
 
+        applyServerPlan(data);
+        document.getElementById('seeTimetableBtn')?.click();
+      } catch (err) {
+        console.error(err);
+        alert('Ocurrió un error generando el horario.');
+      } finally {
+        overlay?.classList.remove('active');
+      }
+    });
 
-    /* ===== Tiny utils and normalizers ===== */
     const norm = (s) => String(s || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
     const stripAcc = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const canonicalDay = s => {
@@ -946,16 +1008,12 @@
       return map[k] || (s || '—');
     };
 
-    // Modality display + short letter
     const modalityDisplayNames = {
-  'TEORÍA VIRTUAL':'TEORÍA VIRTUAL','TEORIA VIRTUAL':'TEORÍA VIRTUAL','VIRTUAL':'TEORÍA VIRTUAL','TEV':'TEORÍA VIRTUAL','VIR':'TEORÍA VIRTUAL',
-  'TEORÍA PRESENCIAL':'TEORÍA PRESENCIAL','TEORIA PRESENCIAL':'TEORÍA PRESENCIAL','PRESENCIAL':'TEORÍA PRESENCIAL','TEP':'TEORÍA PRESENCIAL',
-  'LABORATORIO PRESENCIAL':'LABORATORIO PRESENCIAL','LAB PRESENCIAL':'LABORATORIO PRESENCIAL','LBP':'LABORATORIO PRESENCIAL',
-  'V':'TEORÍA VIRTUAL',
-  'P':'TEORÍA PRESENCIAL',
-  'L':'LABORATORIO PRESENCIAL',
-  'PRE':'TEORÍA PRESENCIAL'   
-};
+      'TEORÍA VIRTUAL':'TEORÍA VIRTUAL','TEORIA VIRTUAL':'TEORÍA VIRTUAL','VIRTUAL':'TEORÍA VIRTUAL','TEV':'TEORÍA VIRTUAL','VIR':'TEORÍA VIRTUAL',
+      'TEORÍA PRESENCIAL':'TEORÍA PRESENCIAL','TEORIA PRESENCIAL':'TEORÍA PRESENCIAL','PRESENCIAL':'TEORÍA PRESENCIAL','TEP':'TEORÍA PRESENCIAL',
+      'LABORATORIO PRESENCIAL':'LABORATORIO PRESENCIAL','LAB PRESENCIAL':'LABORATORIO PRESENCIAL','LBP':'LABORATORIO PRESENCIAL',
+      'V':'TEORÍA VIRTUAL','P':'TEORÍA PRESENCIAL','L':'LABORATORIO PRESENCIAL','PRE':'TEORÍA PRESENCIAL'
+    };
     function normalizeModalityDisplay(m){
       const t = stripAcc(String(m||'')).toUpperCase().trim();
       return modalityDisplayNames[t] || (m || '—');
@@ -968,7 +1026,6 @@
       return '—';
     }
 
-    // normalize "HH:MM–HH:MM"
     function normalizeTime(t){
       const s = String(t || '').trim();
       const m = s.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
@@ -985,24 +1042,9 @@
     }
     const overlap = (a,b) => a && b && a.start < b.end && b.start < a.end;
 
-    // true-duplicate filter
-    function removeTrueDuplicates(entries){
-      const seen = new Set();
-      return entries.filter(e=>{
-        const r = parseRange(e.time);
-        const key = [
-          norm(e.code), norm(e.groupCode || ''), sameDayKey(e.day),
-          r ? r.start : e.time, r ? r.end : '', norm(e.modality || '')
-        ].join('|');
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
-
-    // read current / originals / changes
     const originals = {};
     const changes   = {};
+
     function readCurrent(row){
       const badge = row.querySelector('.badge');
       const metaItems = row.querySelectorAll('.course-meta .meta-item');
@@ -1060,7 +1102,6 @@
       return entries;
     }
 
-    // Build timetable excluding ALL rows of a given course (by courseCode)
     function buildPlanWithoutCourse(courseCode) {
       const excludeKey = norm(courseCode || '');
       const entries = [];
@@ -1068,7 +1109,6 @@
         const base = originals[row.id] || readCurrent(row);
         const code = row.getAttribute('data-code') || base.code;
         if (excludeKey && norm(code) === excludeKey) return;
-
         const sel  = changes[row.id];
         const day  = canonicalDay(sel?.day || base.day);
         const time = normalizeTime(sel?.time || base.time);
@@ -1079,7 +1119,6 @@
       return entries;
     }
 
-    // helper: remove all IA changes and clear "Cambios" boxes
     function resetChanges() {
       Object.keys(changes).forEach(k => delete changes[k]);
       document.querySelectorAll('.change-wrapper').forEach(el => {
@@ -1087,6 +1126,15 @@
         el.innerHTML = '';
       });
     }
+
+    function clearAllChangesUI() {
+      Object.keys(changes).forEach(k => delete changes[k]);
+      document.querySelectorAll('[id^="chg-"]').forEach(el => {
+        el.className = 'change-wrapper';
+        el.innerHTML = '';
+      });
+    }
+
     function getConflict(plan, day, time){
       const r = parseRange(time);
       if (!r) return null;
@@ -1098,7 +1146,6 @@
       return null;
     }
 
-    // classify modality to group segments (T = teoría/virtual, L = laboratorio)
     function classifyModType(mod) {
       const m = normalizeModalityDisplay(mod || '').toUpperCase();
       if (m.includes('LAB')) return 'L';
@@ -1106,23 +1153,19 @@
       return 'O';
     }
 
-    // Check if ANY segment of a turno conflicts with the current plan
     function getGroupConflict(plan, option) {
       const sessions = Array.isArray(option.sessions) ? option.sessions : [];
       if (sessions.length) {
         for (const s of sessions) {
           const day = canonicalDay(s.day || s.dayName || "—");
           const time = normalizeTime(
-            s.time ||
-            `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+            s.time || `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
           );
           const conflict = getConflict(plan, day, time);
           if (conflict) return conflict;
         }
         return null;
       }
-
-      // fallback: old behaviour using a single slot
       const dt = parseDayTimeFromOption(option);
       return getConflict(plan, dt.day, dt.time);
     }
@@ -1140,13 +1183,11 @@
 
         const day = canonicalDay(seg.day || seg.dayName || "—");
         const time = normalizeTime(
-          seg.time ||
-          `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}`
+          seg.time || `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}`
         );
         return { day, time };
       }
 
-      // ---- fallback: previous behaviour (no sessions[]) ----
       let day = o.day || "", time = normalizeTime(o.hour || o.time || "");
       if ((!day || !time) && o.scheduleText) {
         const first = String(o.scheduleText).split("•")[0].trim();
@@ -1157,7 +1198,6 @@
       return { day: canonicalDay(day || "—"), time: time || "—" };
     }
 
-        // === Fetch number_enrolled per group for a course ===
     async function fetchEnrolledCounts(period, courseCode) {
       try {
         const resp = await fetch('/course-number-enrolled', {
@@ -1173,15 +1213,13 @@
           const n = Number(r.number_enrolled);
           map[g] = Number.isFinite(n) ? n : 0;
         });
-        return map;   // e.g. { "A2": 7, "M1": 32 }
+        return map;
       } catch (e) {
         console.error('fetchEnrolledCounts error', e);
         return {};
       }
     }
 
-
-        // ===== Show only ONE card per course (combine teoría + laboratorio) =====
     (function groupEnrolledCards() {
       const byCode = {};
       document.querySelectorAll('.course').forEach(row => {
@@ -1193,7 +1231,6 @@
       Object.values(byCode).forEach(rows => {
         if (rows.length <= 1) return;
 
-        // pick main row: prefer teoría/virtual if available
         const withData = rows.map(r => ({ row: r, data: readCurrent(r) }));
         let mainEntry =
           withData.find(e => classifyModType(e.data.modality) === 'T') ||
@@ -1202,7 +1239,6 @@
         const mainRow = mainEntry.row;
         const others  = rows.filter(r => r !== mainRow);
 
-        // Add a small "Componentes: Teoría + laboratorio" tag on the main card
         const hasTheory = withData.some(e => classifyModType(e.data.modality) === 'T');
         const hasLab    = withData.some(e => classifyModType(e.data.modality) === 'L');
 
@@ -1219,7 +1255,6 @@
           meta.appendChild(span);
         }
 
-        // Hide the extra rows + their change panels
         others.forEach(r => {
           r.classList.add('course-hidden-segment');
           const idxStr = r.id && r.id.split('-')[1];
@@ -1231,7 +1266,6 @@
       });
     })();
 
-        // Build originals once
     document.querySelectorAll('.course').forEach((row, idx) => {
       originals[row.id] = readCurrent(row);
       const details   = row.querySelector('.repl');
@@ -1251,22 +1285,18 @@
         container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
 
         try {
-          // get available turnos + enrolled counts in parallel
           const [availableResp, enrolledMap] = await Promise.all([
             fetch('/available', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ period, courseCode })
             }).then(r => r.json()),
-            fetchEnrolledCounts(period, courseCode)   // { "A2":7, "M1":32, ... }
+            fetchEnrolledCounts(period, courseCode)
           ]);
 
           const json = availableResp;
-
-          // each item from backend is already a FULL TURNO with sessions[]
           let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
 
-          // remove the current group
           opts = opts.filter(o => norm(o.groupCode || o.section || '') !== currentGroupKey);
 
           if (!opts.length) {
@@ -1275,7 +1305,7 @@
             return;
           }
 
-          const currentPlan = buildPlanWithoutCourse(courseCode); // exclude all rows of this course
+          const currentPlan = buildPlanWithoutCourse(courseCode);
           const blocks = [];
 
           opts.forEach(o => {
@@ -1296,7 +1326,6 @@
               ? 'class="option-btn" disabled'
               : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
 
-            // Show ALL sessions of the turno (TEV/VIR + LBP/TEP, etc.)
             const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
               const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
               const day = canonicalDay(s.dayName || s.day || '—');
@@ -1339,87 +1368,122 @@
       });
     });
 
-
     window.getGroup = function(row) {
       const meta = row.querySelectorAll('.course-meta .meta-item strong');
       return meta && meta[1] ? (meta[1].textContent || '').trim() : '';
     };
 
-    // Apply a FULL turno (all sessions) to ALL rows of the same course
     window.previewReplace = function(rowIndex, opt){
-  const row = document.getElementById('c-' + rowIndex);
-  if (!row) return;
+      const row = document.getElementById('c-' + rowIndex);
+      if (!row) return;
 
-  const courseCode = opt.courseCode ||
-    row.getAttribute('data-code') ||
-    (originals[row.id] || readCurrent(row)).code;
+      const courseCode = opt.courseCode ||
+        row.getAttribute('data-code') ||
+        (originals[row.id] || readCurrent(row)).code;
 
-  const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
-  if (!sessions.length) return;
+      const sessions = Array.isArray(opt.sessions) ? opt.sessions : [];
+      if (!sessions.length) return;
 
-  // 1) re-check conflicts for the WHOLE turno
-  const plan = buildPlanWithoutCourse(courseCode);
-  for (const s of sessions) {
-    const day = canonicalDay(s.day || s.dayName || "—");
-    const time = normalizeTime(
-      s.time ||
-      `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
-    );
-    const conflict = getConflict(plan, day, time);
-    if (conflict) {
-      alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
-      return;
-    }
-  }
+      const plan = buildPlanWithoutCourse(courseCode);
+      for (const s of sessions) {
+        const day = canonicalDay(s.day || s.dayName || "—");
+        const time = normalizeTime(
+          s.time || `${s.start || s.hourStart || ''}-${s.end || s.hourEnd || ''}`
+        );
+        const conflict = getConflict(plan, day, time);
+        if (conflict) {
+          alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
+          return;
+        }
+      }
 
-  // 2) apply this turno to ALL rows of this course (teoría + lab, etc.)
-  const courseRows = Array.from(document.querySelectorAll('.course'))
-    .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
+      const courseRows = Array.from(document.querySelectorAll('.course'))
+        .filter(r => norm(r.getAttribute('data-code') || '') === norm(courseCode));
 
-  courseRows.forEach(r => {
-    const rowId = r.id;
-    const original = originals[rowId] || readCurrent(r);
-    const origType = classifyModType(original.modality);
+      courseRows.forEach(r => {
+        const rowId = r.id;
+        const original = originals[rowId] || readCurrent(r);
+        const origType = classifyModType(original.modality);
 
-    // find matching segment (T/L) for this row; fallback to first session
-    let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
+        let seg = sessions.find(s => classifyModType(s.modality || s.modalityNorm) === origType) || sessions[0];
 
-    const idxStr = rowId.split('-')[1];
-    const idxNum = Number(idxStr);
+        const idxStr = rowId.split('-')[1];
+        const idxNum = Number(idxStr);
 
-    const after = {
-      code: original.code,
-      name: r.getAttribute('data-name') || original.name,
-      group: opt.groupCode || original.group,
-      day: canonicalDay(seg.day || seg.dayName || original.day),
-      time: normalizeTime(
-        seg.time ||
-        `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
-        original.time
-      ),
-      modality: normalizeModalityDisplay(seg.modality || original.modality)
+        const after = {
+          code: original.code,
+          name: r.getAttribute('data-name') || original.name,
+          group: opt.groupCode || original.group,
+          day: canonicalDay(seg.day || seg.dayName || original.day),
+          time: normalizeTime(
+            seg.time ||
+            `${seg.start || seg.hourStart || ''}-${seg.end || seg.hourEnd || ''}` ||
+            original.time
+          ),
+          modality: normalizeModalityDisplay(seg.modality || original.modality)
+        };
+
+        changes[rowId] = after;
+        renderChange(
+          idxNum,
+          { group: original.group, day: original.day, time: original.time, modality: original.modality },
+          after
+        );
+      });
+
+      hasNewTimetable = true;
+      if (ttToggleNew) {
+        ttToggleNew.disabled = false;
+        ttToggleNew.classList.remove('tt-tab-disabled');
+      }
+
+      document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
     };
 
-    changes[rowId] = after;
-    renderChange(
-      idxNum,
-      { group: original.group, day: original.day, time: original.time, modality: original.modality },
-      after
-    );
-  });
+    function applyServerPlan(data) {
+      const changeList = Array.isArray(data.changes) ? data.changes : [];
+      clearAllChangesUI();
 
-  // 🔓 mark that we now have a "new timetable" (manual change)
-  hasNewTimetable = true;
-  if (ttToggleNew) {
-    ttToggleNew.disabled = false;
-    ttToggleNew.classList.remove('tt-toggle-btn-disabled');
-  }
+      const rowsByCode = {};
+      document.querySelectorAll('.course').forEach(row => {
+        const base = originals[row.id] || readCurrent(row);
+        const code = row.getAttribute('data-code') || base.code;
+        if (!rowsByCode[code]) rowsByCode[code] = [];
+        rowsByCode[code].push(row);
+      });
 
-  // close all "Reemplazar curso" panels
-  document.querySelectorAll('.repl[open]').forEach(d => d.open = false);
-};
- 
-    // build timetable ONLY with original data (before any IA changes)
+      changeList.forEach(ch => {
+        const rows = rowsByCode[ch.code] || [];
+        rows.forEach(row => {
+          const base = originals[row.id] || readCurrent(row);
+          const idxStr = (row.id || '').split('-')[1];
+          const idxNum = Number(idxStr);
+
+          const after = {
+            code: base.code,
+            name: base.name,
+            group: ch.to?.group || base.group,
+            day: ch.to?.day || base.day,
+            time: ch.to?.time || base.time,
+            modality: ch.to?.modality || base.modality
+          };
+
+          changes[row.id] = after;
+          renderChange(
+            idxNum,
+            { group: base.group, day: base.day, time: base.time, modality: base.modality },
+            after
+          );
+        });
+      });
+
+      hasNewTimetable = changeList.length > 0;
+      if (ttToggleNew && hasNewTimetable) {
+        ttToggleNew.disabled = false;
+        ttToggleNew.classList.remove('tt-tab-disabled');
+      }
+    }
+
     function buildOriginalEntries() {
       const entries = [];
       document.querySelectorAll('.course').forEach(row => {
@@ -1434,7 +1498,6 @@
       });
       return entries;
     }
-
 
     function buildFinalEntries() {
       const entries = [];
@@ -1480,9 +1543,22 @@
       return (t[0]||'—');
     }
 
-        // Render a timetable into a specific container (original / new)
+    function removeTrueDuplicates(entries){
+      const seen = new Set();
+      return entries.filter(e=>{
+        const r = parseRange(e.time);
+        const key = [
+          norm(e.code), norm(e.group || ''), sameDayKey(e.day),
+          r ? r.start : e.time, r ? r.end : '', norm(e.modality || '')
+        ].join('|');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
     function renderTimetableStacked(entries, containerId){
-      const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']; // Domingo removed
+      const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
       const container = document.getElementById(containerId);
       if (!container) return;
 
@@ -1525,12 +1601,10 @@
       });
     }
 
-
-        // store last counts for each timetable
     let lastOriginalCount = 0;
     let lastNewCount = 0;
 
-        function lockToggleToOriginal(){
+    function lockToggleToOriginal(){
       const tabOrig = document.getElementById('ttTabOriginal');
       const tabNew  = document.getElementById('ttTabNew');
       if (!tabOrig || !tabNew) return;
@@ -1583,16 +1657,13 @@
 
         const hasChanges = Object.keys(changes).length > 0;
 
-        // always render original timetable
         renderTimetableStacked(originalEntries, 'ttGridOriginal');
 
         if (hasChanges){
-          // IA or manual changes exist → render new timetable and enable toggle
           renderTimetableStacked(newEntries, 'ttGridNew');
           unlockToggle();
           setTimetableMode('new');
         } else {
-          // BEFORE IA / no changes → only original, lock the toggle
           const gridNew = document.getElementById('ttGridNew');
           if (gridNew) gridNew.innerHTML = '';
           lockToggleToOriginal();
@@ -1604,7 +1675,6 @@
       });
     }
 
-    // tab buttons
     document.getElementById('ttTabOriginal')?.addEventListener('click', () => {
       setTimetableMode('original');
     });
@@ -1616,8 +1686,6 @@
       document.getElementById('timetablePanel')?.classList.add('hidden');
     });
 
-
-    // Confirm modal
     const confirmBtn     = document.getElementById('confirmBtn');
     const confirmModal   = document.getElementById('confirmModal');
     const confirmClose   = document.getElementById('confirmClose');
@@ -1632,6 +1700,7 @@
       confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) closeConfirmModal(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirmModal(); });
     }
+
     if (confirmSendBtn) {
       confirmSendBtn.addEventListener('click', async () => {
         try {
@@ -1663,7 +1732,6 @@
             name: '<%= (_firstName + " " + _lastName) %>',
             code: '<%= _studentId %>',
             dni:  '<%= _dni %>',
-           
             facultyName: '<%= _facultyName %>',
             specialtyName: '<%= _specialtyName %>',
             period: '<%= _semester %>',
@@ -1683,197 +1751,35 @@
 
           closeConfirmModal();
 
-          // === After sending & downloading PDF: lock the screen and show message ===
-      // 1) Replace the courses list with an information message
-      const courseContainer = document.querySelector('.course-container');
-      if (courseContainer) {
-        courseContainer.innerHTML = `
-          <div class="after-submit-message" style="padding:16px 12px; text-align:center;">
-            <h3 style="margin-bottom:8px; font-weight:800; color:#111827;">
-              Gracias, <span>${escapeHtml(student.name || '')}</span>
-            </h3>
-            <p style="margin:4px 0; color:#4b5563;">
-              Tu solicitud de rectificación de matrícula ha sido registrada correctamente.
-            </p>
-            <p style="margin:4px 0; color:#4b5563;">
-              Los detalles actualizados de tu horario serán comunicados a tu correo institucional
-              <strong>${escapeHtml(student.email || '')}</strong>.
-            </p>
-            <p style="margin:8px 0 0; color:#9ca3af; font-size:0.9rem;">
-              Si necesitas hacer otro cambio, por favor contacta a la oficina OSAR.
-            </p>
-          </div>
-        `;
-      }
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `rectification_${student.code}.pdf`;
+          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 
-      // 2) Desactivar acciones y IA para que el alumno no vuelva a editar
-      document.getElementById('seeTimetableBtn')?.setAttribute('disabled', 'disabled');
-      document.getElementById('confirmBtn')?.setAttribute('disabled', 'disabled');
-      document.getElementById('aiSuggestBtn')?.setAttribute('disabled', 'disabled');
+          // after sending, lock UI and show message instead of course list
+          const courseContainer = document.querySelector('.course-container');
+          if (courseContainer) {
+            courseContainer.innerHTML = `
+              <p class="muted">
+                Tu solicitud de rectificación ha sido enviada correctamente.
+                Recibirás el detalle actualizado de tu horario por correo electrónico.
+              </p>`;
+          }
+          document.getElementById('aiSuggestBtn')?.setAttribute('disabled','true');
+          document.getElementById('seeTimetableBtn')?.setAttribute('disabled','true');
+          document.getElementById('confirmBtn')?.setAttribute('disabled','true');
 
-      const actionsCenter = document.querySelector('.actions-center');
-      if (actionsCenter) actionsCenter.style.opacity = '0.4';
-
-      // 3) Ocultar el panel de horario si estaba abierto
-      document.getElementById('timetablePanel')?.classList.add('hidden');
-
-      // hide loading overlay after successful send
-      document.getElementById('loadingOverlay')?.classList.remove('active');
-
-        } catch (err) {
-          console.error(err);
-          alert('Ocurrió un error enviando la solicitud.');
-          // re-enable the send button so the user can retry
+        } catch (e) {
+          alert('No se pudo generar el PDF.');
+          console.error(e);
+        } finally {
           confirmSendBtn.disabled = false;
           document.getElementById('loadingOverlay')?.classList.remove('active');
         }
       });
     }
 
-    /* ===== Preferences + LOCAL AI ===== */
-    function readPreferences(){
-      const freeDays = Array.isArray(window._aiFreeDays)
-        ? window._aiFreeDays.slice()
-        : Array.from(document.querySelectorAll('.pref-free:checked')).map(i => i.value);
-      const timePreference = 'no-preference';
-      const keepChangesLow = true;
-      return { timePreference, freeDays, keepChangesLow };
-    }
-
-    
-    async function autoAssignFromAvailable(prefsOverride) {
-  const overlay = document.getElementById('loadingOverlay');
-  // will accumulate courses where we **couldn’t** find a valid turno
-  const unsatisfied = [];
-
-  try {
-    overlay?.classList.add('active');
-
-    const prefs = prefsOverride || readPreferences();
-    const freeDayKeys = new Set((prefs.freeDays || []).map(d => sameDayKey(d)));
-
-    const chosenTemp = [];
-    const rows = Array.from(document.querySelectorAll('.course'));
-
-    for (const row of rows) {
-      const rowId = row.id;
-      const idx   = Number(rowId.split('-')[1]);
-      const base  = originals[rowId] || readCurrent(row);
-      const courseCode = (row.getAttribute('data-code') || base.code || '').trim();
-      const period     = row.getAttribute('data-period') || '';
-
-      const currentDayKey = sameDayKey(base.day);
-      const currentPlan   = [...buildPlanExcept(rowId), ...chosenTemp];
-
-      // fetch options
-      let opts = [];
-      try {
-        const r = await fetch('/available', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ period, courseCode })
-        });
-        const j = await r.json();
-        opts = (j.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
-      } catch {
-        opts = [];
-      }
-
-      const originalMod = normalizeModalityDisplay(base.modality || '');
-      const allNormalized = opts.map(o => {
-        const parsed = parseDayTimeFromOption(o);
-        return {
-          code: courseCode,
-          name: row.getAttribute('data-name') || base.name,
-          group: o.groupCode || o.group || o.section || '',
-          day: canonicalDay(parsed.day || ''),
-          time: normalizeTime(parsed.time || ''),
-          modality: normalizeModalityDisplay(o.modality || '')
-        };
-      });
-
-      const outsideFree = allNormalized
-        .filter(c => c.modality === originalMod)
-        .filter(c => !freeDayKeys.has(sameDayKey(c.day)));
-
-      let chosen = null;
-      for (const cand of outsideFree) {
-        const rng = parseRange(cand.time);
-        if (!rng) continue;
-
-        const sameSlot = sameDayKey(cand.day) === currentDayKey &&
-                         cand.time === normalizeTime(base.time || base.hour || '');
-        if (sameSlot && freeDayKeys.has(currentDayKey)) continue;
-
-        const conflict = getConflict(currentPlan, cand.day, cand.time);
-        if (!conflict) {
-          chosen = { cand, rng };
-          break;
-        }
-      }
-      if (!chosen && outsideFree.length) {
-        const cand = outsideFree[0];
-        const rng  = parseRange(cand.time);
-        if (rng) chosen = { cand, rng };
-      }
-
-      // ── nothing valid found → remember this course and DO NOT change it
-      if (!chosen) {
-        unsatisfied.push(`${base.code} — ${base.name}`);
-        continue;
-      }
-
-      const after = {
-        code: base.code,
-        name: row.getAttribute('data-name') || base.name,
-        group: chosen.cand.group || base.group,
-        day:   chosen.cand.day,
-        time:  chosen.cand.time,
-        modality: originalMod
-      };
-      changes[rowId] = after;
-      renderChange(
-        idx,
-        { group: base.group, day: base.day, time: base.time, modality: base.modality },
-        after
-      );
-
-      chosenTemp.push({ code: base.code, day: after.day, ...chosen.rng });
-    }
-
-    // ❌ if at least one course had no valid turno → revert everything
-    if (unsatisfied.length) {
-      resetChanges();
-      alert(
-        'No se encontró un turno que cumpla todas las restricciones para:\n\n' +
-        unsatisfied.join('\n') +
-        '\n\nTu horario NO se ha modificado. Prueba cambiando las preferencias o ajusta esos cursos manualmente.'
-      );
-      return false;
-    }
-
-     // ✅ IA assignment ok → unlock "Horario nuevo"
-    hasNewTimetable = true;
-    if (ttToggleNew) {
-      ttToggleNew.disabled = false;
-      ttToggleNew.classList.remove('tt-toggle-btn-disabled');
-    }
-
-    return true;
-
-  } catch (err) {
-    console.error(err);
-    resetChanges();  // be safe
-    alert('Ocurrió un error generando el horario.');
-    return false;
-  } finally {
-    overlay?.classList.remove('active');
-  }
-}
-
-
-
-    // helpers
     function formatMins(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
     function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }

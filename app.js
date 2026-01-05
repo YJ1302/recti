@@ -23,10 +23,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ---- external services (env) ----
-const LOGIN_URL   = process.env.LOGIN_BASE_URL;   // e.g. http://37.60.229.241:8085/service-uma
-const DATA_URL    = process.env.DATA_BASE_URL;    // e.g. http://37.60.229.241:8085/service-uma/grupoa
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;      // used for API login only
-const ADMIN_PASS  = process.env.ADMIN_PASS;
+const LOGIN_URL = process.env.LOGIN_BASE_URL; // e.g. http://37.60.229.241:8085/service-uma
+const DATA_URL = process.env.DATA_BASE_URL; // e.g. http://37.60.229.241:8085/service-uma/grupoa
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL; // used for API login only
+const ADMIN_PASS = process.env.ADMIN_PASS;
 const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:5055";
 
 const LOGO_PATH = path.join(__dirname, "public", "images", "logo.png");
@@ -74,8 +74,8 @@ const mailer =
         : undefined,
   });
 
-  if (mailer) {
-  // Verify transport connectivity (avoid forcing logger/debug properties directly on the transport)
+if (mailer) {
+  // Verify transport connectivity
   mailer.verify((err, success) => {
     if (err) {
       console.error("SMTP verify failed:", err.message);
@@ -83,12 +83,13 @@ const mailer =
       console.log("SMTP verify OK. From:", FROM_EMAIL);
     }
   });
-  console.log("SMTP settings",
+  console.log(
+    "SMTP settings",
     JSON.stringify({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
       secure: String(process.env.SMTP_SECURE),
-      from: FROM_EMAIL
+      from: FROM_EMAIL,
     })
   );
 }
@@ -122,7 +123,9 @@ function norm(s) {
   return String(s || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
 function stripAcc(s) {
-  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 function normMod(m) {
   const t = stripAcc(String(m || "").toUpperCase().trim());
@@ -165,10 +168,43 @@ function numberToDay(n) {
   return map[n] || "—";
 }
 
+/** Canonical day + time helpers (shared by /ai-local + others) */
+function canonicalDayName(s) {
+  const k = stripAcc(String(s || "")).toLowerCase();
+  const map = {
+    lunes: "Lunes",
+    martes: "Martes",
+    miercoles: "Miércoles",
+    miércoles: "Miércoles",
+    jueves: "Jueves",
+    viernes: "Viernes",
+    sabado: "Sábado",
+    sábado: "Sábado",
+    domingo: "Domingo",
+  };
+  return map[k] || (s || "—");
+}
+function parseTimeRange(range) {
+  const m = String(range || "").match(
+    /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/
+  );
+  if (!m) return null;
+  const a = +m[1] * 60 + +m[2];
+  const b = +m[3] * 60 + +m[4];
+  return a <= b ? { start: a, end: b } : { start: b, end: a };
+}
+function rangesOverlap(a, b) {
+  return a && b && a.start < b.end && b.start < a.end;
+}
+function sameDayKey(d) {
+  return stripAcc(String(d || "")).toLowerCase();
+}
+
 /** Pick the real { CODE: {...} } map from the API payload. */
 function extractCoursesMap(root) {
   if (!root || typeof root !== "object") return {};
-  if (root.courseList && typeof root.courseList === "object") return root.courseList;
+  if (root.courseList && typeof root.courseList === "object")
+    return root.courseList;
 
   const wrappers = [
     "data",
@@ -191,7 +227,8 @@ function extractCoursesMap(root) {
     }
   }
 
-  const metaKey = /^(period|student|specialty|status|message|code|.*_code|.*_id)$/i;
+  const metaKey =
+    /^(period|student|specialty|status|message|code|.*_code|.*_id)$/i;
   const keys = Object.keys(root);
   const plausible = keys.filter((k) => !metaKey.test(k));
   if (plausible.length) {
@@ -242,18 +279,20 @@ function flattenAvailable(coursesMap) {
       if (!groupMap[mapKey]) {
         groupMap[mapKey] = {
           groupCode,
-          sessions: []
+          sessions: [],
         };
       }
 
       const sessions = Array.isArray(g.sessions)
         ? g.sessions
-        : (Array.isArray(g) ? g : []);
+        : Array.isArray(g)
+        ? g
+        : [];
 
       sessions.forEach((s) => {
         const day = s.dayName || dayNameFromNumber(s.day);
         const start = s.start || s.hourStart || s.hourIni || "";
-        const end   = s.end   || s.hourEnd   || s.hourFin || "";
+        const end = s.end || s.hourEnd || s.hourFin || "";
         const modalityRaw = s.modality || g.modality || courseObj.modality || "";
         const modalityNorm = normMod(modalityRaw);
 
@@ -264,7 +303,8 @@ function flattenAvailable(coursesMap) {
           modalityNorm.includes("TEORÍA") ||
           modalityNorm.includes("TEORIA") ||
           modalityNorm.includes("VIRTUAL")
-        ) type = "T";
+        )
+          type = "T";
 
         if (type === "T") courseHasTheory = true;
         if (type === "L") courseHasLab = true;
@@ -275,7 +315,7 @@ function flattenAvailable(coursesMap) {
           end,
           modality: modalityRaw,
           modalityNorm,
-          type
+          type,
         });
       });
     }
@@ -288,11 +328,9 @@ function flattenAvailable(coursesMap) {
       const hasL = gInfo.sessions.some((s) => s.type === "L");
 
       if (requirePair && !(hasT && hasL)) {
-        // e.g. groups NS1 / NS2 in your example: only theory or only lab → skip
         return;
       }
 
-      // Build pretty text
       const pieces = gInfo.sessions.map((s) => {
         const t = [s.start, s.end].filter(Boolean).join("–");
         const modSuffix = s.modality ? ` (${s.modality})` : "";
@@ -306,13 +344,11 @@ function flattenAvailable(coursesMap) {
         courseCycle: theCycle,
         groupCode: gInfo.groupCode,
         scheduleText: pieces.join(" • "),
-        // keep first modality just for display; real logic uses sessions[]
         modality: first.modality || "",
         teacherName: "—",
         day: "",
         hour: "",
-        // NEW: full list of segments of this turno
-        sessions: gInfo.sessions
+        sessions: gInfo.sessions,
       });
     });
   }
@@ -320,7 +356,6 @@ function flattenAvailable(coursesMap) {
   out.sort((a, b) => String(a.groupCode).localeCompare(String(b.groupCode)));
   return out;
 }
-
 
 /** Flatten for AI: { CODE: [ {courseCode, group, day, time, teacherName, modality} ] } */
 function flattenAvailableForAI(coursesMap) {
@@ -350,8 +385,11 @@ function flattenAvailableForAI(coursesMap) {
       } else {
         sessions.forEach((s) => {
           const day = s.dayName || dayNameFromNumber(s.day);
-          const time = (s.hour || s.time || s.schedule || `${s.start || ""}-${s.end || ""}`)
-            .replace(/\s+–\s+|\s+-\s+| – | - /g, "-");
+          const time = (s.hour ||
+            s.time ||
+            s.schedule ||
+            `${s.start || ""}-${s.end || ""}`
+          ).replace(/\s+–\s+|\s+-\s+| – | - /g, "-");
           rows.push({
             courseCode: code,
             courseName: courseObj.courseName || "",
@@ -375,8 +413,10 @@ function pickBestKey(requestedCode, keys) {
   const nReq = norm(requestedCode);
   if (!nReq) return null;
   for (const k of keys) if (norm(k) === nReq) return k;
-  for (const k of keys) if (norm(k).startsWith(nReq) || nReq.startsWith(norm(k))) return k;
-  for (const k of keys) if (norm(k).includes(nReq) || nReq.includes(norm(k))) return k;
+  for (const k of keys)
+    if (norm(k).startsWith(nReq) || nReq.startsWith(norm(k))) return k;
+  for (const k of keys)
+    if (norm(k).includes(nReq) || nReq.includes(norm(k))) return k;
   return null;
 }
 
@@ -393,7 +433,6 @@ function pdfToBuffer(doc) {
 
 /* ------------ health check (Render) ------------ */
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
-
 /* ------------ routes ------------ */
 app.get("/", (_, res) => {
   res.render("index", {
@@ -428,11 +467,16 @@ app.post("/login", async (req, res) => {
     // 1) Student login
     const loginAlumnoUrl = LOGIN_URL + "/login-alumno";
     log("Student login", loginAlumnoUrl, { codigo, dni });
-    const stud = await axios.post(loginAlumnoUrl, { codigo, dni }, jsonHeaders());
+    const stud = await axios.post(
+      loginAlumnoUrl,
+      { codigo, dni },
+      jsonHeaders()
+    );
     const studentToken = stud.data && stud.data.access_token;
     const periodCode = stud.data && stud.data.periodCode;
     const studentCode =
-      (stud.data && stud.data.user && stud.data.user.c_codalu) || String(codigo);
+      (stud.data && stud.data.user && stud.data.user.c_codalu) ||
+      String(codigo);
     if (!studentToken) throw new Error("Student login failed (no token).");
 
     req.session.student = {
@@ -453,7 +497,6 @@ app.post("/login", async (req, res) => {
     const adminToken = admin.data && admin.data.access_token;
     if (!adminToken) throw new Error("Admin login failed (no token).");
 
-    // keep admin token in session for /grupoa/* calls (course-number-enrolled, etc.)
     req.session.adminToken = String(adminToken);
 
     // 3) Profile
@@ -462,7 +505,11 @@ app.post("/login", async (req, res) => {
     const profileUrl = DATA_URL + "/student";
     const profileBody = { code, period: periodFromLogin || undefined };
     log("Profile fetch", profileUrl, profileBody);
-    const prof = await axios.post(profileUrl, profileBody, jsonHeaders(adminToken));
+    const prof = await axios.post(
+      profileUrl,
+      profileBody,
+      jsonHeaders(adminToken)
+    );
     const info = prof.data && prof.data.data;
     if (!info) throw new Error("Profile endpoint returned no data.");
 
@@ -489,7 +536,11 @@ app.post("/login", async (req, res) => {
     const schedulesUrl = DATA_URL + "/course-schedules";
     const schBody = { code, period: profileOut.period };
     log("Course schedules", schedulesUrl, schBody);
-    const sch = await axios.post(schedulesUrl, schBody, jsonHeaders(adminToken));
+    const sch = await axios.post(
+      schedulesUrl,
+      schBody,
+      jsonHeaders(adminToken)
+    );
     const list = sch?.data && Array.isArray(sch.data.data) ? sch.data.data : [];
 
     const schedules = list.map((s) => ({
@@ -504,7 +555,6 @@ app.post("/login", async (req, res) => {
       period: String(s.period || profileOut.period || ""),
     }));
 
-    // store for later
     req.session.profile = profileOut;
     req.session.enrolled = schedules;
 
@@ -582,7 +632,7 @@ app.post("/available", async (req, res) => {
 
     const root = (sa.data && sa.data.data) || sa.data;
     const coursesMap = extractCoursesMap(root);
-    const theKeys = Object.keys(coursesMap || {}); // fixed: no accidental global
+    const theKeys = Object.keys(coursesMap || {});
     const bestKey = pickBestKey(courseCode, theKeys);
 
     let filtered = [];
@@ -624,12 +674,13 @@ app.post("/course-number-enrolled", async (req, res) => {
     const courseCode = String((req.body && req.body.courseCode) || "").trim();
 
     if (!period || !courseCode) {
-      return res
-        .status(400)
-        .json({ status: 400, message: "period and courseCode required", data: [] });
+      return res.status(400).json({
+        status: 400,
+        message: "period and courseCode required",
+        data: [],
+      });
     }
 
-    // get admin token (from session or login again as fallback)
     let adminToken = req.session.adminToken;
     if (!adminToken) {
       const adminLoginUrl = LOGIN_URL + "/login";
@@ -670,7 +721,6 @@ app.post("/course-number-enrolled", async (req, res) => {
   }
 });
 
-
 /* ---------- AI suggest route (proxy to your Python microservice) ---------- */
 app.post("/ai-suggest", async (req, res) => {
   try {
@@ -679,7 +729,6 @@ app.post("/ai-suggest", async (req, res) => {
     const enrolled = req.session.enrolled || [];
     if (!s || !s.token) return res.status(401).json({ error: "not_logged_in" });
 
-    // 1) current timetable (from session)
     const current = enrolled.map((e) => ({
       courseCode: e.courseCode,
       courseName: e.courseName,
@@ -690,8 +739,10 @@ app.post("/ai-suggest", async (req, res) => {
       modality: e.modality,
     }));
 
-    // 2) all available options (once)
-    const body = { codigo: s.codigo, period: prof.period || s.defaultPeriod || undefined };
+    const body = {
+      codigo: s.codigo,
+      period: prof.period || s.defaultPeriod || undefined,
+    };
     if (s.dni) body.dni = s.dni;
     const saUrl = LOGIN_URL + "/student/schedule-available";
     const sa = await axios.post(saUrl, body, jsonHeaders(s.token));
@@ -699,22 +750,21 @@ app.post("/ai-suggest", async (req, res) => {
     const coursesMap = extractCoursesMap(root);
     const available = flattenAvailableForAI(coursesMap);
 
-    // 3) preferences from client (pass through)
     const preferences = {
       timePreference:
-        (req.body?.preferences?.timePreference) ??
-        (req.body?.timePreference) ??
+        req.body?.preferences?.timePreference ??
+        req.body?.timePreference ??
         "no-preference",
       freeDays:
-        (Array.isArray(req.body?.preferences?.freeDays) && req.body.preferences.freeDays) ||
+        (Array.isArray(req.body?.preferences?.freeDays) &&
+          req.body.preferences.freeDays) ||
         (Array.isArray(req.body?.freeDays) && req.body.freeDays) ||
         [],
       keepChangesLow:
-        (req.body?.preferences?.keepChangesLow) ??
-        (req.body?.keepChangesLow !== false),
+        req.body?.preferences?.keepChangesLow ??
+        req.body?.keepChangesLow !== false,
     };
 
-    // 4) call AI microservice
     const { data } = await axios.post(
       `${AI_BASE_URL}/generate`,
       { current, available, preferences },
@@ -723,8 +773,248 @@ app.post("/ai-suggest", async (req, res) => {
 
     return res.json(data);
   } catch (e) {
-    console.error(" /ai-suggest error:", e.response?.status, e.response?.data || e.message);
+    console.error(
+      " /ai-suggest error:",
+      e.response?.status,
+      e.response?.data || e.message
+    );
     res.status(500).json({ error: "ai_suggest_failed" });
+  }
+});
+
+/* ---------- Local AI-like generator (server-side, used by UI) ---------- */
+app.post("/ai-local", async (req, res) => {
+  try {
+    const s = req.session.student;
+    const profile = req.session.profile || {};
+    const enrolled = req.session.enrolled || [];
+
+    if (!s || !s.token) {
+      return res.status(401).json({ error: "not_logged_in" });
+    }
+
+    const rawPrefs = (req.body && (req.body.preferences || req.body)) || {};
+    const freeDays = Array.isArray(rawPrefs.freeDays) ? rawPrefs.freeDays : [];
+    const freeDayKeys = new Set(freeDays.map((d) => sameDayKey(d)));
+
+    // 1) fetch all available once
+    const body = {
+      codigo: s.codigo,
+      period: profile.period || s.defaultPeriod || undefined,
+    };
+    if (s.dni) body.dni = s.dni;
+
+    const saUrl = LOGIN_URL + "/student/schedule-available";
+    log("Schedule available (AI-local)", saUrl, body);
+    const sa = await axios.post(saUrl, body, jsonHeaders(s.token));
+
+    const root = (sa.data && sa.data.data) || sa.data;
+    const coursesMap = extractCoursesMap(root);
+    const availableByCode = flattenAvailableForAI(coursesMap); // { CODE: rows[] }
+
+    // 2) group current timetable by course
+    const currentByCode = {};
+    enrolled.forEach((e) => {
+      const code = e.courseCode || e.c_codcur || "";
+      if (!code) return;
+      if (!currentByCode[code]) {
+        currentByCode[code] = {
+          courseCode: code,
+          courseName: e.courseName || "",
+          group: e.groupCode || e.section || "",
+          segments: [],
+        };
+      }
+      currentByCode[code].segments.push({
+        day: canonicalDayName(e.day || ""),
+        time: String(e.hour || e.time || "").trim(),
+        modality: e.modality || "",
+      });
+    });
+
+    // 3) build initial slots
+    let planSlots = [];
+    Object.values(currentByCode).forEach((c) => {
+      c.segments.forEach((seg) => {
+        const rng = parseTimeRange(seg.time);
+        if (!rng) return;
+        planSlots.push({
+          code: c.courseCode,
+          day: seg.day,
+          start: rng.start,
+          end: rng.end,
+        });
+      });
+    });
+
+    const changes = [];
+    const finalCourses = [];
+    const unsatisfied = [];
+
+    function groupAvailableRows(code, rows, fallbackName) {
+      const byGroup = {};
+      rows.forEach((r) => {
+        const g = r.group || r.groupCode || r.section || "";
+        if (!g) return;
+        if (!byGroup[g]) {
+          byGroup[g] = {
+            group: g,
+            courseName: r.courseName || fallbackName || "",
+            segments: [],
+          };
+        }
+        byGroup[g].segments.push({
+          day: canonicalDayName(r.day || r.dayName || ""),
+          time: String(r.time || "").trim(),
+          modality: r.modality || "",
+        });
+      });
+      return Object.values(byGroup);
+    }
+
+    function testCandidate(code, candidate, strictFreeDays) {
+      for (const seg of candidate.segments) {
+        const dayKey = sameDayKey(seg.day);
+        if (strictFreeDays && freeDayKeys.size && freeDayKeys.has(dayKey)) {
+          return { reason: "freeDay" };
+        }
+        const rng = parseTimeRange(seg.time);
+        if (!rng) continue;
+        for (const slot of planSlots.filter((p) => p.code !== code)) {
+          if (sameDayKey(slot.day) !== dayKey) continue;
+          if (rangesOverlap(rng, slot)) {
+            return { reason: "conflict", with: slot };
+          }
+        }
+      }
+      return null;
+    }
+
+    for (const [code, cur] of Object.entries(currentByCode)) {
+      const avaRows = availableByCode[code] || [];
+      if (!avaRows.length) {
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
+        });
+        continue;
+      }
+
+      const allGroups = groupAvailableRows(code, avaRows, cur.courseName);
+      const currentGroup = cur.group;
+      const candidateGroups = allGroups.filter(
+        (g) => g.group !== currentGroup
+      );
+
+      if (!candidateGroups.length) {
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
+        });
+        continue;
+      }
+
+      let chosen = null;
+
+      // Pass 1: respect free days + avoid conflicts
+      for (const g of candidateGroups) {
+        const err = testCandidate(code, g, true);
+        if (!err) {
+          chosen = g;
+          break;
+        }
+      }
+      // Pass 2: ignore free days but keep no conflicts
+      if (!chosen) {
+        for (const g of candidateGroups) {
+          const err = testCandidate(code, g, false);
+          if (!err) {
+            chosen = g;
+            break;
+          }
+        }
+      }
+
+      if (!chosen) {
+        unsatisfied.push(`${code} - ${cur.courseName}`);
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
+        });
+        continue;
+      }
+
+      const beforeSeg = cur.segments[0] || {
+        day: "",
+        time: "",
+        modality: "",
+      };
+      const afterSeg = chosen.segments[0] || {
+        day: "",
+        time: "",
+        modality: "",
+      };
+
+      changes.push({
+        code,
+        name: cur.courseName,
+        from: {
+          group: cur.group || "—",
+          day: canonicalDayName(beforeSeg.day || "—"),
+          time: beforeSeg.time || "—",
+          modality: beforeSeg.modality || "—",
+        },
+        to: {
+          group: chosen.group || "—",
+          day: canonicalDayName(afterSeg.day || "—"),
+          time: afterSeg.time || "—",
+          modality: afterSeg.modality || "—",
+        },
+      });
+
+      planSlots = planSlots.filter((p) => p.code !== code);
+      chosen.segments.forEach((seg) => {
+        const rng = parseTimeRange(seg.time);
+        if (!rng) return;
+        planSlots.push({
+          code,
+          day: seg.day,
+          start: rng.start,
+          end: rng.end,
+        });
+        finalCourses.push({
+          code,
+          name: cur.courseName,
+          group: chosen.group,
+          day: seg.day,
+          time: seg.time,
+          modality: seg.modality,
+        });
+      });
+    }
+
+    return res.json({ ok: true, changes, finalCourses, unsatisfied });
+  } catch (e) {
+    console.error(" /ai-local error:", e.response?.data || e.message);
+    return res.status(500).json({ error: "ai_local_failed" });
   }
 });
 
@@ -732,128 +1022,189 @@ app.post("/ai-suggest", async (req, res) => {
 app.post("/confirm", async (req, res) => {
   try {
     const clientStudent = req.body?.student || {};
-    const clientChanges = Array.isArray(req.body?.changes) ? req.body.changes : [];
-    const clientFinal   = Array.isArray(req.body?.finalCourses) ? req.body.finalCourses : [];
+    const clientChanges = Array.isArray(req.body?.changes)
+      ? req.body.changes
+      : [];
+    const clientFinal = Array.isArray(req.body?.finalCourses)
+      ? req.body.finalCourses
+      : [];
 
-    const profile  = (req.session && req.session.profile)  || {};
-    const studentS = (req.session && req.session.student)  || {};
+    const profile = (req.session && req.session.profile) || {};
+    const studentS = (req.session && req.session.student) || {};
 
     const info = {
       name:
         clientStudent.name ||
-        `${profile.name || profile.c_nomalu || ""} ${profile.lastname || profile.c_apealu || ""}`.trim() ||
+        `${profile.name || profile.c_nomalu || ""} ${
+          profile.lastname || profile.c_apealu || ""
+        }`.trim() ||
         "—",
       code: clientStudent.code || studentS.codigo || "—",
-      dni:  clientStudent.dni  || studentS.dni    || profile.dni || "—",
-      program: clientStudent.specialtyName || profile.specialtyName || "—",
-      faculty: clientStudent.facultyName   || profile.facultyName   || "—",
-      period:  clientStudent.period  || (profile.period && String(profile.period)) || "—",
-      mode:    clientStudent.mode    || profile.mode || "—",
-      email:   clientStudent.email   || profile.email_institucional || "",
+      dni: clientStudent.dni || studentS.dni || profile.dni || "—",
+      program:
+        clientStudent.specialtyName || profile.specialtyName || "—",
+      faculty: clientStudent.facultyName || profile.facultyName || "—",
+      period:
+        clientStudent.period ||
+        (profile.period && String(profile.period)) ||
+        "—",
+      mode: clientStudent.mode || profile.mode || "—",
+      email: clientStudent.email || profile.email_institucional || "",
     };
 
-    // ======== PDF UTILS ========
-    const DAY_MAP   = { lunes:"Lunes", martes:"Martes", miercoles:"Miércoles", jueves:"Jueves", viernes:"Viernes", sabado:"Sábado", domingo:"Domingo" };
-    const DAY_ORDER = { Lunes:1, Martes:2, Miércoles:3, Jueves:4, Viernes:5, Sábado:6, Domingo:7 };
+    const DAY_MAP = {
+      lunes: "Lunes",
+      martes: "Martes",
+      miercoles: "Miércoles",
+      miércoles: "Miércoles",
+      jueves: "Jueves",
+      viernes: "Viernes",
+      sabado: "Sábado",
+      sábado: "Sábado",
+      domingo: "Domingo",
+    };
+    const DAY_ORDER = {
+      Lunes: 1,
+      Martes: 2,
+      Miércoles: 3,
+      Jueves: 4,
+      Viernes: 5,
+      Sábado: 6,
+      Domingo: 7,
+    };
 
     const canonicalDay = (s) => {
-      const k = String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-      return DAY_MAP[k] || (s || "");
+      const k = String(s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      return DAY_MAP[k] || s || "";
     };
     const displayTime = (range) => {
-      const t = String(range || "").trim().replace(/\s{2,}/g,' ');
-      const m1 = t.match(/^(\d{1,2}:\d{2})\s*[–-]?\s*(\d{1,2}:\d{2})$/);
+      const t = String(range || "")
+        .trim()
+        .replace(/\s{2,}/g, " ");
+      const m1 = t.match(
+        /^(\d{1,2}:\d{2})\s*[–-]?\s*(\d{1,2}:\d{2})$/
+      );
       if (m1) return `${m1[1]}–${m1[2]}`;
-      const m2 = t.match(/(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/);
+      const m2 = t.match(
+        /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/
+      );
       if (m2) return `${m2[1]}:${m2[2]}–${m2[3]}:${m2[4]}`;
-      return t.replace('-', '–');
+      return t.replace("-", "–");
     };
 
-    // Changes (normalized) — accept {from,to} or {before,after} and sanitize values
     const toDisp = (t) => (t ? displayTime(t) : "—");
 
-    const changesList = (Array.isArray(clientChanges) ? clientChanges : []).map(ch => {
-      const from = ch.from || ch.before || {};
-      const to   = ch.to   || ch.after  || {};
-      return {
-        code: ch.code || ch.courseCode || "—",
-        name: ch.name || ch.courseName || "",
-        before: {
-          group: from.group || "—",
-          day:   canonicalDay(from.day || "—"),
-          time:  toDisp(from.time),
-          modality: from.modality || "—"
-        },
-        after: {
-          group: to.group || "—",
-          day:   canonicalDay(to.day || "—"),
-          time:  toDisp(to.time),
-          modality: to.modality || "—"
-        }
-      };
-    }).filter(row =>
-      (row.before.group !== "—" || row.after.group !== "—" ||
-       row.before.day   !== "—" || row.after.day   !== "—" ||
-       row.before.time  !== "—" || row.after.time  !== "—")
-    );
+    const changesList = (Array.isArray(clientChanges)
+      ? clientChanges
+      : []
+    )
+      .map((ch) => {
+        const from = ch.from || ch.before || {};
+        const to = ch.to || ch.after || {};
+        return {
+          code: ch.code || ch.courseCode || "—",
+          name: ch.name || ch.courseName || "",
+          before: {
+            group: from.group || "—",
+            day: canonicalDay(from.day || "—"),
+            time: toDisp(from.time),
+            modality: from.modality || "—",
+          },
+          after: {
+            group: to.group || "—",
+            day: canonicalDay(to.day || "—"),
+            time: toDisp(to.time),
+            modality: to.modality || "—",
+          },
+        };
+      })
+      .filter(
+        (row) =>
+          row.before.group !== "—" ||
+          row.after.group !== "—" ||
+          row.before.day !== "—" ||
+          row.after.day !== "—" ||
+          row.before.time !== "—" ||
+          row.after.time !== "—"
+      );
 
-    const finalCourses = clientFinal.map(e => ({
-      code: e.code,
-      name: e.name || "",
-      group: e.group || "—",
-      day: canonicalDay(e.day || "—"),
-      time: displayTime(e.time || "—"),
-      modality: e.modality || "—"
-    })).sort((a, b) => {
-      const da = DAY_ORDER[canonicalDay(a.day)] || 99;
-      const db = DAY_ORDER[canonicalDay(b.day)] || 99;
-      if (da !== db) return da - db;
-      const toMinutes = (str) => {
-        const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
-        return m ? (+m[1])*60 + (+m[2]) : 9e6;
-      };
-      const aStart = (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-      const bStart = (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-      return toMinutes(aStart) - toMinutes(bStart);
-    });
+    const finalCourses = clientFinal
+      .map((e) => ({
+        code: e.code,
+        name: e.name || "",
+        group: e.group || "—",
+        day: canonicalDay(e.day || "—"),
+        time: displayTime(e.time || "—"),
+        modality: e.modality || "—",
+      }))
+      .sort((a, b) => {
+        const da = DAY_ORDER[canonicalDay(a.day)] || 99;
+        const db = DAY_ORDER[canonicalDay(b.day)] || 99;
+        if (da !== db) return da - db;
+        const toMinutes = (str) => {
+          const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
+          return m ? +m[1] * 60 + +m[2] : 9e6;
+        };
+        const aStart =
+          (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
+        const bStart =
+          (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
+        return toMinutes(aStart) - toMinutes(bStart);
+      });
 
-    // ======== PDF SETUP ========
     const doc = new PDFDocument({
       size: "A4",
       margins: { top: 36, bottom: 36, left: 36, right: 36 },
-      bufferPages: true
+      bufferPages: true,
     });
 
     const COLORS = {
-      primary: '#f02454',
-      textDark: '#111827',
-      textMedium: '#374151',
-      textLight: '#6b7280',
-      background: '#f8fafc',
-      border: '#e5e7eb'
+      primary: "#f02454",
+      textDark: "#111827",
+      textMedium: "#374151",
+      textLight: "#6b7280",
+      background: "#f8fafc",
+      border: "#e5e7eb",
     };
 
     function drawSectionHeader(text, y) {
-      doc.save().fillColor(COLORS.primary).rect(doc.page.margins.left, y, 4, 16).fill().restore();
-      doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.textDark)
+      doc
+        .save()
+        .fillColor(COLORS.primary)
+        .rect(doc.page.margins.left, y, 4, 16)
+        .fill()
+        .restore();
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .fillColor(COLORS.textDark)
         .text(text, doc.page.margins.left + 12, y + 2);
       return y + 24;
     }
     function drawArrowPath(cx, cy) {
       doc.save().lineWidth(1.2).strokeColor(COLORS.textLight);
       doc.moveTo(cx - 8, cy).lineTo(cx + 8, cy).stroke();
-      doc.moveTo(cx + 3, cy - 6).lineTo(cx + 9, cy).lineTo(cx + 3, cy + 6).stroke();
+      doc
+        .moveTo(cx + 3, cy - 6)
+        .lineTo(cx + 9, cy)
+        .lineTo(cx + 3, cy + 6)
+        .stroke();
       doc.restore();
     }
 
-    // ----- Header with ribbon + white title + logo
     const headerX = doc.page.margins.left;
-    const headerW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const barH    = 42;
-    const barY    = doc.page.margins.top - 8;
+    const headerW =
+      doc.page.width -
+      doc.page.margins.left -
+      doc.page.margins.right;
+    const barH = 42;
+    const barY = doc.page.margins.top - 8;
 
     const LOGO_AREA_W = 86;
-    const GUTTER      = 14;
+    const GUTTER = 14;
 
     const ribbonX = headerX + LOGO_AREA_W + GUTTER;
     const ribbonW = headerW - (LOGO_AREA_W + GUTTER);
@@ -863,10 +1214,15 @@ app.post("/confirm", async (req, res) => {
     doc.restore();
 
     const logoPaths = [
-      path.join(__dirname, "public", "images", "logo_white_transparent.png"),
-      LOGO_PATH
+      path.join(
+        __dirname,
+        "public",
+        "images",
+        "logo_white_transparent.png"
+      ),
+      LOGO_PATH,
     ];
-    const logoPath = logoPaths.find(p => fs.existsSync(p));
+    const logoPath = logoPaths.find((p) => fs.existsSync(p));
     if (logoPath) {
       const LOGO_H = barH - 8;
       const LOGO_Y = barY + (barH - LOGO_H) / 2;
@@ -874,64 +1230,97 @@ app.post("/confirm", async (req, res) => {
       doc.image(logoPath, LOGO_X, LOGO_Y, { height: LOGO_H });
     }
 
-    doc.font("Helvetica-Bold").fontSize(14).fillColor("#fff").text(
-      "Universidad María Auxiliadora — Rectificación de Matrícula",
-      ribbonX + 16,
-      barY + (barH - 14) / 2,
-      { width: ribbonW - 24, align: "left" }
-    );
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .fillColor("#fff")
+      .text(
+        "Universidad María Auxiliadora — Rectificación de Matrícula",
+        ribbonX + 16,
+        barY + (barH - 14) / 2,
+        { width: ribbonW - 24, align: "left" }
+      );
 
-    // ----- Student card
     doc.moveDown(1.5);
-    const cardX   = doc.page.margins.left;
-    const cardW   = headerW;
+    const cardX = doc.page.margins.left;
+    const cardW = headerW;
     const cardTop = doc.y - 6;
-    const cardH   = 110;
+    const cardH = 110;
 
     doc.roundedRect(cardX, cardTop, cardW, cardH, 10).stroke(COLORS.border);
-    doc.font("Helvetica-Bold").fontSize(14).fillColor(COLORS.textDark)
-       .text(info.name || "—", cardX + 16, cardTop + 14, { width: cardW - 32 });
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .fillColor(COLORS.textDark)
+      .text(info.name || "—", cardX + 16, cardTop + 14, {
+        width: cardW - 32,
+      });
 
     const colW = Math.floor((cardW - 32) / 4);
     const line1Y = cardTop + 44;
     function drawKV(colIndex, label, value) {
       const x = cardX + 16 + colIndex * colW;
-      doc.font("Helvetica").fontSize(10).fillColor(COLORS.textMedium)
-         .text(label, x, line1Y, { width: colW - 16 });
-      doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textDark)
-         .text(String(value || "—"), x + 62, line1Y, { width: colW - 78 });
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(COLORS.textMedium)
+        .text(label, x, line1Y, { width: colW - 16 });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .fillColor(COLORS.textDark)
+        .text(String(value || "—"), x + 62, line1Y, {
+          width: colW - 78,
+        });
     }
-    drawKV(0, "Código:",  info.code);
-    drawKV(1, "DNI:",     info.dni);
-    drawKV(2, "Periodo:", String(info.period || "").replace(/^(\d{4})(\d)$/, "$1-$2"));
+    drawKV(0, "Código:", info.code);
+    drawKV(1, "DNI:", info.dni);
+    drawKV(
+      2,
+      "Periodo:",
+      String(info.period || "").replace(/^(\d{4})(\d)$/, "$1-$2")
+    );
     drawKV(3, "Modalidad:", info.mode);
 
     const line2Y = cardTop + 66;
     function drawRowLabelValue(y, label, value) {
-      doc.font("Helvetica").fontSize(10).fillColor(COLORS.textMedium)
-         .text(label, cardX + 16, y, { width: 80 });
-      doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.textDark)
-         .text(String(value || "—"), cardX + 106, y, { width: cardW - 138 });
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(COLORS.textMedium)
+        .text(label, cardX + 16, y, { width: 80 });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .fillColor(COLORS.textDark)
+        .text(String(value || "—"), cardX + 106, y, {
+          width: cardW - 138,
+        });
     }
     drawRowLabelValue(line2Y, "Programa:", info.program);
     drawRowLabelValue(line2Y + 16, "Facultad:", info.faculty);
-    if (info.email) drawRowLabelValue(line2Y + 32, "Email:", info.email);
+    if (info.email)
+      drawRowLabelValue(line2Y + 32, "Email:", info.email);
 
     doc.y = cardTop + cardH + 8;
 
-    // ----- Changes
     let currentY = drawSectionHeader("Cambios solicitados", doc.y);
-    const CHG_GAP   = 50;
+    const CHG_GAP = 50;
     const CHG_BOX_W = Math.floor((headerW - CHG_GAP) / 2);
-    const CHG_LEFT  = doc.page.margins.left;
+    const CHG_LEFT = doc.page.margins.left;
     const CHG_RIGHT = CHG_LEFT + CHG_BOX_W + CHG_GAP;
 
     function measureChangeBoxHeight(lines) {
       const contentWidth = CHG_BOX_W - 20;
-      const padTop = 26, padBottom = 10, lineGap = 4;
+      const padTop = 26,
+        padBottom = 10,
+        lineGap = 4;
       let h = padTop;
       lines.forEach((t, i) => {
-        const th = doc.heightOfString(String(t || "—"), { width: contentWidth, align: "left" });
+        const th = doc.heightOfString(String(t || "—"), {
+          width: contentWidth,
+          align: "left",
+        });
         h += th + (i < lines.length - 1 ? lineGap : 0);
       });
       return Math.ceil(h + padBottom);
@@ -941,13 +1330,13 @@ app.post("/confirm", async (req, res) => {
         `Grupo: ${ch.before?.group || "—"}`,
         `Día: ${ch.before?.day || "—"}`,
         `Hora: ${ch.before?.time || "—"}`,
-        `Modalidad: ${ch.before?.modality || "—"}`
+        `Modalidad: ${ch.before?.modality || "—"}`,
       ];
       const rightLines = [
         `Grupo: ${ch.after?.group || "—"}`,
         `Día: ${ch.after?.day || "—"}`,
         `Hora: ${ch.after?.time || "—"}`,
-        `Modalidad: ${ch.after?.modality || "—"}`
+        `Modalidad: ${ch.after?.modality || "—"}`,
       ];
 
       const boxH = Math.max(
@@ -961,32 +1350,61 @@ app.post("/confirm", async (req, res) => {
         currentY = doc.page.margins.top;
       }
 
-      doc.font("Helvetica-Bold").fontSize(11).fillColor(COLORS.primary)
-        .text(`${ch.code || "—"} — ${ch.name || ""}`, CHG_LEFT, currentY, { width: headerW });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(11)
+        .fillColor(COLORS.primary)
+        .text(
+          `${ch.code || "—"} — ${ch.name || ""}`,
+          CHG_LEFT,
+          currentY,
+          { width: headerW }
+        );
       currentY += 18;
 
       const yBox = Math.round(currentY);
-      doc.roundedRect(CHG_LEFT,  yBox, CHG_BOX_W, boxH, 6).stroke(COLORS.border);
-      doc.roundedRect(CHG_RIGHT, yBox, CHG_BOX_W, boxH, 6).stroke(COLORS.primary);
+      doc
+        .roundedRect(CHG_LEFT, yBox, CHG_BOX_W, boxH, 6)
+        .stroke(COLORS.border);
+      doc
+        .roundedRect(CHG_RIGHT, yBox, CHG_BOX_W, boxH, 6)
+        .stroke(COLORS.primary);
 
-      doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.textMedium)
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor(COLORS.textMedium)
         .text("ORIGINAL", CHG_LEFT + 10, yBox + 8);
-      doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.primary)
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor(COLORS.primary)
         .text("NUEVO", CHG_RIGHT + 10, yBox + 8);
 
       const contentWidth = CHG_BOX_W - 20;
       doc.font("Helvetica").fontSize(9).fillColor(COLORS.textDark);
-      let yL = yBox + 26, yR = yBox + 26;
+      let yL = yBox + 26,
+        yR = yBox + 26;
 
       leftLines.forEach((t, i) => {
         const txt = String(t || "—");
-        doc.text(txt, CHG_LEFT + 10, yL, { width: contentWidth, align: "left" });
-        yL += doc.heightOfString(txt, { width: contentWidth }) + (i < leftLines.length - 1 ? 4 : 0);
+        doc.text(txt, CHG_LEFT + 10, yL, {
+          width: contentWidth,
+          align: "left",
+        });
+        yL +=
+          doc.heightOfString(txt, { width: contentWidth }) +
+          (i < leftLines.length - 1 ? 4 : 0);
       });
       rightLines.forEach((t, i) => {
         const txt = String(t || "—");
-        doc.text(txt, CHG_RIGHT + 10, yR, { width: contentWidth, align: "left" });
-        yR += doc.heightOfString(txt, { width: contentWidth }) + (i < rightLines.length - 1 ? 4 : 0);
+        doc.text(txt, CHG_RIGHT + 10, yR, {
+          width: contentWidth,
+          align: "left",
+        });
+        yR +=
+          doc.heightOfString(txt, { width: contentWidth }) +
+          (i < rightLines.length - 1 ? 4 : 0);
       });
 
       const midX = CHG_LEFT + CHG_BOX_W + Math.floor(CHG_GAP / 2);
@@ -997,41 +1415,73 @@ app.post("/confirm", async (req, res) => {
     }
 
     if (!changesList.length) {
-      doc.font("Helvetica").fontSize(10).fillColor(COLORS.textLight)
-         .text("No se han seleccionado cambios.", doc.page.margins.left, currentY);
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(COLORS.textLight)
+        .text(
+          "No se han seleccionado cambios.",
+          doc.page.margins.left,
+          currentY
+        );
       currentY += 24;
     } else {
       changesList.forEach(drawChangeRow);
     }
 
-    // ----- Final timetable
     currentY = drawSectionHeader("Horario final", currentY);
 
-    const ORDER_DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
-    const buckets = Object.fromEntries(ORDER_DAYS.map(d => [d, []]));
-    finalCourses.forEach(e => { const d = (e.day); if (buckets[d]) buckets[d].push(e); });
-    ORDER_DAYS.forEach(d => buckets[d].sort((a,b) => {
-      const toMinutes = (str) => {
-        const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
-        return m ? (+m[1])*60 + (+m[2]) : 9e6;
-      };
-      const aStart = (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-      const bStart = (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-      return toMinutes(aStart) - toMinutes(bStart);
-    }));
+    const ORDER_DAYS = [
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+      "Domingo",
+    ];
+    const buckets = Object.fromEntries(ORDER_DAYS.map((d) => [d, []]));
+    finalCourses.forEach((e) => {
+      const d = e.day;
+      if (buckets[d]) buckets[d].push(e);
+    });
+    ORDER_DAYS.forEach((d) =>
+      buckets[d].sort((a, b) => {
+        const toMinutes = (str) => {
+          const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
+          return m ? +m[1] * 60 + +m[2] : 9e6;
+        };
+        const aStart =
+          (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
+        const bStart =
+          (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
+        return toMinutes(aStart) - toMinutes(bStart);
+      })
+    );
 
-    const ttMarginL  = doc.page.margins.left;
+    const ttMarginL = doc.page.margins.left;
     const ttContentW = headerW;
-    const ttGap      = 6;
-    const ttColW     = Math.floor((ttContentW - ttGap * (ORDER_DAYS.length - 1)) / ORDER_DAYS.length);
+    const ttGap = 6;
+    const ttColW = Math.floor(
+      (ttContentW - ttGap * (ORDER_DAYS.length - 1)) /
+        ORDER_DAYS.length
+    );
 
     function drawDayHeaders(yStart) {
       let x = ttMarginL;
-      ORDER_DAYS.forEach(day => {
+      ORDER_DAYS.forEach((day) => {
         doc.save();
-        doc.rect(x, yStart, ttColW, 20).fill(COLORS.background);
-        doc.fillColor(COLORS.textDark).font("Helvetica-Bold").fontSize(9)
-           .text(day.slice(0,3).toUpperCase(), x + 6, yStart + 5, { width: ttColW - 12, align: "left" });
+        doc
+          .rect(x, yStart, ttColW, 20)
+          .fill(COLORS.background);
+        doc
+          .fillColor(COLORS.textDark)
+          .font("Helvetica-Bold")
+          .fontSize(9)
+          .text(day.slice(0, 3).toUpperCase(), x + 6, yStart + 5, {
+            width: ttColW - 12,
+            align: "left",
+          });
         doc.restore();
         x += ttColW + ttGap;
       });
@@ -1039,10 +1489,13 @@ app.post("/confirm", async (req, res) => {
     }
 
     function drawCourseCard(x, y, course) {
-      const padX = 8, padY = 8;
+      const padX = 8,
+        padY = 8;
       const contentW = ttColW - padX * 2;
 
-      const line1 = `${course.time || "—"} • Gr. ${course.group || "—"}`;
+      const line1 = `${course.time || "—"} • Gr. ${
+        course.group || "—"
+      }`;
       const line2 = String(course.modality || "—");
 
       doc.font("Helvetica").fontSize(8);
@@ -1050,29 +1503,50 @@ app.post("/confirm", async (req, res) => {
       const h2 = doc.heightOfString(line2, { width: contentW });
 
       const pillH = 16;
-      const gap   = 6;
-      const boxH  = padY + pillH + gap + h1 + 4 + h2 + padY;
+      const gap = 6;
+      const boxH =
+        padY + pillH + gap + h1 + 4 + h2 + padY;
 
       doc.save();
-      doc.roundedRect(x, y, ttColW, boxH, 6).fillAndStroke("#fff", COLORS.border);
+      doc
+        .roundedRect(x, y, ttColW, boxH, 6)
+        .fillAndStroke("#fff", COLORS.border);
 
       const codeText = course.code || "—";
       doc.font("Helvetica-Bold").fontSize(9);
-      const pillW = Math.min(contentW, doc.widthOfString(codeText) + 14);
+      const pillW = Math.min(
+        contentW,
+        doc.widthOfString(codeText) + 14
+      );
       const pillX = x + padX;
       const pillY = y + padY;
-      doc.fillColor(COLORS.primary).roundedRect(pillX, pillY, pillW, pillH, 8).fill();
+      doc
+        .fillColor(COLORS.primary)
+        .roundedRect(pillX, pillY, pillW, pillH, 8)
+        .fill();
 
-      const codeH = doc.heightOfString(codeText, { width: pillW, align: "center" });
+      const codeH = doc.heightOfString(codeText, {
+        width: pillW,
+        align: "center",
+      });
       const codeY = pillY + (pillH - codeH) / 2;
-      doc.fillColor("#fff").text(codeText, pillX, codeY, { width: pillW, align: "center" });
+      doc
+        .fillColor("#fff")
+        .text(codeText, pillX, codeY, {
+          width: pillW,
+          align: "center",
+        });
 
       let ty = pillY + pillH + gap;
-      doc.fillColor(COLORS.textDark).font("Helvetica").fontSize(8)
-         .text(line1, x + padX, ty, { width: contentW });
+      doc
+        .fillColor(COLORS.textDark)
+        .font("Helvetica")
+        .fontSize(8)
+        .text(line1, x + padX, ty, { width: contentW });
       ty += h1 + 4;
-      doc.fillColor(COLORS.textMedium)
-         .text(line2, x + padX, ty, { width: contentW });
+      doc
+        .fillColor(COLORS.textMedium)
+        .text(line2, x + padX, ty, { width: contentW });
 
       doc.restore();
       return boxH + 4;
@@ -1085,39 +1559,60 @@ app.post("/confirm", async (req, res) => {
       const pageBottom = doc.page.height - doc.page.margins.bottom;
       doc.save().lineWidth(0.6).strokeColor(COLORS.border);
       for (let i = 0; i < ORDER_DAYS.length - 1; i++) {
-        const x = ttMarginL + (i + 1) * ttColW + i * ttGap + ttGap / 2;
+        const x =
+          ttMarginL +
+          (i + 1) * ttColW +
+          i * ttGap +
+          ttGap / 2;
         doc.moveTo(x, headersTop).lineTo(x, pageBottom).stroke();
       }
       doc.restore();
 
       let heights = ORDER_DAYS.map(() => y);
-      const maxRows = Math.max(...ORDER_DAYS.map(d => buckets[d].length));
+      const maxRows = Math.max(
+        ...ORDER_DAYS.map((d) => buckets[d].length)
+      );
 
       for (let r = 0; r < maxRows; r++) {
         ORDER_DAYS.forEach((day, col) => {
           const c = buckets[day][r];
           if (!c) return;
 
-          const x = ttMarginL + col * (ttColW + ttGap);
+          const x =
+            ttMarginL + col * (ttColW + ttGap);
           const yCol = heights[col];
 
-          if (yCol > doc.page.height - doc.page.margins.bottom - 70) {
+          if (
+            yCol >
+            doc.page.height - doc.page.margins.bottom - 70
+          ) {
             doc.addPage();
             const newHeadersTop = doc.page.margins.top;
             const newY = drawDayHeaders(newHeadersTop);
 
-            const pb = doc.page.height - doc.page.margins.bottom;
+            const pb =
+              doc.page.height - doc.page.margins.bottom;
             doc.save().lineWidth(0.6).strokeColor(COLORS.border);
             for (let i = 0; i < ORDER_DAYS.length - 1; i++) {
-              const sx = ttMarginL + (i + 1) * ttColW + i * ttGap + ttGap / 2;
-              doc.moveTo(sx, newHeadersTop).lineTo(sx, pb).stroke();
+              const sx =
+                ttMarginL +
+                (i + 1) * ttColW +
+                i * ttGap +
+                ttGap / 2;
+              doc.moveTo(sx, newHeadersTop)
+                .lineTo(sx, pb)
+                .stroke();
             }
             doc.restore();
 
             heights = ORDER_DAYS.map(() => newY);
           }
 
-          const used = drawCourseCard(x, heights[col], c);
+          const used = drawCourseCard(
+            x,
+            heights[col],
+            c
+          );
           heights[col] += used;
         });
       }
@@ -1125,71 +1620,73 @@ app.post("/confirm", async (req, res) => {
 
     drawTimetable(currentY);
 
-    // Footer
-    const headerW2 = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const headerW2 =
+      doc.page.width -
+      doc.page.margins.left -
+      doc.page.margins.right;
     const range = doc.bufferedPageRange();
     for (let i = 0; i < range.count; i++) {
       doc.switchToPage(range.start + i);
-      doc.font("Helvetica").fontSize(8).fillColor(COLORS.textLight)
-         .text(
-           `Documento generado el ${new Date().toLocaleDateString()} por el Portal de Rectificación UMA`,
-           doc.page.margins.left,
-           doc.page.height - doc.page.margins.bottom + 4,
-           { width: headerW2, align: 'right' }
-         );
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .fillColor(COLORS.textLight)
+        .text(
+          `Documento generado el ${new Date().toLocaleDateString()} por el Portal de Rectificación UMA`,
+          doc.page.margins.left,
+          doc.page.height - doc.page.margins.bottom + 4,
+          { width: headerW2, align: "right" }
+        );
     }
 
-    // Finish PDF → Buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
-    // ======== EMAIL ONLY TO ADMINS ========
-    const adminTargets = (process.env.ADMIN_PDF_TO || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  console.log("📧 Rectificación PDF will be emailed to:", adminTargets);
+    const adminTargets = (
+      process.env.ADMIN_PDF_TO ||
+      process.env.ADMIN_CC ||
+      ADMIN_EMAIL ||
+      ""
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     if (mailer && adminTargets.length) {
       try {
         await mailer.sendMail({
-          from: FROM_EMAIL, // your no-reply address
+          from: FROM_EMAIL,
           to: adminTargets.join(","),
           subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
           text:
             `No responder a este correo (noreply).\n\n` +
             `Adjunto PDF de rectificación para ${info.name} (${info.code}).\n` +
-            `Periodo: ${String(info.period).replace(/^(\d{4})(\d)$/, "$1-$2")}\n`,
+            `Periodo: ${String(info.period).replace(
+              /^(\d{4})(\d)$/,
+              "$1-$2"
+            )}\n`,
           attachments: [
-            { filename: `rectification_${info.code}.pdf`, content: pdfBuffer }
-          ]
+            {
+              filename: `rectification_${info.code}.pdf`,
+              content: pdfBuffer,
+            },
+          ],
         });
       } catch (e) {
         console.error("  Email send failed:", e.message);
       }
     } else if (!mailer) {
-      console.warn("  Skipping email: nodemailer not available. Run `npm i nodemailer`.");
+      console.warn(
+        "  Skipping email: nodemailer not available. Run `npm i nodemailer`."
+      );
     }
 
-
-    // ======== STUDENT EMAIL (disabled for now) ========
-    // const studentRecipient = info.email; // institutional student email
-    // if (mailer && studentRecipient) {
-    //   await mailer.sendMail({
-    //     from: FROM_EMAIL,
-    //     to: studentRecipient,
-    //     subject: `Tu rectificación de matrícula – ${info.code}`,
-    //     text: `Hola ${info.name}, adjuntamos tu PDF de rectificación.`,
-    //     attachments: [{ filename: `rectification_${info.code}.pdf`, content: pdfBuffer }]
-    //   });
-    // }
-
-    // Return the same PDF in the HTTP response (download)
     const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
     return res.end(pdfBuffer);
-
   } catch (e) {
     console.error(" /confirm error:", e.response?.data || e.message);
     res.status(500).json({ ok: false, error: "confirm_failed" });

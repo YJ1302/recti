@@ -1143,10 +1143,12 @@ app.post("/confirm", async (req, res) => {
     const pdfBuffer = await pdfToBuffer(doc);
 
     // ======== EMAIL ONLY TO ADMINS ========
-    const adminTargets = (process.env.ADMIN_PDF_TO || process.env.ADMIN_CC || ADMIN_EMAIL || "")
-      .split(",")
-      .map(s => s.trim())
-      .filter(Boolean);
+    const adminTargets = (process.env.ADMIN_PDF_TO || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  console.log("📧 Rectificación PDF will be emailed to:", adminTargets);
 
     if (mailer && adminTargets.length) {
       try {
@@ -1168,6 +1170,7 @@ app.post("/confirm", async (req, res) => {
     } else if (!mailer) {
       console.warn("  Skipping email: nodemailer not available. Run `npm i nodemailer`.");
     }
+
 
     // ======== STUDENT EMAIL (disabled for now) ========
     // const studentRecipient = info.email; // institutional student email

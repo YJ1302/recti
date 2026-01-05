@@ -141,6 +141,45 @@
       justify-self: end;
     }
 
+        /* Make "Reemplazar curso" look like a button */
+    .repl > summary{
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      color: #111827;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    /* Remove default triangle marker */
+    .repl > summary::-webkit-details-marker{
+      display: none;
+    }
+    .repl > summary::marker{
+      content: "";
+    }
+
+    /* Hover + open states */
+    .repl > summary:hover{
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+    }
+
+    .repl[open] > summary{
+      background: #111827;
+      color: #fff;
+    }
+
+
     /* When open, the <details> spans the full width of the course card */
     .repl[open]{
       grid-column: 1 / -1;
@@ -1644,15 +1683,47 @@
 
           closeConfirmModal();
 
-          const blob = await resp.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = `rectification_${student.code}.pdf`;
-          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-        } catch (e) {
-          alert('No se pudo generar el PDF.');
-          console.error(e);
-        } finally {
+          // === After sending & downloading PDF: lock the screen and show message ===
+      // 1) Replace the courses list with an information message
+      const courseContainer = document.querySelector('.course-container');
+      if (courseContainer) {
+        courseContainer.innerHTML = `
+          <div class="after-submit-message" style="padding:16px 12px; text-align:center;">
+            <h3 style="margin-bottom:8px; font-weight:800; color:#111827;">
+              Gracias, <span>${escapeHtml(student.name || '')}</span>
+            </h3>
+            <p style="margin:4px 0; color:#4b5563;">
+              Tu solicitud de rectificación de matrícula ha sido registrada correctamente.
+            </p>
+            <p style="margin:4px 0; color:#4b5563;">
+              Los detalles actualizados de tu horario serán comunicados a tu correo institucional
+              <strong>${escapeHtml(student.email || '')}</strong>.
+            </p>
+            <p style="margin:8px 0 0; color:#9ca3af; font-size:0.9rem;">
+              Si necesitas hacer otro cambio, por favor contacta a la oficina OSAR.
+            </p>
+          </div>
+        `;
+      }
+
+      // 2) Desactivar acciones y IA para que el alumno no vuelva a editar
+      document.getElementById('seeTimetableBtn')?.setAttribute('disabled', 'disabled');
+      document.getElementById('confirmBtn')?.setAttribute('disabled', 'disabled');
+      document.getElementById('aiSuggestBtn')?.setAttribute('disabled', 'disabled');
+
+      const actionsCenter = document.querySelector('.actions-center');
+      if (actionsCenter) actionsCenter.style.opacity = '0.4';
+
+      // 3) Ocultar el panel de horario si estaba abierto
+      document.getElementById('timetablePanel')?.classList.add('hidden');
+
+      // hide loading overlay after successful send
+      document.getElementById('loadingOverlay')?.classList.remove('active');
+
+        } catch (err) {
+          console.error(err);
+          alert('Ocurrió un error enviando la solicitud.');
+          // re-enable the send button so the user can retry
           confirmSendBtn.disabled = false;
           document.getElementById('loadingOverlay')?.classList.remove('active');
         }

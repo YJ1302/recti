@@ -8,35 +8,37 @@ const session = require("express-session");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
-// ---- optional require for nodemailer (prevents crash if not installed)
+// Optional require for nodemailer
 let nodemailer = null;
 try {
-  // install with: npm i nodemailer
   nodemailer = require("nodemailer");
 } catch (e) {
   console.warn(
-    " 'nodemailer' is not installed. Emails will be skipped. Run `npm i nodemailer` to enable emailing."
+    "'nodemailer' is not installed. Emails will be skipped. Run `npm i nodemailer` to enable emailing."
   );
 }
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ---- external services (env) ----
+// Base URLs and credentials
 const LOGIN_URL = process.env.LOGIN_BASE_URL; // e.g. http://37.60.229.241:8085/service-uma
-const DATA_URL = process.env.DATA_BASE_URL; // e.g. http://37.60.229.241:8085/service-uma/grupoa
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL; // used for API login only
+const DATA_URL = process.env.DATA_BASE_URL;   // e.g. http://37.60.229.241:8085/service-uma/grupoa
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:5055";
 
+// Logo path (for PDF)
 const LOGO_PATH = path.join(__dirname, "public", "images", "logo.png");
 
-/* ------------ express setup ------------ */
+// Boleta verification endpoint (rectification payments)
+const BOLETA_URL =
+  process.env.BOLETA_API_URL || (DATA_URL + "/rectification_payments");
+
+// Express setup
 app.disable("x-powered-by");
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
-
-// trust proxy for Render so secure cookies can be used when https
 app.set("trust proxy", 1);
 
 app.use(express.urlencoded({ extended: false }));
@@ -50,12 +52,12 @@ app.use(
     saveUninitialized: false,
     cookie: {
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production", // auto-secure on Render
+      secure: process.env.NODE_ENV === "production",
     },
   })
 );
 
-/* ------------ mail transport (no-reply) ------------ */
+// Mail transport (no-reply)
 const FROM_EMAIL =
   process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
 
@@ -75,8 +77,7 @@ const mailer =
   });
 
 if (mailer) {
-  // Verify transport connectivity
-  mailer.verify((err, success) => {
+  mailer.verify((err) => {
     if (err) {
       console.error("SMTP verify failed:", err.message);
     } else {
@@ -94,19 +95,22 @@ if (mailer) {
   );
 }
 
-/* ------------ helpers ------------ */
+// Helpers
 function jsonHeaders(token) {
   const h = { "Content-Type": "application/json" };
   if (token) h.Authorization = "Bearer " + token;
   return { headers: h };
 }
+
 function log(label, url, body) {
-  console.log(`\n ${label}\nURL: ${url}\nBODY: ${JSON.stringify(body)}`);
+  console.log(`\n${label}\nURL: ${url}\nBODY: ${JSON.stringify(body)}`);
 }
+
 function fmtPeriod(p) {
   const s = String(p || "");
   return s.length === 5 ? `${s.slice(0, 4)}-${s.slice(4)}` : s;
 }
+
 function dayNameFromNumber(n) {
   const map = {
     1: "Lunes",
@@ -119,14 +123,17 @@ function dayNameFromNumber(n) {
   };
   return map[n] || "";
 }
+
 function norm(s) {
   return String(s || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
 }
+
 function stripAcc(s) {
   return String(s || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
+
 function normMod(m) {
   const t = stripAcc(String(m || "").toUpperCase().trim());
   if (t.includes("LAB")) return "LABORATORIO PRESENCIAL";
@@ -140,6 +147,7 @@ function normMod(m) {
     return "TEORÍA PRESENCIAL";
   return t || "—";
 }
+
 function dayToNumber(d) {
   const k = stripAcc(String(d || "").toLowerCase());
   const map = {
@@ -155,6 +163,7 @@ function dayToNumber(d) {
   };
   return map[k] || 0;
 }
+
 function numberToDay(n) {
   const map = {
     1: "Lunes",
@@ -168,7 +177,7 @@ function numberToDay(n) {
   return map[n] || "—";
 }
 
-/** Canonical day + time helpers (shared by /ai-local + others) */
+// Canonical day + time helpers
 function canonicalDayName(s) {
   const k = stripAcc(String(s || "")).toLowerCase();
   const map = {
@@ -184,6 +193,7 @@ function canonicalDayName(s) {
   };
   return map[k] || (s || "—");
 }
+
 function parseTimeRange(range) {
   const m = String(range || "").match(
     /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/
@@ -193,14 +203,152 @@ function parseTimeRange(range) {
   const b = +m[3] * 60 + +m[4];
   return a <= b ? { start: a, end: b } : { start: b, end: a };
 }
+
 function rangesOverlap(a, b) {
   return a && b && a.start < b.end && b.start < a.end;
 }
+
 function sameDayKey(d) {
   return stripAcc(String(d || "")).toLowerCase();
 }
 
-/** Pick the real { CODE: {...} } map from the API payload. */
+function normalizePeriodDigits(p) {
+  return String(p || "").replace(/[^0-9]/g, "");
+}
+
+function asPeriodNumber(p) {
+  const digits = normalizePeriodDigits(p);
+  const n = Number(digits);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * ✅ Ensure admin token exists (and re-login if needed)
+ */
+async function ensureAdminToken(req) {
+  let adminToken = req.session && req.session.adminToken;
+  if (adminToken) return String(adminToken);
+
+  const adminLoginUrl = LOGIN_URL + "/login";
+  log("Admin login (ensureAdminToken)", adminLoginUrl, {
+    email: ADMIN_EMAIL,
+    password: "***",
+  });
+
+  const admin = await axios.post(
+    adminLoginUrl,
+    { email: ADMIN_EMAIL, password: ADMIN_PASS },
+    jsonHeaders()
+  );
+
+  adminToken = admin.data && admin.data.access_token;
+  if (!adminToken) throw new Error("Admin login failed (no token).");
+
+  req.session.adminToken = String(adminToken);
+  return String(adminToken);
+}
+
+/**
+ * ✅ Fetch course-number-enrolled from grupoa and normalize it
+ * We compute:
+ * - total_vacations (capacity)
+ * - number_enrolled
+ * - vacancies_left = max(0, total_vacations - number_enrolled)
+ * - is_full = vacancies_left <= 0
+ */
+function normalizeCourseNumberRows(rows) {
+  const arr = Array.isArray(rows) ? rows : [];
+  return arr.map((r) => {
+    const groupCode =
+      r.courseGroup ||
+      r.course_group ||
+      r.group ||
+      r.section ||
+      r.courseGroupCode ||
+      r.course_group_code ||
+      "";
+
+    const numberEnrolled = Number(
+      r.number_enrolled ?? r.numberEnrolled ?? r.enrolled ?? r.matriculados ?? 0
+    );
+
+    const totalVac = Number(
+      r.total_vacations ??
+        r.totalVacations ??
+        r.total_vacantes ??
+        r.totalVacantes ??
+        r.vacantes ??
+        0
+    );
+
+    const vacanciesLeft = Math.max(
+      0,
+      (Number.isFinite(totalVac) ? totalVac : 0) -
+        (Number.isFinite(numberEnrolled) ? numberEnrolled : 0)
+    );
+
+    return {
+      period: r.period,
+      facultyCode: r.facultyCode,
+      specialtyCode: r.specialtyCode,
+      plan: r.plan,
+      modalityCode: r.modalityCode,
+      courseCode: r.courseCode,
+      groupCode,
+      number_enrolled: Number.isFinite(numberEnrolled) ? numberEnrolled : 0,
+      total_vacations: Number.isFinite(totalVac) ? totalVac : 0,
+      vacancies_left: vacanciesLeft,
+      is_full: vacanciesLeft <= 0,
+      raw: r,
+    };
+  });
+}
+
+/**
+ * ✅ Build a quick map by group for merging into /available results
+ */
+async function getVacancyMapForCourse(req, period, courseCode) {
+  const adminToken = await ensureAdminToken(req);
+
+  const url = DATA_URL + "/course-number-enrolled";
+  const periodNum = asPeriodNumber(period);
+
+  const body = {
+    period: periodNum ?? period,
+    courseCode: String(courseCode || "").trim(),
+  };
+
+  log("Fetch vacancies (admin)", url, body);
+
+  let resp;
+  try {
+    resp = await axios.post(url, body, jsonHeaders(adminToken));
+  } catch (e) {
+    // if token expired -> relogin once
+    if (e?.response?.status === 401 || e?.response?.status === 403) {
+      req.session.adminToken = null;
+      const newTok = await ensureAdminToken(req);
+      resp = await axios.post(url, body, jsonHeaders(newTok));
+    } else {
+      throw e;
+    }
+  }
+
+  const payload = resp.data || {};
+  const rows = Array.isArray(payload.data) ? payload.data : [];
+  const normalized = normalizeCourseNumberRows(rows);
+
+  const map = {};
+  normalized.forEach((x) => {
+    const k = norm(x.groupCode);
+    if (!k) return;
+    map[k] = x;
+  });
+
+  return { normalized, map };
+}
+
+// Extract the courses map from API payload
 function extractCoursesMap(root) {
   if (!root || typeof root !== "object") return {};
   if (root.courseList && typeof root.courseList === "object")
@@ -247,10 +395,7 @@ function extractCoursesMap(root) {
   return {};
 }
 
-/** Flatten for the UI replacement-panel
- *  - Aggregates sessions by groupCode
- *  - If a course has both TEORÍA and LAB, only keeps groups that have BOTH
- */
+// Flatten available for UI
 function flattenAvailable(coursesMap) {
   const out = [];
   const codes = Object.keys(coursesMap || {});
@@ -265,7 +410,6 @@ function flattenAvailable(coursesMap) {
       ? groups.map((g) => [g.courseGroup || g.group || g.section || "", g])
       : Object.entries(groups);
 
-    // 1) Aggregate all sessions by groupCode
     const groupMap = {};
     let courseHasTheory = false;
     let courseHasLab = false;
@@ -296,7 +440,6 @@ function flattenAvailable(coursesMap) {
         const modalityRaw = s.modality || g.modality || courseObj.modality || "";
         const modalityNorm = normMod(modalityRaw);
 
-        // classify modality
         let type = "O";
         if (modalityNorm.includes("LABORATORIO")) type = "L";
         else if (
@@ -320,7 +463,6 @@ function flattenAvailable(coursesMap) {
       });
     }
 
-    // 2) If course has BOTH theory and lab, require each group to have both
     const requirePair = courseHasTheory && courseHasLab;
 
     Object.values(groupMap).forEach((gInfo) => {
@@ -349,6 +491,12 @@ function flattenAvailable(coursesMap) {
         day: "",
         hour: "",
         sessions: gInfo.sessions,
+
+        // ✅ new fields (merged later in /available)
+        number_enrolled: null,
+        total_vacations: null,
+        vacancies_left: null,
+        is_full: false,
       });
     });
   }
@@ -357,7 +505,7 @@ function flattenAvailable(coursesMap) {
   return out;
 }
 
-/** Flatten for AI: { CODE: [ {courseCode, group, day, time, teacherName, modality} ] } */
+// Flatten available for AI
 function flattenAvailableForAI(coursesMap) {
   const out = {};
   Object.keys(coursesMap || {}).forEach((code) => {
@@ -376,6 +524,7 @@ function flattenAvailableForAI(coursesMap) {
       if (!sessions.length) {
         rows.push({
           courseCode: code,
+          courseName: courseObj.courseName || "",
           group,
           day: "",
           time: "",
@@ -408,7 +557,6 @@ function flattenAvailableForAI(coursesMap) {
   return out;
 }
 
-/** Given requested course code and keys returned by server, pick the best match. */
 function pickBestKey(requestedCode, keys) {
   const nReq = norm(requestedCode);
   if (!nReq) return null;
@@ -420,7 +568,7 @@ function pickBestKey(requestedCode, keys) {
   return null;
 }
 
-/** Collect a PDFDocument output into a Buffer. */
+// Collect PDFDocument into Buffer
 function pdfToBuffer(doc) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -431,9 +579,24 @@ function pdfToBuffer(doc) {
   });
 }
 
-/* ------------ health check (Render) ------------ */
+// Require verified student (login + boleta)
+function requireVerifiedStudent(req, res, next) {
+  const s = req.session && req.session.student;
+  if (!s) {
+    if (req.accepts("html")) return res.redirect("/");
+    return res.status(401).json({ error: "not_logged_in" });
+  }
+  if (!req.session.boletaVerified) {
+    if (req.accepts("html")) return res.redirect("/boleta");
+    return res.status(403).json({ error: "boleta_not_verified" });
+  }
+  return next();
+}
+
+// Health check
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
-/* ------------ routes ------------ */
+
+// Root: login form or main portal (rendered by EJS)
 app.get("/", (_, res) => {
   res.render("index", {
     firstName: null,
@@ -459,6 +622,7 @@ app.get("/", (_, res) => {
   });
 });
 
+// Login: student + admin + profile + schedules, then show boleta screen
 app.post("/login", async (req, res) => {
   const codigo = req.body.codigo;
   const dni = req.body.dni;
@@ -479,29 +643,15 @@ app.post("/login", async (req, res) => {
       String(codigo);
     if (!studentToken) throw new Error("Student login failed (no token).");
 
-    req.session.student = {
-      token: String(studentToken),
-      codigo: String(studentCode),
-      dni: String(dni || ""),
-      defaultPeriod: String(periodCode || ""),
-    };
+    const code = String(studentCode);
+    const periodFromLogin = String(periodCode || "");
 
-    // 2) Admin login (for /grupoa/*)
-    const adminLoginUrl = LOGIN_URL + "/login";
-    log("Admin login", adminLoginUrl, { email: ADMIN_EMAIL, password: "***" });
-    const admin = await axios.post(
-      adminLoginUrl,
-      { email: ADMIN_EMAIL, password: ADMIN_PASS },
-      jsonHeaders()
-    );
-    const adminToken = admin.data && admin.data.access_token;
-    if (!adminToken) throw new Error("Admin login failed (no token).");
-
-    req.session.adminToken = String(adminToken);
+    // 2) Admin login for grupoa endpoints
+    // (store in session, also used later)
+    req.session.adminToken = null;
+    const adminToken = await ensureAdminToken(req);
 
     // 3) Profile
-    const code = req.session.student.codigo;
-    const periodFromLogin = req.session.student.defaultPeriod;
     const profileUrl = DATA_URL + "/student";
     const profileBody = { code, period: periodFromLogin || undefined };
     log("Profile fetch", profileUrl, profileBody);
@@ -515,6 +665,7 @@ app.post("/login", async (req, res) => {
 
     const firstName = info.name || info.c_nomalu || "";
     const lastName = info.lastname || info.c_apealu || "";
+    const fullName = `${firstName} ${lastName}`.trim();
 
     const profileOut = {
       dni: info.dni || "",
@@ -555,34 +706,32 @@ app.post("/login", async (req, res) => {
       period: String(s.period || profileOut.period || ""),
     }));
 
+    // Save session
+    req.session.student = {
+      token: String(studentToken),
+      codigo: code,
+      dni: String(dni || ""),
+      defaultPeriod: String(profileOut.period || periodFromLogin || ""),
+      name: fullName,
+    };
     req.session.profile = profileOut;
     req.session.enrolled = schedules;
+    req.session.firstName = firstName;
+    req.session.lastName = lastName;
+    req.session.boletaVerified = false;
 
-    return res.render("index", {
+    // Render boleta verification page
+    return res.render("boleta", {
       firstName,
       lastName,
       studentId: code,
       semester: fmtPeriod(profileOut.period),
-      department: profileOut.specialtyName,
-      schedules,
-      available: [],
       dni: profileOut.dni,
-      email_institucional: profileOut.email_institucional,
-      phone: profileOut.phone,
-      facultyName: profileOut.facultyName,
-      specialtyName: profileOut.specialtyName,
-      facultyCode: profileOut.facultyCode,
-      specialtyCode: profileOut.specialtyCode,
-      gender: profileOut.gender,
-      age: profileOut.age,
-      mode: profileOut.mode,
-      period: profileOut.period,
-      periodCode: profileOut.periodCode,
       error: null,
     });
   } catch (err) {
     console.error(
-      " Error:",
+      "Login error:",
       err.response && err.response.status,
       err.response ? err.response.data : err.message
     );
@@ -606,20 +755,158 @@ app.post("/login", async (req, res) => {
       mode: null,
       period: null,
       periodCode: null,
-      error: "Error al iniciar sesión u obtener datos. Revisa la consola.",
+      error: "Error al iniciar sesión u obtener datos. Revisa tus credenciales.",
     });
   }
 });
 
-/** AJAX: available groups for ONE course */
-app.post("/available", async (req, res) => {
+/* ------------ verify boleta after login ------------ */
+app.post("/verify-boleta", async (req, res) => {
+  try {
+    const student = req.session.student;
+    const profile = req.session.profile;
+    const firstName = req.session.firstName || "";
+    const lastName = req.session.lastName || "";
+
+    // If session is lost, go back to login
+    if (!student || !profile) {
+      return res.redirect("/");
+    }
+
+    // 1) Read boleta from form
+    const rawBoleta = String(req.body.boleta || "").trim();
+    if (!rawBoleta) {
+      return res.render("boleta", {
+        firstName,
+        lastName,
+        studentId: student.codigo,
+        semester: fmtPeriod(profile.period),
+        dni: profile.dni || "",
+        error: "Ingresa el número de boleta.",
+      });
+    }
+
+    const normalizeTicket = (s) =>
+      String(s || "").replace(/\s+/g, "").toUpperCase();
+    const normalizeCode = (s) => String(s || "").trim();
+
+    // 2) Ensure admin token
+    const adminToken = await ensureAdminToken(req);
+
+    // 3) Call rectification_payments API with the period only (as NUMBER)
+    const rawPeriod = profile.period || student.defaultPeriod || "";
+    const periodDigits = normalizePeriodDigits(rawPeriod);
+    const periodNum = Number(periodDigits);
+    if (!Number.isFinite(periodNum) || periodNum <= 0) {
+      throw new Error("Invalid period for boleta verification: " + rawPeriod);
+    }
+
+    const body = { period: periodNum };
+    log("Boleta verification", BOLETA_URL, body);
+
+    let resp;
+    try {
+      resp = await axios.post(BOLETA_URL, body, jsonHeaders(adminToken));
+    } catch (e) {
+      // If token expired -> relogin once
+      if (e?.response?.status === 401 || e?.response?.status === 403) {
+        req.session.adminToken = null;
+        const newTok = await ensureAdminToken(req);
+        resp = await axios.post(BOLETA_URL, body, jsonHeaders(newTok));
+      } else {
+        throw e;
+      }
+    }
+
+    const root = resp.data || {};
+    const rows = Array.isArray(root.data) ? root.data : [];
+
+    const myCode = normalizeCode(student.codigo);
+    const myTicket = normalizeTicket(rawBoleta);
+
+    // 4) Look for a matching record:
+    //    period  -> period
+    //    code    -> codAlu
+    //    boleta  -> number_ticket
+    const match = rows.find((r) => {
+      const rPeriod = normalizePeriodDigits(r.period);
+      const rCode = normalizeCode(r.codAlu || r.codigo || r.code || r.c_codalu);
+      const rTicket = normalizeTicket(
+        r.number_ticket || r.boleta || r.numBoleta || r.nroBoleta
+      );
+
+      return rPeriod === periodDigits && rCode === myCode && rTicket === myTicket;
+    });
+
+    if (!match) {
+      return res.render("boleta", {
+        firstName,
+        lastName,
+        studentId: student.codigo,
+        semester: fmtPeriod(rawPeriod),
+        dni: profile.dni || "",
+        error:
+          "No se encontró una boleta válida para este periodo y código. Verifica el número e intenta de nuevo.",
+      });
+    }
+
+    // ✅ Verified
+    req.session.boletaVerified = true;
+
+    // 5) Show main rectification portal using existing data in session
+    const schedules = Array.isArray(req.session.enrolled) ? req.session.enrolled : [];
+    const profileOut = profile;
+
+    return res.render("index", {
+      firstName,
+      lastName,
+      studentId: student.codigo,
+      semester: fmtPeriod(profileOut.period),
+      department: profileOut.specialtyName,
+      schedules,
+      available: [],
+      dni: profileOut.dni,
+      email_institucional: profileOut.email_institucional,
+      phone: profileOut.phone,
+      facultyName: profileOut.facultyName,
+      specialtyName: profileOut.specialtyName,
+      facultyCode: profileOut.facultyCode,
+      specialtyCode: profileOut.specialtyCode,
+      gender: profileOut.gender,
+      age: profileOut.age,
+      mode: profileOut.mode,
+      period: profileOut.period,
+      periodCode: profileOut.periodCode,
+      error: null,
+    });
+  } catch (err) {
+    console.error(
+      " /verify-boleta error:",
+      err.response?.status,
+      err.response?.data || err.message
+    );
+
+    const student = req.session.student || {};
+    const profile = req.session.profile || {};
+
+    return res.render("boleta", {
+      firstName: req.session.firstName || "",
+      lastName: req.session.lastName || "",
+      studentId: student.codigo || "—",
+      semester: fmtPeriod(profile.period || ""),
+      dni: profile.dni || "",
+      error: "Ocurrió un error al verificar la boleta. Intenta nuevamente.",
+    });
+  }
+});
+
+// AJAX: available groups for one course (+ vacancies merge)
+app.post("/available", requireVerifiedStudent, async (req, res) => {
   try {
     const s = req.session.student;
     if (!s || !s.token) return res.status(401).json({ error: "not_logged_in" });
 
-    const period = String(
-      (req.body && req.body.period) || s.defaultPeriod || ""
-    );
+    const period = String((req.body && req.body.period) || s.defaultPeriod || "");
     const courseCode = (req.body && req.body.courseCode) || "";
 
     const body = { codigo: s.codigo, period };
@@ -636,10 +923,32 @@ app.post("/available", async (req, res) => {
     const bestKey = pickBestKey(courseCode, theKeys);
 
     let filtered = [];
+    const usedCourseCode = bestKey || courseCode;
+
     if (bestKey && coursesMap[bestKey]) {
       filtered = flattenAvailable({ [bestKey]: coursesMap[bestKey] });
     } else if (coursesMap[courseCode]) {
       filtered = flattenAvailable({ [courseCode]: coursesMap[courseCode] });
+    }
+
+    // ✅ NEW: merge vacancies info into each turno row
+    if (filtered.length && usedCourseCode) {
+      try {
+        const { map } = await getVacancyMapForCourse(req, period, usedCourseCode);
+        filtered = filtered.map((g) => {
+          const rec = map[norm(g.groupCode)];
+          if (!rec) return g;
+          return {
+            ...g,
+            number_enrolled: rec.number_enrolled,
+            total_vacations: rec.total_vacations,
+            vacancies_left: rec.vacancies_left,
+            is_full: rec.is_full,
+          };
+        });
+      } catch (e) {
+        console.warn("Vacancy merge failed (available):", e?.response?.data || e.message);
+      }
     }
 
     return res.json({
@@ -647,10 +956,11 @@ app.post("/available", async (req, res) => {
       courseKeys: theKeys,
       bestKey,
       requestedCode: courseCode,
+      usedCourseCode,
     });
   } catch (e) {
     console.error(
-      " /available error:",
+      "/available error:",
       e.response && e.response.status,
       e.response ? e.response.data : e.message
     );
@@ -658,19 +968,15 @@ app.post("/available", async (req, res) => {
   }
 });
 
-/** AJAX: number of students enrolled per group for ONE course */
-app.post("/course-number-enrolled", async (req, res) => {
+// AJAX: number of enrolled students per group for one course (normalized + vacancies_left + is_full)
+app.post("/course-number-enrolled", requireVerifiedStudent, async (req, res) => {
   try {
     const student = req.session.student;
     if (!student || !student.codigo) {
-      return res
-        .status(401)
-        .json({ status: 401, message: "not_logged_in", data: [] });
+      return res.status(401).json({ status: 401, message: "not_logged_in", data: [] });
     }
 
-    const period = String(
-      (req.body && req.body.period) || student.defaultPeriod || ""
-    );
+    const period = String((req.body && req.body.period) || student.defaultPeriod || "");
     const courseCode = String((req.body && req.body.courseCode) || "").trim();
 
     if (!period || !courseCode) {
@@ -681,35 +987,15 @@ app.post("/course-number-enrolled", async (req, res) => {
       });
     }
 
-    let adminToken = req.session.adminToken;
-    if (!adminToken) {
-      const adminLoginUrl = LOGIN_URL + "/login";
-      console.log("Admin login (fallback) for course-number-enrolled");
-      const admin = await axios.post(
-        adminLoginUrl,
-        { email: ADMIN_EMAIL, password: ADMIN_PASS },
-        jsonHeaders()
-      );
-      adminToken = admin.data && admin.data.access_token;
-      if (!adminToken) throw new Error("Admin login failed (no token).");
-      req.session.adminToken = String(adminToken);
-    }
-
-    const url = DATA_URL + "/course-number-enrolled";
-    const body = { period, courseCode };
-    log("Course number enrolled", url, body);
-
-    const resp = await axios.post(url, body, jsonHeaders(adminToken));
-    const payload = resp.data || {};
-    const data = Array.isArray(payload.data) ? payload.data : [];
+    const { normalized } = await getVacancyMapForCourse(req, period, courseCode);
 
     return res.json({
-      status: payload.status || 200,
-      data,
+      status: 200,
+      data: normalized,
     });
   } catch (err) {
     console.error(
-      " /course-number-enrolled error:",
+      "/course-number-enrolled error:",
       err.response && err.response.status,
       err.response ? err.response.data : err.message
     );
@@ -721,8 +1007,8 @@ app.post("/course-number-enrolled", async (req, res) => {
   }
 });
 
-/* ---------- AI suggest route (proxy to your Python microservice) ---------- */
-app.post("/ai-suggest", async (req, res) => {
+// Proxy to external AI microservice (optional)
+app.post("/ai-suggest", requireVerifiedStudent, async (req, res) => {
   try {
     const s = req.session.student;
     const prof = req.session.profile || {};
@@ -744,6 +1030,7 @@ app.post("/ai-suggest", async (req, res) => {
       period: prof.period || s.defaultPeriod || undefined,
     };
     if (s.dni) body.dni = s.dni;
+
     const saUrl = LOGIN_URL + "/student/schedule-available";
     const sa = await axios.post(saUrl, body, jsonHeaders(s.token));
     const root = (sa.data && sa.data.data) || sa.data;
@@ -762,7 +1049,7 @@ app.post("/ai-suggest", async (req, res) => {
         [],
       keepChangesLow:
         req.body?.preferences?.keepChangesLow ??
-        req.body?.keepChangesLow !== false,
+        (req.body?.keepChangesLow !== false),
     };
 
     const { data } = await axios.post(
@@ -774,7 +1061,7 @@ app.post("/ai-suggest", async (req, res) => {
     return res.json(data);
   } catch (e) {
     console.error(
-      " /ai-suggest error:",
+      "/ai-suggest error:",
       e.response?.status,
       e.response?.data || e.message
     );
@@ -782,8 +1069,8 @@ app.post("/ai-suggest", async (req, res) => {
   }
 });
 
-/* ---------- Local AI-like generator (server-side, used by UI) ---------- */
-app.post("/ai-local", async (req, res) => {
+// Local AI-like generator (server-side heuristic)
+app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
   try {
     const s = req.session.student;
     const profile = req.session.profile || {};
@@ -796,6 +1083,13 @@ app.post("/ai-local", async (req, res) => {
     const rawPrefs = (req.body && (req.body.preferences || req.body)) || {};
     const freeDays = Array.isArray(rawPrefs.freeDays) ? rawPrefs.freeDays : [];
     const freeDayKeys = new Set(freeDays.map((d) => sameDayKey(d)));
+    const wantsFreeDays = freeDayKeys.size > 0;
+
+    // ✅ IMPORTANT FIX:
+    // If keepChangesLow is TRUE (default), we ONLY try to change courses
+    // that violate the requested freeDays. Otherwise, your system changes
+    // groups even when it doesn't help (same day/time).
+    const keepChangesLow = rawPrefs.keepChangesLow !== false;
 
     // 1) fetch all available once
     const body = {
@@ -810,7 +1104,7 @@ app.post("/ai-local", async (req, res) => {
 
     const root = (sa.data && sa.data.data) || sa.data;
     const coursesMap = extractCoursesMap(root);
-    const availableByCode = flattenAvailableForAI(coursesMap); // { CODE: rows[] }
+    const availableByCode = flattenAvailableForAI(coursesMap);
 
     // 2) group current timetable by course
     const currentByCode = {};
@@ -832,7 +1126,7 @@ app.post("/ai-local", async (req, res) => {
       });
     });
 
-    // 3) build initial slots
+    // 3) build initial slots (conflict tracking)
     let planSlots = [];
     Object.values(currentByCode).forEach((c) => {
       c.segments.forEach((seg) => {
@@ -850,6 +1144,7 @@ app.post("/ai-local", async (req, res) => {
     const changes = [];
     const finalCourses = [];
     const unsatisfied = [];
+    const skippedFullGroups = [];
 
     function groupAvailableRows(code, rows, fallbackName) {
       const byGroup = {};
@@ -875,11 +1170,12 @@ app.post("/ai-local", async (req, res) => {
     function testCandidate(code, candidate, strictFreeDays) {
       for (const seg of candidate.segments) {
         const dayKey = sameDayKey(seg.day);
-        if (strictFreeDays && freeDayKeys.size && freeDayKeys.has(dayKey)) {
+        if (strictFreeDays && wantsFreeDays && freeDayKeys.has(dayKey)) {
           return { reason: "freeDay" };
         }
         const rng = parseTimeRange(seg.time);
         if (!rng) continue;
+
         for (const slot of planSlots.filter((p) => p.code !== code)) {
           if (sameDayKey(slot.day) !== dayKey) continue;
           if (rangesOverlap(rng, slot)) {
@@ -890,7 +1186,63 @@ app.post("/ai-local", async (req, res) => {
       return null;
     }
 
+    function segmentsSignature(segments) {
+      const sig = segments
+        .map((s) => `${sameDayKey(s.day)}|${String(s.time || "").trim()}`)
+        .sort()
+        .join(";");
+      return sig;
+    }
+
+    // ✅ cache vacancies by course
+    const vacancyCache = {};
+    async function getVacMap(code) {
+      if (vacancyCache[code]) return vacancyCache[code];
+      try {
+        const period = profile.period || s.defaultPeriod || "";
+        const { map } = await getVacancyMapForCourse(req, period, code);
+        vacancyCache[code] = map;
+      } catch (e) {
+        vacancyCache[code] = {};
+      }
+      return vacancyCache[code];
+    }
+
     for (const [code, cur] of Object.entries(currentByCode)) {
+      // ✅ If no free-days requested, and keepChangesLow => keep everything
+      if (keepChangesLow && !wantsFreeDays) {
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
+        });
+        continue;
+      }
+
+      const touchesFreeDay =
+        wantsFreeDays &&
+        cur.segments.some((seg) => freeDayKeys.has(sameDayKey(seg.day)));
+
+      // ✅ KEY FIX: if keepChangesLow and course doesn't violate free-day, don't change it
+      if (keepChangesLow && !touchesFreeDay) {
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
+        });
+        continue;
+      }
+
       const avaRows = availableByCode[code] || [];
       if (!avaRows.length) {
         cur.segments.forEach((seg) => {
@@ -908,11 +1260,26 @@ app.post("/ai-local", async (req, res) => {
 
       const allGroups = groupAvailableRows(code, avaRows, cur.courseName);
       const currentGroup = cur.group;
-      const candidateGroups = allGroups.filter(
-        (g) => g.group !== currentGroup
-      );
+
+      // ✅ Vacancy filter: skip FULL turnos
+      const vacMap = await getVacMap(code);
+      const hasVacancies = (groupCode) => {
+        const rec = vacMap[norm(groupCode)];
+        if (!rec) return true; // unknown => allow
+        return !rec.is_full;
+      };
+
+      let candidateGroups = allGroups.filter((g) => g.group !== currentGroup);
+
+      // Remove full groups
+      candidateGroups = candidateGroups.filter((g) => {
+        const ok = hasVacancies(g.group);
+        if (!ok) skippedFullGroups.push(`${code}:${g.group}`);
+        return ok;
+      });
 
       if (!candidateGroups.length) {
+        unsatisfied.push(`${code} - ${cur.courseName} (sin vacantes)`);
         cur.segments.forEach((seg) => {
           finalCourses.push({
             code,
@@ -926,23 +1293,40 @@ app.post("/ai-local", async (req, res) => {
         continue;
       }
 
-      let chosen = null;
-
-      // Pass 1: respect free days + avoid conflicts
+      // If we are trying to free a day, prefer candidates that remove that day
+      // Pass 1: strict free-day + no conflicts
+      const viable = [];
       for (const g of candidateGroups) {
         const err = testCandidate(code, g, true);
-        if (!err) {
-          chosen = g;
-          break;
-        }
+        if (!err) viable.push(g);
       }
-      // Pass 2: ignore free days but keep no conflicts
-      if (!chosen) {
-        for (const g of candidateGroups) {
-          const err = testCandidate(code, g, false);
-          if (!err) {
+
+      let chosen = null;
+
+      if (viable.length) {
+        // ✅ choose closest schedule to current (min diff) to reduce changes
+        const curSig = segmentsSignature(cur.segments);
+        let bestScore = Infinity;
+        for (const g of viable) {
+          const candSig = segmentsSignature(g.segments);
+          const score = candSig === curSig ? 9999 : 0; // avoid pointless same schedule group change
+          if (score < bestScore) {
+            bestScore = score;
             chosen = g;
-            break;
+          }
+        }
+        // if still null, fallback to first viable
+        if (!chosen) chosen = viable[0];
+      } else {
+        // Pass 2: ignore free-days but keep no conflicts
+        // ✅ BUT only do this if keepChangesLow is FALSE
+        if (!keepChangesLow) {
+          for (const g of candidateGroups) {
+            const err = testCandidate(code, g, false);
+            if (!err) {
+              chosen = g;
+              break;
+            }
           }
         }
       }
@@ -962,16 +1346,8 @@ app.post("/ai-local", async (req, res) => {
         continue;
       }
 
-      const beforeSeg = cur.segments[0] || {
-        day: "",
-        time: "",
-        modality: "",
-      };
-      const afterSeg = chosen.segments[0] || {
-        day: "",
-        time: "",
-        modality: "",
-      };
+      const beforeSeg = cur.segments[0] || { day: "", time: "", modality: "" };
+      const afterSeg = chosen.segments[0] || { day: "", time: "", modality: "" };
 
       changes.push({
         code,
@@ -1011,692 +1387,310 @@ app.post("/ai-local", async (req, res) => {
       });
     }
 
-    return res.json({ ok: true, changes, finalCourses, unsatisfied });
+    return res.json({
+      ok: true,
+      changes,
+      finalCourses,
+      unsatisfied,
+      skippedFullGroups,
+    });
   } catch (e) {
-    console.error(" /ai-local error:", e.response?.data || e.message);
+    console.error("/ai-local error:", e.response?.data || e.message);
     return res.status(500).json({ error: "ai_local_failed" });
   }
 });
 
-/** Generate PDF + email only to admins (student email kept as commented block) */
-app.post("/confirm", async (req, res) => {
+// Confirm: generate PDF + (optional) email to admins
+app.post("/confirm", requireVerifiedStudent, async (req, res) => {
   try {
     const clientStudent = req.body?.student || {};
-    const clientChanges = Array.isArray(req.body?.changes)
-      ? req.body.changes
-      : [];
-    const clientFinal = Array.isArray(req.body?.finalCourses)
-      ? req.body.finalCourses
-      : [];
+    const clientChanges = Array.isArray(req.body?.changes) ? req.body.changes : [];
+    const clientFinal = Array.isArray(req.body?.finalCourses) ? req.body.finalCourses : [];
 
     const profile = (req.session && req.session.profile) || {};
     const studentS = (req.session && req.session.student) || {};
+    const enrolled = Array.isArray(req.session?.enrolled) ? req.session.enrolled : [];
 
     const info = {
       name:
         clientStudent.name ||
-        `${profile.name || profile.c_nomalu || ""} ${
-          profile.lastname || profile.c_apealu || ""
-        }`.trim() ||
+        `${profile.name || profile.c_nomalu || ""} ${profile.lastname || profile.c_apealu || ""}`.trim() ||
         "—",
       code: clientStudent.code || studentS.codigo || "—",
       dni: clientStudent.dni || studentS.dni || profile.dni || "—",
-      program:
-        clientStudent.specialtyName || profile.specialtyName || "—",
+      program: clientStudent.specialtyName || profile.specialtyName || "—",
       faculty: clientStudent.facultyName || profile.facultyName || "—",
-      period:
-        clientStudent.period ||
-        (profile.period && String(profile.period)) ||
-        "—",
+      period: clientStudent.period || (profile.period && String(profile.period)) || "—",
       mode: clientStudent.mode || profile.mode || "—",
       email: clientStudent.email || profile.email_institucional || "",
     };
 
-    const DAY_MAP = {
-      lunes: "Lunes",
-      martes: "Martes",
-      miercoles: "Miércoles",
-      miércoles: "Miércoles",
-      jueves: "Jueves",
-      viernes: "Viernes",
-      sabado: "Sábado",
-      sábado: "Sábado",
-      domingo: "Domingo",
-    };
-    const DAY_ORDER = {
-      Lunes: 1,
-      Martes: 2,
-      Miércoles: 3,
-      Jueves: 4,
-      Viernes: 5,
-      Sábado: 6,
-      Domingo: 7,
-    };
+    const currentSchedule = enrolled.map((s) => ({
+      courseCode: s.courseCode || s.c_codcur || "",
+      courseName: s.courseName || "",
+      groupCode: s.groupCode || s.section || "",
+      modality: s.modality || s.modalityDescription || "",
+      day: s.day || "",
+      hour: s.hour || "",
+      teacherName: s.teacherName || "",
+      credits: Number(s.credits || s.credit || 0),
+    }));
 
-    const canonicalDay = (s) => {
-      const k = String(s || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-      return DAY_MAP[k] || s || "";
-    };
-    const displayTime = (range) => {
-      const t = String(range || "")
-        .trim()
-        .replace(/\s{2,}/g, " ");
-      const m1 = t.match(
-        /^(\d{1,2}:\d{2})\s*[–-]?\s*(\d{1,2}:\d{2})$/
-      );
-      if (m1) return `${m1[1]}–${m1[2]}`;
-      const m2 = t.match(
-        /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/
-      );
-      if (m2) return `${m2[1]}:${m2[2]}–${m2[3]}:${m2[4]}`;
-      return t.replace("-", "–");
-    };
+    const finalPlan =
+      clientFinal && clientFinal.length
+        ? clientFinal
+        : currentSchedule.map((c) => ({
+            code: c.courseCode,
+            name: c.courseName,
+            group: c.groupCode,
+            day: c.day,
+            time: c.hour,
+            modality: c.modality,
+          }));
 
-    const toDisp = (t) => (t ? displayTime(t) : "—");
+    const changesList = clientChanges || [];
 
-    const changesList = (Array.isArray(clientChanges)
-      ? clientChanges
-      : []
-    )
-      .map((ch) => {
-        const from = ch.from || ch.before || {};
-        const to = ch.to || ch.after || {};
-        return {
-          code: ch.code || ch.courseCode || "—",
-          name: ch.name || ch.courseName || "",
-          before: {
-            group: from.group || "—",
-            day: canonicalDay(from.day || "—"),
-            time: toDisp(from.time),
-            modality: from.modality || "—",
-          },
-          after: {
-            group: to.group || "—",
-            day: canonicalDay(to.day || "—"),
-            time: toDisp(to.time),
-            modality: to.modality || "—",
-          },
-        };
-      })
-      .filter(
-        (row) =>
-          row.before.group !== "—" ||
-          row.after.group !== "—" ||
-          row.before.day !== "—" ||
-          row.after.day !== "—" ||
-          row.before.time !== "—" ||
-          row.after.time !== "—"
-      );
-
-    const finalCourses = clientFinal
-      .map((e) => ({
-        code: e.code,
-        name: e.name || "",
-        group: e.group || "—",
-        day: canonicalDay(e.day || "—"),
-        time: displayTime(e.time || "—"),
-        modality: e.modality || "—",
-      }))
-      .sort((a, b) => {
-        const da = DAY_ORDER[canonicalDay(a.day)] || 99;
-        const db = DAY_ORDER[canonicalDay(b.day)] || 99;
-        if (da !== db) return da - db;
-        const toMinutes = (str) => {
-          const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
-          return m ? +m[1] * 60 + +m[2] : 9e6;
-        };
-        const aStart =
-          (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-        const bStart =
-          (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-        return toMinutes(aStart) - toMinutes(bStart);
-      });
-
-    const doc = new PDFDocument({
-      size: "A4",
-      margins: { top: 36, bottom: 36, left: 36, right: 36 },
-      bufferPages: true,
-    });
-
-    const COLORS = {
-      primary: "#f02454",
-      textDark: "#111827",
-      textMedium: "#374151",
-      textLight: "#6b7280",
-      background: "#f8fafc",
-      border: "#e5e7eb",
-    };
-
-    function drawSectionHeader(text, y) {
-      doc
-        .save()
-        .fillColor(COLORS.primary)
-        .rect(doc.page.margins.left, y, 4, 16)
-        .fill()
-        .restore();
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(12)
-        .fillColor(COLORS.textDark)
-        .text(text, doc.page.margins.left + 12, y + 2);
-      return y + 24;
-    }
-    function drawArrowPath(cx, cy) {
-      doc.save().lineWidth(1.2).strokeColor(COLORS.textLight);
-      doc.moveTo(cx - 8, cy).lineTo(cx + 8, cy).stroke();
-      doc
-        .moveTo(cx + 3, cy - 6)
-        .lineTo(cx + 9, cy)
-        .lineTo(cx + 3, cy + 6)
-        .stroke();
-      doc.restore();
-    }
-
-    const headerX = doc.page.margins.left;
-    const headerW =
-      doc.page.width -
-      doc.page.margins.left -
-      doc.page.margins.right;
-    const barH = 42;
-    const barY = doc.page.margins.top - 8;
-
-    const LOGO_AREA_W = 86;
-    const GUTTER = 14;
-
-    const ribbonX = headerX + LOGO_AREA_W + GUTTER;
-    const ribbonW = headerW - (LOGO_AREA_W + GUTTER);
-
-    doc.save();
-    doc.rect(ribbonX, barY, ribbonW, barH).fill(COLORS.primary);
-    doc.restore();
-
-    const logoPaths = [
-      path.join(
-        __dirname,
-        "public",
-        "images",
-        "logo_white_transparent.png"
-      ),
-      LOGO_PATH,
-    ];
-    const logoPath = logoPaths.find((p) => fs.existsSync(p));
-    if (logoPath) {
-      const LOGO_H = barH - 8;
-      const LOGO_Y = barY + (barH - LOGO_H) / 2;
-      const LOGO_X = headerX + 8;
-      doc.image(logoPath, LOGO_X, LOGO_Y, { height: LOGO_H });
+    // PDF generation
+    const doc = new PDFDocument({ margin: 50 });
+    if (fs.existsSync(LOGO_PATH)) {
+      try {
+        doc.image(LOGO_PATH, 50, 40, { width: 130 });
+      } catch (e) {
+        console.warn("Failed to load logo in PDF:", e.message);
+      }
     }
 
     doc
+      .fontSize(16)
       .font("Helvetica-Bold")
-      .fontSize(14)
-      .fillColor("#fff")
-      .text(
-        "Universidad María Auxiliadora — Rectificación de Matrícula",
-        ribbonX + 16,
-        barY + (barH - 14) / 2,
-        { width: ribbonW - 24, align: "left" }
-      );
+      .text("UNIVERSIDAD MARÍA AUXILIADORA", 200, 50, { align: "right" })
+      .moveDown(0.3);
+
+    doc
+      .fontSize(12)
+      .font("Helvetica")
+      .text("Solicitud de Rectificación de Matrícula", { align: "right" });
+
+    doc.moveDown(2);
+
+    doc
+      .fontSize(13)
+      .font("Helvetica-Bold")
+      .text("Datos del estudiante", { underline: true });
+
+    doc.moveDown(0.5);
+    doc.fontSize(11).font("Helvetica");
+
+    const addInfoRow = (label, value) => {
+      doc.text(`${label}: `, { continued: true, width: 120 });
+      doc.font("Helvetica-Bold").text(String(value || "—")).font("Helvetica");
+    };
+
+    addInfoRow("Nombre completo", info.name);
+    addInfoRow("Código de estudiante", info.code);
+    addInfoRow("DNI", info.dni);
+    addInfoRow("Facultad", info.faculty);
+    addInfoRow("Programa", info.program);
+    addInfoRow("Periodo académico", fmtPeriod(info.period));
+    addInfoRow("Modalidad", info.mode);
+    addInfoRow("Correo institucional", info.email);
 
     doc.moveDown(1.5);
-    const cardX = doc.page.margins.left;
-    const cardW = headerW;
-    const cardTop = doc.y - 6;
-    const cardH = 110;
 
-    doc.roundedRect(cardX, cardTop, cardW, cardH, 10).stroke(COLORS.border);
+    // Section: current schedule
     doc
+      .fontSize(13)
       .font("Helvetica-Bold")
-      .fontSize(14)
-      .fillColor(COLORS.textDark)
-      .text(info.name || "—", cardX + 16, cardTop + 14, {
-        width: cardW - 32,
+      .text("Horario actual matriculado", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(10).font("Helvetica");
+
+    if (!currentSchedule.length) {
+      doc.text("No se encontraron cursos matriculados en el sistema.");
+    } else {
+      const colWidths = [60, 200, 50, 60, 70, 80];
+      const startX = doc.x;
+      const startY = doc.y;
+
+      const drawHeaderCell = (text, width) => {
+        doc.font("Helvetica-Bold").text(text, { width, continued: true });
+        doc.font("Helvetica");
+      };
+      const drawCell = (text, width) => {
+        doc.text(text, { width, continued: true });
+      };
+
+      drawHeaderCell("Código", colWidths[0]);
+      drawHeaderCell("Curso", colWidths[1]);
+      drawHeaderCell("Sec.", colWidths[2]);
+      drawHeaderCell("Día", colWidths[3]);
+      drawHeaderCell("Horario", colWidths[4]);
+      doc.text("Modalidad", { width: colWidths[5] });
+      doc.moveDown(0.4);
+
+      doc
+        .moveTo(startX, startY - 3)
+        .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), startY - 3)
+        .stroke();
+
+      currentSchedule.forEach((c) => {
+        const modalityShort =
+          c.modality && c.modality.length > 30 ? c.modality.slice(0, 27) + "..." : c.modality || "";
+        drawCell(c.courseCode || "", colWidths[0]);
+        drawCell(c.courseName || "", colWidths[1]);
+        drawCell(c.groupCode || "", colWidths[2]);
+        drawCell(c.day || "", colWidths[3]);
+        drawCell(c.hour || "", colWidths[4]);
+        doc.text(modalityShort, { width: colWidths[5] });
       });
-
-    const colW = Math.floor((cardW - 32) / 4);
-    const line1Y = cardTop + 44;
-    function drawKV(colIndex, label, value) {
-      const x = cardX + 16 + colIndex * colW;
-      doc
-        .font("Helvetica")
-        .fontSize(10)
-        .fillColor(COLORS.textMedium)
-        .text(label, x, line1Y, { width: colW - 16 });
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .fillColor(COLORS.textDark)
-        .text(String(value || "—"), x + 62, line1Y, {
-          width: colW - 78,
-        });
     }
-    drawKV(0, "Código:", info.code);
-    drawKV(1, "DNI:", info.dni);
-    drawKV(
-      2,
-      "Periodo:",
-      String(info.period || "").replace(/^(\d{4})(\d)$/, "$1-$2")
-    );
-    drawKV(3, "Modalidad:", info.mode);
 
-    const line2Y = cardTop + 66;
-    function drawRowLabelValue(y, label, value) {
+    doc.moveDown(1.5);
+
+    // Section: final suggested plan
+    doc
+      .fontSize(13)
+      .font("Helvetica-Bold")
+      .text("Horario propuesto (después de IA)", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(10).font("Helvetica");
+
+    if (!finalPlan.length) {
+      doc.text("No se recibió una propuesta de cambios. Se asume que se mantiene el horario actual.");
+    } else {
+      const colWidths2 = [60, 200, 50, 60, 70, 80];
+      const startX2 = doc.x;
+      const startY2 = doc.y;
+
+      const drawHeaderCell2 = (text, width) => {
+        doc.font("Helvetica-Bold").text(text, { width, continued: true });
+        doc.font("Helvetica");
+      };
+      const drawCell2 = (text, width) => {
+        doc.text(text, { width, continued: true });
+      };
+
+      drawHeaderCell2("Código", colWidths2[0]);
+      drawHeaderCell2("Curso", colWidths2[1]);
+      drawHeaderCell2("Sec.", colWidths2[2]);
+      drawHeaderCell2("Día", colWidths2[3]);
+      drawHeaderCell2("Horario", colWidths2[4]);
+      doc.text("Modalidad", { width: colWidths2[5] });
+      doc.moveDown(0.4);
+
       doc
-        .font("Helvetica")
-        .fontSize(10)
-        .fillColor(COLORS.textMedium)
-        .text(label, cardX + 16, y, { width: 80 });
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .fillColor(COLORS.textDark)
-        .text(String(value || "—"), cardX + 106, y, {
-          width: cardW - 138,
-        });
-    }
-    drawRowLabelValue(line2Y, "Programa:", info.program);
-    drawRowLabelValue(line2Y + 16, "Facultad:", info.faculty);
-    if (info.email)
-      drawRowLabelValue(line2Y + 32, "Email:", info.email);
+        .moveTo(startX2, startY2 - 3)
+        .lineTo(startX2 + colWidths2.reduce((a, b) => a + b, 0), startY2 - 3)
+        .stroke();
 
-    doc.y = cardTop + cardH + 8;
+      finalPlan.forEach((c) => {
+        const code = c.code || c.courseCode || "";
+        const name = c.name || c.courseName || "";
+        const group = c.group || c.groupCode || "";
+        const day = c.day || "";
+        const time = c.time || c.hour || "";
+        const modality =
+          c.modality && c.modality.length > 30 ? c.modality.slice(0, 27) + "..." : c.modality || "";
 
-    let currentY = drawSectionHeader("Cambios solicitados", doc.y);
-    const CHG_GAP = 50;
-    const CHG_BOX_W = Math.floor((headerW - CHG_GAP) / 2);
-    const CHG_LEFT = doc.page.margins.left;
-    const CHG_RIGHT = CHG_LEFT + CHG_BOX_W + CHG_GAP;
-
-    function measureChangeBoxHeight(lines) {
-      const contentWidth = CHG_BOX_W - 20;
-      const padTop = 26,
-        padBottom = 10,
-        lineGap = 4;
-      let h = padTop;
-      lines.forEach((t, i) => {
-        const th = doc.heightOfString(String(t || "—"), {
-          width: contentWidth,
-          align: "left",
-        });
-        h += th + (i < lines.length - 1 ? lineGap : 0);
+        drawCell2(code, colWidths2[0]);
+        drawCell2(name, colWidths2[1]);
+        drawCell2(group, colWidths2[2]);
+        drawCell2(day, colWidths2[3]);
+        drawCell2(time, colWidths2[4]);
+        doc.text(modality, { width: colWidths2[5] });
       });
-      return Math.ceil(h + padBottom);
     }
-    function drawChangeRow(ch) {
-      const leftLines = [
-        `Grupo: ${ch.before?.group || "—"}`,
-        `Día: ${ch.before?.day || "—"}`,
-        `Hora: ${ch.before?.time || "—"}`,
-        `Modalidad: ${ch.before?.modality || "—"}`,
-      ];
-      const rightLines = [
-        `Grupo: ${ch.after?.group || "—"}`,
-        `Día: ${ch.after?.day || "—"}`,
-        `Hora: ${ch.after?.time || "—"}`,
-        `Modalidad: ${ch.after?.modality || "—"}`,
-      ];
 
-      const boxH = Math.max(
-        measureChangeBoxHeight(leftLines),
-        measureChangeBoxHeight(rightLines)
-      );
+    doc.moveDown(1.5);
 
-      const needed = 18 + boxH + 16;
-      if (currentY + needed > doc.page.height - doc.page.margins.bottom) {
-        doc.addPage();
-        currentY = doc.page.margins.top;
-      }
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(11)
-        .fillColor(COLORS.primary)
-        .text(
-          `${ch.code || "—"} — ${ch.name || ""}`,
-          CHG_LEFT,
-          currentY,
-          { width: headerW }
-        );
-      currentY += 18;
-
-      const yBox = Math.round(currentY);
-      doc
-        .roundedRect(CHG_LEFT, yBox, CHG_BOX_W, boxH, 6)
-        .stroke(COLORS.border);
-      doc
-        .roundedRect(CHG_RIGHT, yBox, CHG_BOX_W, boxH, 6)
-        .stroke(COLORS.primary);
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(9)
-        .fillColor(COLORS.textMedium)
-        .text("ORIGINAL", CHG_LEFT + 10, yBox + 8);
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(9)
-        .fillColor(COLORS.primary)
-        .text("NUEVO", CHG_RIGHT + 10, yBox + 8);
-
-      const contentWidth = CHG_BOX_W - 20;
-      doc.font("Helvetica").fontSize(9).fillColor(COLORS.textDark);
-      let yL = yBox + 26,
-        yR = yBox + 26;
-
-      leftLines.forEach((t, i) => {
-        const txt = String(t || "—");
-        doc.text(txt, CHG_LEFT + 10, yL, {
-          width: contentWidth,
-          align: "left",
-        });
-        yL +=
-          doc.heightOfString(txt, { width: contentWidth }) +
-          (i < leftLines.length - 1 ? 4 : 0);
-      });
-      rightLines.forEach((t, i) => {
-        const txt = String(t || "—");
-        doc.text(txt, CHG_RIGHT + 10, yR, {
-          width: contentWidth,
-          align: "left",
-        });
-        yR +=
-          doc.heightOfString(txt, { width: contentWidth }) +
-          (i < rightLines.length - 1 ? 4 : 0);
-      });
-
-      const midX = CHG_LEFT + CHG_BOX_W + Math.floor(CHG_GAP / 2);
-      const midY = yBox + Math.floor(boxH / 2);
-      drawArrowPath(midX, midY);
-
-      currentY = yBox + boxH + 16;
-    }
+    // Section: list of changes
+    doc
+      .fontSize(13)
+      .font("Helvetica-Bold")
+      .text("Resumen de cambios sugeridos por IA", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(11).font("Helvetica");
 
     if (!changesList.length) {
-      doc
-        .font("Helvetica")
-        .fontSize(10)
-        .fillColor(COLORS.textLight)
-        .text(
-          "No se han seleccionado cambios.",
-          doc.page.margins.left,
-          currentY
-        );
-      currentY += 24;
+      doc.text("No se registran cambios de sección; el horario propuesto coincide con el actual.");
     } else {
-      changesList.forEach(drawChangeRow);
-    }
+      changesList.forEach((ch, idx) => {
+        const title = `${idx + 1}. ${ch.code || ""} - ${ch.name || ""}`;
+        doc.font("Helvetica-Bold").text(title);
+        doc.font("Helvetica").moveDown(0.1);
 
-    currentY = drawSectionHeader("Horario final", currentY);
+        const from = ch.from || {};
+        const to = ch.to || {};
 
-    const ORDER_DAYS = [
-      "Lunes",
-      "Martes",
-      "Miércoles",
-      "Jueves",
-      "Viernes",
-      "Sábado",
-      "Domingo",
-    ];
-    const buckets = Object.fromEntries(ORDER_DAYS.map((d) => [d, []]));
-    finalCourses.forEach((e) => {
-      const d = e.day;
-      if (buckets[d]) buckets[d].push(e);
-    });
-    ORDER_DAYS.forEach((d) =>
-      buckets[d].sort((a, b) => {
-        const toMinutes = (str) => {
-          const m = /(\d{1,2}):(\d{2})/.exec(String(str || ""));
-          return m ? +m[1] * 60 + +m[2] : 9e6;
-        };
-        const aStart =
-          (a.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-        const bStart =
-          (b.time || "").match(/(\d{1,2}:\d{2})/)?.[1] || "";
-        return toMinutes(aStart) - toMinutes(bStart);
-      })
-    );
-
-    const ttMarginL = doc.page.margins.left;
-    const ttContentW = headerW;
-    const ttGap = 6;
-    const ttColW = Math.floor(
-      (ttContentW - ttGap * (ORDER_DAYS.length - 1)) /
-        ORDER_DAYS.length
-    );
-
-    function drawDayHeaders(yStart) {
-      let x = ttMarginL;
-      ORDER_DAYS.forEach((day) => {
-        doc.save();
-        doc
-          .rect(x, yStart, ttColW, 20)
-          .fill(COLORS.background);
-        doc
-          .fillColor(COLORS.textDark)
-          .font("Helvetica-Bold")
-          .fontSize(9)
-          .text(day.slice(0, 3).toUpperCase(), x + 6, yStart + 5, {
-            width: ttColW - 12,
-            align: "left",
-          });
-        doc.restore();
-        x += ttColW + ttGap;
-      });
-      return yStart + 24;
-    }
-
-    function drawCourseCard(x, y, course) {
-      const padX = 8,
-        padY = 8;
-      const contentW = ttColW - padX * 2;
-
-      const line1 = `${course.time || "—"} • Gr. ${
-        course.group || "—"
-      }`;
-      const line2 = String(course.modality || "—");
-
-      doc.font("Helvetica").fontSize(8);
-      const h1 = doc.heightOfString(line1, { width: contentW });
-      const h2 = doc.heightOfString(line2, { width: contentW });
-
-      const pillH = 16;
-      const gap = 6;
-      const boxH =
-        padY + pillH + gap + h1 + 4 + h2 + padY;
-
-      doc.save();
-      doc
-        .roundedRect(x, y, ttColW, boxH, 6)
-        .fillAndStroke("#fff", COLORS.border);
-
-      const codeText = course.code || "—";
-      doc.font("Helvetica-Bold").fontSize(9);
-      const pillW = Math.min(
-        contentW,
-        doc.widthOfString(codeText) + 14
-      );
-      const pillX = x + padX;
-      const pillY = y + padY;
-      doc
-        .fillColor(COLORS.primary)
-        .roundedRect(pillX, pillY, pillW, pillH, 8)
-        .fill();
-
-      const codeH = doc.heightOfString(codeText, {
-        width: pillW,
-        align: "center",
-      });
-      const codeY = pillY + (pillH - codeH) / 2;
-      doc
-        .fillColor("#fff")
-        .text(codeText, pillX, codeY, {
-          width: pillW,
-          align: "center",
-        });
-
-      let ty = pillY + pillH + gap;
-      doc
-        .fillColor(COLORS.textDark)
-        .font("Helvetica")
-        .fontSize(8)
-        .text(line1, x + padX, ty, { width: contentW });
-      ty += h1 + 4;
-      doc
-        .fillColor(COLORS.textMedium)
-        .text(line2, x + padX, ty, { width: contentW });
-
-      doc.restore();
-      return boxH + 4;
-    }
-
-    function drawTimetable(startY) {
-      const headersTop = startY;
-      let y = drawDayHeaders(headersTop);
-
-      const pageBottom = doc.page.height - doc.page.margins.bottom;
-      doc.save().lineWidth(0.6).strokeColor(COLORS.border);
-      for (let i = 0; i < ORDER_DAYS.length - 1; i++) {
-        const x =
-          ttMarginL +
-          (i + 1) * ttColW +
-          i * ttGap +
-          ttGap / 2;
-        doc.moveTo(x, headersTop).lineTo(x, pageBottom).stroke();
-      }
-      doc.restore();
-
-      let heights = ORDER_DAYS.map(() => y);
-      const maxRows = Math.max(
-        ...ORDER_DAYS.map((d) => buckets[d].length)
-      );
-
-      for (let r = 0; r < maxRows; r++) {
-        ORDER_DAYS.forEach((day, col) => {
-          const c = buckets[day][r];
-          if (!c) return;
-
-          const x =
-            ttMarginL + col * (ttColW + ttGap);
-          const yCol = heights[col];
-
-          if (
-            yCol >
-            doc.page.height - doc.page.margins.bottom - 70
-          ) {
-            doc.addPage();
-            const newHeadersTop = doc.page.margins.top;
-            const newY = drawDayHeaders(newHeadersTop);
-
-            const pb =
-              doc.page.height - doc.page.margins.bottom;
-            doc.save().lineWidth(0.6).strokeColor(COLORS.border);
-            for (let i = 0; i < ORDER_DAYS.length - 1; i++) {
-              const sx =
-                ttMarginL +
-                (i + 1) * ttColW +
-                i * ttGap +
-                ttGap / 2;
-              doc.moveTo(sx, newHeadersTop)
-                .lineTo(sx, pb)
-                .stroke();
-            }
-            doc.restore();
-
-            heights = ORDER_DAYS.map(() => newY);
-          }
-
-          const used = drawCourseCard(
-            x,
-            heights[col],
-            c
-          );
-          heights[col] += used;
-        });
-      }
-    }
-
-    drawTimetable(currentY);
-
-    const headerW2 =
-      doc.page.width -
-      doc.page.margins.left -
-      doc.page.margins.right;
-    const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(range.start + i);
-      doc
-        .font("Helvetica")
-        .fontSize(8)
-        .fillColor(COLORS.textLight)
-        .text(
-          `Documento generado el ${new Date().toLocaleDateString()} por el Portal de Rectificación UMA`,
-          doc.page.margins.left,
-          doc.page.height - doc.page.margins.bottom + 4,
-          { width: headerW2, align: "right" }
+        doc.text(
+          `   De: Sección ${from.group || "—"}, ${from.day || "—"} ${from.time || "—"} (${from.modality || "—"})`
         );
+        doc.text(
+          `   A:  Sección ${to.group || "—"}, ${to.day || "—"} ${to.time || "—"} (${to.modality || "—"})`
+        );
+        doc.moveDown(0.4);
+      });
     }
 
+    doc.moveDown(2);
+
+    const today = new Date();
+    const dateStr = today.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    doc.fontSize(11).font("Helvetica").text(`Fecha de generación: ${dateStr}`, { align: "right" });
+
+    doc.moveDown(3);
+    doc.fontSize(11).font("Helvetica").text("Firma del estudiante:", 50).moveDown(2);
+    doc.moveTo(50, doc.y).lineTo(250, doc.y).stroke();
+    doc.text(info.name, 50, doc.y + 2);
+
+    // Convert to buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
-    const adminTargets = (
-      process.env.ADMIN_PDF_TO ||
-      process.env.ADMIN_CC ||
-      ADMIN_EMAIL ||
-      ""
-    )
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    if (mailer && adminTargets.length) {
-      try {
-        await mailer.sendMail({
-          from: FROM_EMAIL,
-          to: adminTargets.join(","),
-          subject: `Rectificación de Matrícula – ${info.name} (${info.code})`,
-          text:
-            `No responder a este correo (noreply).\n\n` +
-            `Adjunto PDF de rectificación para ${info.name} (${info.code}).\n` +
-            `Periodo: ${String(info.period).replace(
-              /^(\d{4})(\d)$/,
-              "$1-$2"
-            )}\n`,
-          attachments: [
-            {
-              filename: `rectification_${info.code}.pdf`,
-              content: pdfBuffer,
-            },
-          ],
-        });
-      } catch (e) {
-        console.error("  Email send failed:", e.message);
+    // Try emailing to admins
+    if (mailer && process.env.ADMIN_PDF_TO) {
+      const toList = process.env.ADMIN_PDF_TO.split(",").map((s) => s.trim()).filter(Boolean);
+      if (toList.length) {
+        try {
+          await mailer.sendMail({
+            from: FROM_EMAIL,
+            to: toList,
+            subject: `Rectificación de matrícula - ${info.code} - ${fmtPeriod(info.period)}`,
+            text: "Se adjunta la solicitud de rectificación de matrícula generada desde el portal.",
+            attachments: [
+              {
+                filename: `rectificacion_${info.code}_${info.period}.pdf`,
+                content: pdfBuffer,
+              },
+            ],
+          });
+          console.log("PDF enviado por correo a:", toList.join(", "));
+        } catch (mailErr) {
+          console.error("Error enviando correo con PDF:", mailErr.message);
+        }
       }
-    } else if (!mailer) {
-      console.warn(
-        "  Skipping email: nodemailer not available. Run `npm i nodemailer`."
-      );
     }
 
-    const filename = `rectification_${info.code || "alumno"}_${Date.now()}.pdf`;
+    // Send PDF to browser
+    const fileName = `rectificacion_${info.code}_${info.period}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename}"`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     return res.end(pdfBuffer);
   } catch (e) {
-    console.error(" /confirm error:", e.response?.data || e.message);
-    res.status(500).json({ ok: false, error: "confirm_failed" });
+    console.error("/confirm error:", e.response?.data || e.message);
+    return res.status(500).json({ ok: false, error: "confirm_failed" });
   }
 });
 
+// Logout
 app.post("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/"));
 });
 
+// 404 handler
 app.use((_, res) => {
   res.status(404).render("index", {
     firstName: null,
@@ -1722,7 +1716,7 @@ app.use((_, res) => {
   });
 });
 
-/* ------------ start server ------------ */
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });

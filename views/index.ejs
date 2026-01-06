@@ -110,7 +110,34 @@
 
     .course:hover{ box-shadow:0 2px 8px rgba(0,0,0,.05); transform: translateY(-1px); }
     .course-hidden-segment { display: none !important;}
-    .course-code{ display:flex; align-items:center; justify-content:center; }
+    .course-code{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;               /* space between code badge and “Cambiado” pill */
+      flex-wrap:wrap;
+    }
+
+    /* ===== Visual highlight for courses with changes ===== */
+      .course--changed{
+        background:#fff7fb;                      /* light pink background */
+        border-color:#fecaca;                    /* soft red border */
+        box-shadow:0 0 0 1px rgba(248,113,113,.08),
+                  0 8px 20px rgba(248,113,113,.12);
+      }
+
+      .course-change-pill{
+        padding:4px 10px;
+        border-radius:999px;
+        font-size:.78rem;
+        font-weight:700;
+        background:#fef2f2;
+        color:#b91c1c;
+        border:1px solid #fecaca;
+        text-transform:uppercase;
+        letter-spacing:.4px;
+      }
+
     .course-details{ display:flex; flex-direction:column; gap:8px; }
     .course-title{ font-weight:700; font-size:1.02rem; color:#111827; margin:0; }
     .course-meta{ display:flex; flex-wrap:wrap; gap:10px 14px; font-size:.9rem; color:#374151; }
@@ -216,6 +243,19 @@
     .btn-primary{ background:#2563eb; color:#fff; border:1px solid #2563eb; padding:10px 16px; border-radius:10px; font-weight:800; box-shadow:0 6px 14px rgba(37,99,235,.16); cursor:pointer; }
     .btn-primary:hover{ filter:brightness(0.96); }
     .btn-primary[disabled]{ opacity:.5; cursor:not-allowed; }
+        .btn-secondary{
+      background:#f3f4f6;
+      color:#111827;
+      border:1px solid #d1d5db;
+      padding:10px 16px;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn-secondary:hover{
+      background:#e5e7eb;
+    }
+
 
     .btn-primary.btn-glow{ padding:8px 14px; font-size:1rem; border-radius:4px; box-shadow:0 0 16px 2px #f02454,0 0 32px 4px #ffd6e1; animation:glowPulse 2s infinite alternate; border:2px solid #f02454; background:linear-gradient(90deg,#f02454,#c81e47); }
     @keyframes glowPulse{
@@ -787,7 +827,14 @@
                    data-name="<%= course.courseName %>" data-period="<%= course.period || _periodRaw %>">
                 <div class="course-code">
                   <span class="badge purple"><%= course.courseCode || "—" %></span>
+                  <!-- pill shown only when this course has changes -->
+                  <span
+                    class="course-change-pill hidden"
+                    id="courseChanged-<%= idx %>">
+                    Cambiado
+                  </span>
                 </div>
+
                 <div class="course-details">
                   <h4 class="course-title"><%= course.courseName || "—" %></h4>
                   <div class="course-meta">
@@ -799,12 +846,15 @@
                   </div>
                 </div>
 
-                <details class="repl">
-                  <summary>Reemplazar curso</summary>
-                  <div class="replacement-options" id="opts-<%= idx %>">
-                    <div class="option"><em>Open to load options…</em></div>
-                  </div>
-                </details>
+               <details class="repl" data-course="<%= course.courseCode %>">
+
+                <summary>Reemplazar curso</summary>
+
+                <div class="replacement-options" id="opts-<%= idx %>" data-loaded="0">
+                  <div class="option"><em>Open to load options…</em></div>
+                </div>
+              </details>
+
               </div>
 
               <div id="chg-<%= idx %>"></div>
@@ -812,13 +862,21 @@
           </div>
         <% } %>
 
+                <!-- ACTIONS -->
         <div class="actions-center">
-          <button id="seeTimetableBtn" class="btn-primary">Ver nuevo horario</button>
-          <button id="confirmBtn" class="btn-primary"
-                  style="background:#16a34a;border-color:#16a34a;">
+          <button id="resetScheduleBtn" class="btn-secondary">
+            Restablecer horario original
+          </button>
+
+          <button id="seeTimetableBtn" class="btn-primary">
+            Ver nuevo horario
+          </button>
+
+          <button id="confirmBtn" class="btn-primary" style="background:#16a34a;border-color:#16a34a;">
             Confirmar y Descargar PDF
           </button>
         </div>
+
 
         <div id="timetablePanel" class="timetable hidden">
           <div class="tt-header">
@@ -952,6 +1010,7 @@
 
     const ttToggleNew = document.getElementById('ttTabNew');
     let hasNewTimetable = false;
+    let serverFinalPlan = null;
 
     function showAiModal() {
       if (!aiPreferencesModal) return;
@@ -1119,13 +1178,39 @@
       return entries;
     }
 
-    function resetChanges() {
-      Object.keys(changes).forEach(k => delete changes[k]);
-      document.querySelectorAll('.change-wrapper').forEach(el => {
-        el.className = '';
-        el.innerHTML = '';
-      });
-    }
+        function resetChanges() {
+        // 1) Clear logical changes + visual highlight on each course
+        Object.keys(changes).forEach(rowId => {
+          delete changes[rowId];
+          markCourseChanged(rowId, false);
+        });
+
+        // 2) Clear “Cambios” boxes
+        document.querySelectorAll('.change-wrapper').forEach(el => {
+          el.className = '';
+          el.innerHTML = '';
+        });
+
+        // 3) Forget any IA plan
+        serverFinalPlan = null;
+
+        // 4) Reset “we have a new timetable” flag
+        if (typeof hasNewTimetable !== 'undefined') {
+          hasNewTimetable = false;
+        }
+
+        // 5) Lock toggle to original & clear new grid
+        const tabNew = document.getElementById('ttTabNew');
+        if (tabNew) {
+          tabNew.disabled = true;
+          tabNew.classList.add('tt-tab-disabled');
+        }
+        const gridNew = document.getElementById('ttGridNew');
+        if (gridNew) {
+          gridNew.innerHTML = '';
+        }
+      }
+
 
     function clearAllChangesUI() {
       Object.keys(changes).forEach(k => delete changes[k]);
@@ -1152,6 +1237,23 @@
       if (m.includes('VIRT') || m.includes('TEOR')) return 'T';
       return 'O';
     }
+    // Highlight a course row as "changed" (Cambiado pill + tinted background)
+    function markCourseChanged(rowId, changed){
+      const row = document.getElementById(rowId);
+      if (!row) return;
+
+      const idx = (rowId.split('-')[1] || '').trim();
+      const pill = document.getElementById('courseChanged-' + idx);
+
+      if (changed){
+        row.classList.add('course--changed');
+        if (pill) pill.classList.remove('hidden');
+      } else {
+        row.classList.remove('course--changed');
+        if (pill) pill.classList.add('hidden');
+      }
+    }
+
 
     function getGroupConflict(plan, option) {
       const sessions = Array.isArray(option.sessions) ? option.sessions : [];
@@ -1198,27 +1300,7 @@
       return { day: canonicalDay(day || "—"), time: time || "—" };
     }
 
-    async function fetchEnrolledCounts(period, courseCode) {
-      try {
-        const resp = await fetch('/course-number-enrolled', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ period, courseCode })
-        });
-        const json = await resp.json();
-        const map = {};
-        (json.data || []).forEach(r => {
-          const g = norm(r.courseGroup || r.groupCode || r.section || '');
-          if (!g) return;
-          const n = Number(r.number_enrolled);
-          map[g] = Number.isFinite(n) ? n : 0;
-        });
-        return map;
-      } catch (e) {
-        console.error('fetchEnrolledCounts error', e);
-        return {};
-      }
-    }
+    
 
     (function groupEnrolledCards() {
       const byCode = {};
@@ -1285,19 +1367,15 @@
         container.innerHTML = '<div class="option"><em>Configurando…</em></div>';
 
         try {
-          const [availableResp, enrolledMap] = await Promise.all([
-            fetch('/available', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ period, courseCode })
-            }).then(r => r.json()),
-            fetchEnrolledCounts(period, courseCode)
-          ]);
+          const json = await fetch('/available', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ period, courseCode })
+        }).then(r => r.json());
 
-          const json = availableResp;
           let opts = (json.data || []).filter(o => norm(o.courseCode) === norm(courseCode));
 
-          opts = opts.filter(o => norm(o.groupCode || o.section || '') !== currentGroupKey);
+          opts = opts.filter(o => norm(o.groupCode || o.section || o.courseGroup || '') !== currentGroupKey);
 
           if (!opts.length) {
             container.innerHTML = '<div class="option muted">No hay turnos de reemplazo para este curso.</div>';
@@ -1309,55 +1387,82 @@
           const blocks = [];
 
           opts.forEach(o => {
-            const conflictWith = getGroupConflict(currentPlan, o);
+  const conflictWith = getGroupConflict(currentPlan, o);
 
-            const groupCodeStr = o.groupCode || o.section || '';
-            const enrolledKey  = norm(groupCodeStr);
-            const enrolled     = enrolledMap[enrolledKey];
-            const enrolledText = (enrolled === 0 || enrolled) ? String(enrolled) : '—';
+  const groupCodeStr = o.groupCode || o.section || o.courseGroup || '';
+  const key = norm(groupCodeStr);
 
-            const payload = safeJson({
-              courseCode,
-              groupCode: groupCodeStr,
-              sessions: Array.isArray(o.sessions) ? o.sessions : []
-            });
+  // If /available already contains these, use them.
+  // Otherwise, enrolledMap must come from your backend merge (recommended).
+  const rec = (typeof enrolledMap !== 'undefined' && enrolledMap[key]) ? enrolledMap[key] : {};
 
-            const btnAttrs = conflictWith
-              ? 'class="option-btn" disabled'
-              : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
+  const enrolledVal  = (o.number_enrolled ?? rec.number_enrolled ?? rec.enrolled ?? null);
+  const vacantesVal  = (o.total_vacations ?? rec.total_vacations ?? rec.vacantes ?? null);
 
-            const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
-              const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
-              const day = canonicalDay(s.dayName || s.day || '—');
-              const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
-              return `
-                <div class="field">
-                  <span class="label">${escapeHtml(mod)}</span>
-                  <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
-                </div>`;
-            }).join('');
+  const enrolledText = fmtNum(enrolledVal);
+  const vacantesText = fmtNum(vacantesVal);
 
-            blocks.push(`
-              <div class="option">
-                <div class="option-code">${escapeHtml(courseCode || "—")}</div>
-                <div class="option-fields">
-                  <div class="field">
-                    <span class="label">Grupo</span>
-                    <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
-                  </div>
-                  <div class="field">
-                    <span class="label">Matriculados</span>
-                    <span class="value">${escapeHtml(enrolledText)}</span>
-                  </div>
-                  ${sessionsHtml}
-                </div>
-                <div class="option-cta">
-                  <button ${btnAttrs}>${conflictWith ? 'Horario en conflicto' : 'Usar este turno completo'}</button>
-                  ${conflictWith ? `<div class="conflict-note">Alguna parte de este turno choca con ${escapeHtml(conflictWith.code)}. Elige otro turno del curso.</div>` : ''}
-                </div>
-              </div>
-            `);
-          });
+  const isFull = Number(vacantesVal) <= 0;
+
+  const payload = safeJson({
+    courseCode,
+    groupCode: groupCodeStr,
+    sessions: Array.isArray(o.sessions) ? o.sessions : []
+  });
+
+  const btnDisabled = !!conflictWith || isFull;
+
+  const btnAttrs = btnDisabled
+    ? 'class="option-btn" disabled'
+    : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
+
+  const btnLabel = conflictWith
+    ? 'Horario en conflicto'
+    : isFull
+      ? 'Sin vacantes'
+      : 'Usar este turno completo';
+
+  const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
+    const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
+    const day = canonicalDay(s.dayName || s.day || '—');
+    const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
+    return `
+      <div class="field">
+        <span class="label">${escapeHtml(mod)}</span>
+        <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
+      </div>`;
+  }).join('');
+
+  blocks.push(`
+    <div class="option">
+      <div class="option-code">${escapeHtml(courseCode || "—")}</div>
+
+      <div class="option-fields">
+        <div class="field">
+          <span class="label">Grupo</span>
+          <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
+        </div>
+
+        <div class="field">
+          <span class="label">Matriculados</span>
+          <span class="value">${escapeHtml(enrolledText)}</span>
+        </div>
+
+        <div class="field">
+          <span class="label">Vacantes</span>
+          <span class="value">${escapeHtml(vacantesText)}</span>
+        </div>
+
+        ${sessionsHtml}
+      </div>
+
+      <div class="option-cta">
+        <button ${btnAttrs}>${btnLabel}</button>
+        ${conflictWith ? `<div class="conflict-note">Choca con ${escapeHtml(conflictWith.code)}</div>` : ``}
+      </div>
+    </div>
+  `);
+});
 
           container.innerHTML = blocks.join('');
           container.dataset.loaded = '1';
@@ -1374,8 +1479,10 @@
     };
 
     window.previewReplace = function(rowIndex, opt){
-      const row = document.getElementById('c-' + rowIndex);
-      if (!row) return;
+       // If user starts changing manually after using IA, ignore the previous IA plan
+        serverFinalPlan = null;
+        const row = document.getElementById('c-' + rowIndex);
+        if (!row) return;
 
       const courseCode = opt.courseCode ||
         row.getAttribute('data-code') ||
@@ -1425,11 +1532,12 @@
 
         changes[rowId] = after;
         renderChange(
-          idxNum,
-          { group: original.group, day: original.day, time: original.time, modality: original.modality },
-          after
-        );
-      });
+            idxNum,
+            { group: original.group, day: original.day, time: original.time, modality: original.modality },
+            after
+          );
+          markCourseChanged(rowId, true);   // NEW: visually mark as changed
+        });
 
       hasNewTimetable = true;
       if (ttToggleNew) {
@@ -1443,6 +1551,8 @@
     function applyServerPlan(data) {
       const changeList = Array.isArray(data.changes) ? data.changes : [];
       clearAllChangesUI();
+      // store full IA schedule (session-level) for drawing "Horario nuevo"
+  serverFinalPlan = Array.isArray(data.finalCourses) ? data.finalCourses : null;
 
       const rowsByCode = {};
       document.querySelectorAll('.course').forEach(row => {
@@ -1460,29 +1570,32 @@
           const idxNum = Number(idxStr);
 
           const after = {
-            code: base.code,
-            name: base.name,
-            group: ch.to?.group || base.group,
-            day: ch.to?.day || base.day,
-            time: ch.to?.time || base.time,
-            modality: ch.to?.modality || base.modality
-          };
+          code: base.code,
+          name: base.name,
+          group: ch.to?.group || base.group,
+          day: ch.to?.day || base.day,
+          time: ch.to?.time || base.time,
+          modality: ch.to?.modality || base.modality
+        };
 
-          changes[row.id] = after;
-          renderChange(
-            idxNum,
-            { group: base.group, day: base.day, time: base.time, modality: base.modality },
-            after
-          );
+        changes[row.id] = after;
+        renderChange(
+          idxNum,
+          { group: base.group, day: base.day, time: base.time, modality: base.modality },
+          after
+        );
+
+        // NEW: visually mark this course as changed
+        markCourseChanged(row.id, true);
         });
-      });
+        });
 
-      hasNewTimetable = changeList.length > 0;
-      if (ttToggleNew && hasNewTimetable) {
-        ttToggleNew.disabled = false;
-        ttToggleNew.classList.remove('tt-tab-disabled');
-      }
-    }
+        hasNewTimetable = changeList.length > 0;
+        if (ttToggleNew && hasNewTimetable) {
+          ttToggleNew.disabled = false;
+          ttToggleNew.classList.remove('tt-tab-disabled');
+        }
+        }
 
     function buildOriginalEntries() {
       const entries = [];
@@ -1649,13 +1762,32 @@
     const seeBtn = document.getElementById('seeTimetableBtn');
     if (seeBtn){
       seeBtn.addEventListener('click', () => {
+        // 1) Always build original from current DOM
         const originalEntries = removeTrueDuplicates(buildOriginalEntries());
-        const newEntries      = removeTrueDuplicates(buildFinalEntries());
-
         lastOriginalCount = originalEntries.length;
-        lastNewCount      = newEntries.length;
 
-        const hasChanges = Object.keys(changes).length > 0;
+        // 2) Decide how to build the "new" timetable
+        let newEntries;
+        if (serverFinalPlan && serverFinalPlan.length) {
+          // Use the full schedule returned by /ai-local (session-level)
+          newEntries = serverFinalPlan.map(e => ({
+            code: e.code || e.courseCode || '',
+            name: e.name || e.courseName || '',
+            day:  canonicalDay(e.day || ''),
+            time: normalizeTime(e.time || ''),
+            group: e.group || e.groupCode || e.section || '—',
+            modality: normalizeModalityDisplay(e.modality || '')
+          }));
+          newEntries = removeTrueDuplicates(newEntries);
+        } else {
+          // Fallback: build from manual replacements in the browser
+          newEntries = removeTrueDuplicates(buildFinalEntries());
+        }
+        lastNewCount = newEntries.length;
+
+        const hasChanges =
+          Object.keys(changes).length > 0 ||
+          (serverFinalPlan && serverFinalPlan.length);
 
         renderTimetableStacked(originalEntries, 'ttGridOriginal');
 
@@ -1674,6 +1806,38 @@
         panel?.scrollIntoView({ behavior:'smooth', block:'start' });
       });
     }
+
+        // "Restablecer horario original" button
+    const resetBtn = document.getElementById('resetScheduleBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        const ok = confirm(
+          '¿Quieres restablecer tu horario original?\n' +
+          'Se perderán todos los cambios que hayas hecho.'
+        );
+        if (!ok) return;
+
+        // 1) Clear all changes + lock toggle + remove highlights
+        resetChanges();
+
+        // 2) If timetable is visible, re-render ONLY the original timetable
+        const panel = document.getElementById('timetablePanel');
+        if (panel && !panel.classList.contains('hidden')) {
+          const originalEntries = removeTrueDuplicates(buildOriginalEntries());
+          lastOriginalCount = originalEntries.length;
+
+          renderTimetableStacked(originalEntries, 'ttGridOriginal');
+
+          const gridNew = document.getElementById('ttGridNew');
+          if (gridNew) gridNew.innerHTML = '';
+
+          setTimetableMode('original');
+        }
+
+        alert('Se restableció tu horario original.');
+      });
+    }
+
 
     document.getElementById('ttTabOriginal')?.addEventListener('click', () => {
       setTimetableMode('original');
@@ -1781,9 +1945,16 @@
     }
 
     function formatMins(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
+    function fmtNum(v){
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  return Number.isFinite(n) ? String(n) : '—';
+}
+  });
     function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
-  });
+    
   </script>
 </body>
 </html>
+

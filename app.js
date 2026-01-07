@@ -97,10 +97,14 @@ if (mailer) {
 
 // Helpers
 function jsonHeaders(token) {
-  const h = { "Content-Type": "application/json" };
+  const h = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
   if (token) h.Authorization = "Bearer " + token;
   return { headers: h };
 }
+
 
 function log(label, url, body) {
   console.log(`\n${label}\nURL: ${url}\nBODY: ${JSON.stringify(body)}`);
@@ -222,6 +226,97 @@ function asPeriodNumber(p) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function extractArrayFromApi(payload) {
+  if (!payload) return [];
+
+  // ✅ MOST IMPORTANT: if API already returns an array
+  if (Array.isArray(payload)) return payload;
+
+  // common wrappers
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.result)) return payload.result;
+  if (Array.isArray(payload.results)) return payload.results;
+  if (Array.isArray(payload.items)) return payload.items;
+
+  // sometimes nested: { data: { data: [...] } }
+  if (payload.data && typeof payload.data === "object") {
+    const nested = extractArrayFromApi(payload.data);
+    if (nested.length) return nested;
+  }
+
+  return [];
+}
+
+
+
+
+function periodCandidates(rawPeriod) {
+  const digits = normalizePeriodDigits(rawPeriod);
+  const asNum = digits ? Number(digits) : null;
+  const dashed = digits && digits.length === 5 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : null;
+
+  // try: number, digits-string, dashed-string
+  const out = [];
+  if (Number.isFinite(asNum) && asNum > 0) out.push(asNum);
+  if (digits) out.push(digits);
+  if (dashed) out.push(dashed);
+
+  // also include rawPeriod if it's something else
+  if (rawPeriod && !out.includes(rawPeriod)) out.push(rawPeriod);
+
+  // remove duplicates (but keep type differences)
+  return out.filter((v, i, arr) => arr.findIndex(x => x === v) === i);
+}
+
+async function postAdmin(req, url, body) {
+  let tok = await ensureAdminToken(req);
+  try {
+    return await axios.post(url, body, jsonHeaders(tok));
+  } catch (e) {
+    const st = e?.response?.status;
+    if (st === 401 || st === 403) {
+      req.session.adminToken = null;
+      tok = await ensureAdminToken(req);
+      return await axios.post(url, body, jsonHeaders(tok));
+    }
+    throw e;
+  }
+}
+
+async function postAdminWithPeriodFallback(req, url, baseBody, rawPeriod, label = "POST") {
+  const candidates = periodCandidates(rawPeriod);
+  let lastErr = null;
+
+  for (const p of candidates) {
+    const body = { ...baseBody, period: p };
+    log(`${label} (period=${String(p)})`, url, body);
+
+    try {
+      return await postAdmin(req, url, body);
+    } catch (e) {
+      lastErr = e;
+
+      const st = e?.response?.status;
+      const errors =
+        e?.response?.data?.data?.errors ||
+        e?.response?.data?.errors ||
+        null;
+
+      // Only retry another format if the API specifically complains about "period"
+      if (st === 422 && errors && errors.period) {
+        continue;
+      }
+
+      // Otherwise don't hide the real error
+      throw e;
+    }
+  }
+
+  throw lastErr || new Error("All period formats failed");
+}
+
+
 /**
  * ✅ Ensure admin token exists (and re-login if needed)
  */
@@ -272,7 +367,7 @@ function normalizeCourseNumberRows(rows) {
       r.number_enrolled ?? r.numberEnrolled ?? r.enrolled ?? r.matriculados ?? 0
     );
 
-    const totalVac = Number(
+    const vacantes = Number(
       r.total_vacations ??
         r.totalVacations ??
         r.total_vacantes ??
@@ -281,11 +376,8 @@ function normalizeCourseNumberRows(rows) {
         0
     );
 
-    const vacanciesLeft = Math.max(
-      0,
-      (Number.isFinite(totalVac) ? totalVac : 0) -
-        (Number.isFinite(numberEnrolled) ? numberEnrolled : 0)
-    );
+    // IMPORTANT: treat total_vacations as "vacantes disponibles"
+    const vacantesOk = Number.isFinite(vacantes) ? vacantes : 0;
 
     return {
       period: r.period,
@@ -296,9 +388,8 @@ function normalizeCourseNumberRows(rows) {
       courseCode: r.courseCode,
       groupCode,
       number_enrolled: Number.isFinite(numberEnrolled) ? numberEnrolled : 0,
-      total_vacations: Number.isFinite(totalVac) ? totalVac : 0,
-      vacancies_left: vacanciesLeft,
-      is_full: vacanciesLeft <= 0,
+      total_vacations: vacantesOk,
+      is_full: vacantesOk <= 0,
       raw: r,
     };
   });
@@ -308,34 +399,21 @@ function normalizeCourseNumberRows(rows) {
  * ✅ Build a quick map by group for merging into /available results
  */
 async function getVacancyMapForCourse(req, period, courseCode) {
-  const adminToken = await ensureAdminToken(req);
-
   const url = DATA_URL + "/course-number-enrolled";
-  const periodNum = asPeriodNumber(period);
+  const rawPeriod = String(period || "");
+  const courseCodeClean = String(courseCode || "").trim();
 
-  const body = {
-    period: periodNum ?? period,
-    courseCode: String(courseCode || "").trim(),
-  };
-
-  log("Fetch vacancies (admin)", url, body);
-
-  let resp;
-  try {
-    resp = await axios.post(url, body, jsonHeaders(adminToken));
-  } catch (e) {
-    // if token expired -> relogin once
-    if (e?.response?.status === 401 || e?.response?.status === 403) {
-      req.session.adminToken = null;
-      const newTok = await ensureAdminToken(req);
-      resp = await axios.post(url, body, jsonHeaders(newTok));
-    } else {
-      throw e;
-    }
-  }
+  const resp = await postAdminWithPeriodFallback(
+    req,
+    url,
+    { courseCode: courseCodeClean },
+    rawPeriod,
+    "Fetch vacancies (admin)"
+  );
 
   const payload = resp.data || {};
-  const rows = Array.isArray(payload.data) ? payload.data : [];
+  const rows = extractArrayFromApi(payload);
+
   const normalized = normalizeCourseNumberRows(rows);
 
   const map = {};
@@ -347,6 +425,7 @@ async function getVacancyMapForCourse(req, period, courseCode) {
 
   return { normalized, map };
 }
+
 
 // Extract the courses map from API payload
 function extractCoursesMap(root) {
@@ -668,20 +747,24 @@ app.post("/login", async (req, res) => {
     const fullName = `${firstName} ${lastName}`.trim();
 
     const profileOut = {
-      dni: info.dni || "",
-      email_institucional: info.email_institucional || "",
-      phone: info.phone || "",
-      facultyName: info.facultyName || "",
-      specialtyName: info.specialtyName || "",
-      facultyCode: info.facultyCode || "",
-      specialtyCode: info.specialtyCode || "",
-      gender: info.gender || "",
-      age:
-        info.age !== undefined && info.age !== null ? String(info.age) : "",
-      mode: info.mode || "",
-      period: String(info.period || periodFromLogin || ""),
-      periodCode: info.periodCode || "",
-    };
+    dni: info.dni || "",
+    email_institucional: info.email_institucional || "",
+    phone: info.phone || "",
+    facultyName: info.facultyName || "",
+    specialtyName: info.specialtyName || "",
+    facultyCode: info.facultyCode || "",
+    specialtyCode: info.specialtyCode || "",
+    gender: info.gender || "",
+    age: info.age !== undefined && info.age !== null ? String(info.age) : "",
+    mode: info.mode || "",
+    period: String(info.period || periodFromLogin || ""),
+    periodCode: info.periodCode || "",
+
+    // ✅ NEW (these are likely required by course-number-enrolled)
+    plan: info.plan ?? info.planCode ?? info.plan_code ?? null,
+    modalityCode: info.modalityCode ?? info.modality_code ?? info.modeCode ?? info.mode_code ?? null,
+  };
+
 
     // 4) Enrolled schedules
     const schedulesUrl = DATA_URL + "/course-schedules";
@@ -786,9 +869,14 @@ app.post("/verify-boleta", async (req, res) => {
       });
     }
 
-    const normalizeTicket = (s) =>
-      String(s || "").replace(/\s+/g, "").toUpperCase();
-    const normalizeCode = (s) => String(s || "").trim();
+
+    const normalizeTicketKey = (s) =>
+      String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); // remove all non-alphanumerics
+
+    const normalizeIdKey = (s) =>
+      String(s || "").replace(/[^0-9]/g, ""); // keep digits only (for code/dni/period)
+    const normalizePeriodDigits = (s) =>
+      String(s || "").replace(/[^0-9]/g, ""); // keep digits only (for period)
 
     // 2) Ensure admin token
     const adminToken = await ensureAdminToken(req);
@@ -796,47 +884,43 @@ app.post("/verify-boleta", async (req, res) => {
     // 3) Call rectification_payments API with the period only (as NUMBER)
     const rawPeriod = profile.period || student.defaultPeriod || "";
     const periodDigits = normalizePeriodDigits(rawPeriod);
-    const periodNum = Number(periodDigits);
-    if (!Number.isFinite(periodNum) || periodNum <= 0) {
+    if (!periodDigits) {
       throw new Error("Invalid period for boleta verification: " + rawPeriod);
     }
 
-    const body = { period: periodNum };
-    log("Boleta verification", BOLETA_URL, body);
+    // ✅ Call API with fallback formats (20261 / "20261" / "2026-1")
+    const resp = await postAdminWithPeriodFallback(
+      req,
+      BOLETA_URL,
+      {},                 // no extra fields, only period
+      rawPeriod,
+      "Boleta verification"
+    );
 
-    let resp;
-    try {
-      resp = await axios.post(BOLETA_URL, body, jsonHeaders(adminToken));
-    } catch (e) {
-      // If token expired -> relogin once
-      if (e?.response?.status === 401 || e?.response?.status === 403) {
-        req.session.adminToken = null;
-        const newTok = await ensureAdminToken(req);
-        resp = await axios.post(BOLETA_URL, body, jsonHeaders(newTok));
-      } else {
-        throw e;
-      }
-    }
+    const rows = extractArrayFromApi(resp.data);
 
-    const root = resp.data || {};
-    const rows = Array.isArray(root.data) ? root.data : [];
 
-    const myCode = normalizeCode(student.codigo);
-    const myTicket = normalizeTicket(rawBoleta);
 
-    // 4) Look for a matching record:
-    //    period  -> period
-    //    code    -> codAlu
-    //    boleta  -> number_ticket
+    const myPeriod = normalizeIdKey(periodDigits);
+    const myCode = normalizeIdKey(student.codigo);
+    const myDni = normalizeIdKey(profile.dni || student.dni || "");
+    const myTicket = normalizeTicketKey(rawBoleta);
+
     const match = rows.find((r) => {
-      const rPeriod = normalizePeriodDigits(r.period);
-      const rCode = normalizeCode(r.codAlu || r.codigo || r.code || r.c_codalu);
-      const rTicket = normalizeTicket(
-        r.number_ticket || r.boleta || r.numBoleta || r.nroBoleta
+     const rPeriod = normalizeIdKey(r.period || r.periodo || r.PERIODO || r.Periodo);
+      const rCode = normalizeIdKey(r.codAlu || r.codigo || r.code || r.c_codalu);
+      const rDni = normalizeIdKey(r.dni || "");
+      const rTicket = normalizeTicketKey(
+        r.number_ticket || r.numberTicket || r.boleta || r.numBoleta || r.nroBoleta
       );
 
-      return rPeriod === periodDigits && rCode === myCode && rTicket === myTicket;
+      const sameStudent =
+        (myCode && rCode && rCode === myCode) ||
+        (myDni && rDni && rDni === myDni);
+
+      return rPeriod === myPeriod && sameStudent && rTicket === myTicket;
     });
+
 
     if (!match) {
       return res.render("boleta", {

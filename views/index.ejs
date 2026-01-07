@@ -1396,13 +1396,18 @@
   // Otherwise, enrolledMap must come from your backend merge (recommended).
   const rec = (typeof enrolledMap !== 'undefined' && enrolledMap[key]) ? enrolledMap[key] : {};
 
-  const enrolledVal  = (o.number_enrolled ?? rec.number_enrolled ?? rec.enrolled ?? null);
-  const vacantesVal  = (o.total_vacations ?? rec.total_vacations ?? rec.vacantes ?? null);
+  const enrolledVal = (o.number_enrolled ?? null);
+  const vacantesVal = (o.total_vacations ?? null);
 
   const enrolledText = fmtNum(enrolledVal);
   const vacantesText = fmtNum(vacantesVal);
 
-  const isFull = Number(vacantesVal) <= 0;
+  // ✅ IMPORTANT: avoid Number(null) => 0
+  const vacNum = Number(vacantesVal);
+  const hasVac = Number.isFinite(vacNum);
+  const isFull = hasVac ? (vacNum <= 0) : false; // if unknown, don't mark as full
+
+
 
   const payload = safeJson({
     courseCode,
@@ -1419,7 +1424,7 @@
   const btnLabel = conflictWith
     ? 'Horario en conflicto'
     : isFull
-      ? 'Sin vacantes'
+      ? 'Turno lleno'
       : 'Usar este turno completo';
 
   const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {

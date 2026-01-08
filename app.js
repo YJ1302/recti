@@ -27,6 +27,9 @@ const DATA_URL = process.env.DATA_BASE_URL;   // e.g. http://37.60.229.241:8085/
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:5055";
+// ✅ Current period (latest)
+const CURRENT_PERIOD_ID = String(process.env.CURRENT_PERIOD_ID || "20261").replace(/[^0-9]/g, "");
+
 
 // Logo path (for PDF)
 const LOGO_PATH = path.join(__dirname, "public", "images", "logo.png");
@@ -104,6 +107,7 @@ function jsonHeaders(token) {
   if (token) h.Authorization = "Bearer " + token;
   return { headers: h };
 }
+
 
 
 function log(label, url, body) {
@@ -361,7 +365,8 @@ async function autoVerifyBoletaForStudent(req) {
   // ensure admin token
   await ensureAdminToken(req);
 
-  const rawPeriod = profile.period || student.defaultPeriod || "";
+  const rawPeriod = CURRENT_PERIOD_ID; // ✅ always verify against latest period
+
   const periodDigits = normalizePeriodDigits(rawPeriod);
   if (!periodDigits) return { ok: false, ticket: null };
 
@@ -377,7 +382,8 @@ async function autoVerifyBoletaForStudent(req) {
   const rows = extractArrayFromApi(resp.data || {});
   if (!Array.isArray(rows) || rows.length === 0) return { ok: false, ticket: null };
 
-  const myPeriod = normalizeIdKey(periodDigits);
+  const myPeriod = normalizeIdKey(CURRENT_PERIOD_ID);
+
   const myCode = normalizeIdKey(student.codigo);
   const myDni = normalizeIdKey(profile.dni || student.dni || "");
 
@@ -845,6 +851,34 @@ app.post("/login", async (req, res) => {
     plan: info.plan ?? info.planCode ?? info.plan_code ?? null,
     modalityCode: info.modalityCode ?? info.modality_code ?? info.modeCode ?? info.mode_code ?? null,
   };
+  // ✅ BLOCK if student's period is not the latest
+const loginPeriodDigits = String(profileOut.period || "").replace(/[^0-9]/g, "");
+if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
+  req.session.destroy(() => {});
+  return res.render("index", {
+    firstName: null,
+    lastName: null,
+    studentId: null,
+    semester: null,
+    department: null,
+    schedules: [],
+    available: [],
+    dni: null,
+    email_institucional: null,
+    phone: null,
+    facultyName: null,
+    specialtyName: null,
+    facultyCode: null,
+    specialtyCode: null,
+    gender: null,
+    age: null,
+    mode: null,
+    period: null,
+    periodCode: null,
+    error: `No puedes ingresar. Tu periodo es ${fmtPeriod(loginPeriodDigits)} pero el portal solo permite rectificación del periodo ${fmtPeriod(CURRENT_PERIOD_ID)}.`,
+  });
+}
+
 
 
     // 4) Enrolled schedules
@@ -1157,6 +1191,8 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
       return res.status(401).json({ error: "not_logged_in" });
     }
 
+    
+
     const rawPrefs = (req.body && (req.body.preferences || req.body)) || {};
     const freeDays = Array.isArray(rawPrefs.freeDays) ? rawPrefs.freeDays : [];
     const freeDayKeys = new Set(freeDays.map((d) => sameDayKey(d)));
@@ -1221,6 +1257,7 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
     const changes = [];
     const finalCourses = [];
     const unsatisfied = [];
+    const blocked = [];  
     const skippedFullGroups = [];
 
     function groupAvailableRows(code, rows, fallbackName) {
@@ -1357,6 +1394,14 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
 
       if (!candidateGroups.length) {
         unsatisfied.push(`${code} - ${cur.courseName} (sin vacantes)`);
+
+        blocked.push({
+          code,
+          name: cur.courseName,
+          reason: "SIN_VACANTES",
+          detail: "Todos los turnos alternativos están llenos."
+        });
+
         cur.segments.forEach((seg) => {
           finalCourses.push({
             code,
@@ -1369,6 +1414,7 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
         });
         continue;
       }
+
 
       // If we are trying to free a day, prefer candidates that remove that day
       // Pass 1: strict free-day + no conflicts
@@ -1409,19 +1455,44 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
       }
 
       if (!chosen) {
-        unsatisfied.push(`${code} - ${cur.courseName}`);
-        cur.segments.forEach((seg) => {
-          finalCourses.push({
-            code,
-            name: cur.courseName,
-            group: cur.group,
-            day: seg.day,
-            time: seg.time,
-            modality: seg.modality,
-          });
-        });
-        continue;
+      // Detect why: conflict vs freeDay restriction
+      let conflictCount = 0;
+      let freeDayCount = 0;
+
+      for (const g of candidateGroups) {
+        const err = testCandidate(code, g, true);
+        if (!err) continue;
+        if (err.reason === "conflict") conflictCount++;
+        if (err.reason === "freeDay") freeDayCount++;
       }
+
+      let reason = "CONFLICTO";
+      let detail = "No hay turnos alternativos sin cruce con otros cursos.";
+
+      if (freeDayCount > 0 && conflictCount === 0) {
+        reason = "DIA_LIBRE";
+        detail = "No hay turnos que eviten el día seleccionado.";
+      } else if (conflictCount > 0) {
+        reason = "CONFLICTO";
+        detail = "Los turnos alternativos generan conflicto con el horario actual.";
+      }
+
+      unsatisfied.push(`${code} - ${cur.courseName}`);
+      blocked.push({ code, name: cur.courseName, reason, detail });
+
+      cur.segments.forEach((seg) => {
+        finalCourses.push({
+          code,
+          name: cur.courseName,
+          group: cur.group,
+          day: seg.day,
+          time: seg.time,
+          modality: seg.modality,
+        });
+      });
+      continue;
+    }
+
 
       const beforeSeg = cur.segments[0] || { day: "", time: "", modality: "" };
       const afterSeg = chosen.segments[0] || { day: "", time: "", modality: "" };
@@ -1469,8 +1540,10 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
       changes,
       finalCourses,
       unsatisfied,
+      blocked,
       skippedFullGroups,
     });
+
   } catch (e) {
     console.error("/ai-local error:", e.response?.data || e.message);
     return res.status(500).json({ error: "ai_local_failed" });

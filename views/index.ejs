@@ -334,6 +334,91 @@ body.guide-modal-open > .loading-overlay{
   gap:10px;
 }
 
+.uma-modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 13000; /* ✅ ABOVE loadingOverlay (9999) + AI modal (10000) + guide modal (11000) */
+  padding: 16px;
+}
+.uma-modal-backdrop.show{ display:flex; }
+
+
+.uma-modal{
+  width: min(560px, 95vw);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  padding: 18px 18px 14px;
+}
+
+.uma-modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+.uma-modal-head h3{
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+.uma-x{
+  border: none;
+  background: #f1f5f9;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
+}
+.uma-modal-sub{
+  margin: 10px 0 12px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.ai-blocked-list{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+.ai-blocked-list li{
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+.ai-blocked-title{
+  font-weight: 900;
+  color: #0f172a;
+}
+.ai-blocked-reason{
+  margin-top: 4px;
+  font-size: 13px;
+  color: #334155;
+}
+.ai-pill{
+  display:inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 8px;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.ai-pill.red{ background:#fee2e2; color:#991b1b; }
+.ai-pill.amber{ background:#ffedd5; color:#9a3412; }
+
+
     .grid{ display:grid; gap:16px; }
     .grid-3{ grid-template-columns:repeat(3,1fr); }
     .panel{ background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06); padding:20px; }
@@ -1381,6 +1466,52 @@ document.addEventListener('keydown', (e) => {
     closeGuide();
   }
 });
+// ===== Blocked courses modal (frontend) =====
+function showBlockedPopup(blocked) {
+  if (!Array.isArray(blocked) || blocked.length === 0) return;
+console.log("showBlockedPopup called", blocked);
+
+  const modal = document.getElementById("aiBlockedModal");
+  const list = document.getElementById("aiBlockedList");
+  if (!modal || !list) return;
+
+  list.innerHTML = "";
+
+  blocked.forEach((x) => {
+    const li = document.createElement("li");
+
+    const isFull = x.reason === "SIN_VACANTES";
+    const pillClass = isFull ? "amber" : "red";
+    const pillText  = isFull ? "Turno lleno" : "Conflicto";
+
+    li.innerHTML = `
+      <div class="ai-blocked-title">${escapeHtml(x.code || "")} — ${escapeHtml(x.name || "")}</div>
+      <div class="ai-blocked-reason">
+        <span class="ai-pill ${pillClass}">${pillText}</span>
+        ${escapeHtml(x.detail || "")}
+      </div>
+    `;
+    list.appendChild(li);
+  });
+
+  modal.classList.add("show");
+  modal.style.display = "flex";
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function hideBlockedPopup() {
+  const modal = document.getElementById("aiBlockedModal");
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.style.display = "none";
+  modal.setAttribute("aria-hidden", "true");
+}
+
+document.getElementById("aiBlockedClose")?.addEventListener("click", hideBlockedPopup);
+document.getElementById("aiBlockedModal")?.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "aiBlockedModal") hideBlockedPopup();
+});
+
 
 // auto-show once after login (not on login page)
 if (!document.body.classList.contains('is-login')) {
@@ -1440,16 +1571,29 @@ if (!document.body.classList.contains('is-login')) {
           return;
         }
 
-        applyServerPlan(data);
+       applyServerPlan(data);
+
         refreshTimetableIfOpen();
         document.getElementById('seeTimetableBtn')?.click();
+
+        // ✅ FIRST hide loader, THEN show popup
+        overlay?.classList.remove('active');
+
+        // debug (optional but recommended)
+        console.log('AI blocked list:', data.blocked);
+
+        if (Array.isArray(data.blocked) && data.blocked.length) {
+          showBlockedPopup(data.blocked);
+        }
+
 
       } catch (err) {
         console.error(err);
         alert('Ocurrió un error generando el horario.');
       } finally {
-        overlay?.classList.remove('active');
+       
       }
+      
 
     });
 
@@ -2263,6 +2407,8 @@ if (seeBtn) {
 
         // 1) Clear all changes + lock toggle + remove highlights
         resetChanges();
+        hideBlockedPopup();
+
 
         // 2) If timetable is visible, re-render ONLY the original timetable
         const panel = document.getElementById('timetablePanel');
@@ -2410,6 +2556,36 @@ if (seeBtn) {
     function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
     
   </script>
+  <div id="aiBlockedModal" class="uma-modal-backdrop" aria-hidden="true">
+  <div class="uma-modal">
+    <div class="uma-modal-head">
+      <h3>Algunos cursos no se pudieron cambiar</h3>
+      <button id="aiBlockedClose" class="uma-x">✕</button>
+    </div>
+
+    <p class="uma-modal-sub">
+      Estos cursos se quedaron igual por conflicto de horario o porque los turnos alternativos están llenos.
+    </p>
+
+    <ul id="aiBlockedList" class="ai-blocked-list"></ul>
+  </div>
+</div>
+<div id="aiBlockedModal" class="uma-modal-backdrop" aria-hidden="true">
+  <div class="uma-modal">
+    <div class="uma-modal-head">
+      <h3>Algunos cursos no se pudieron cambiar</h3>
+      <button id="aiBlockedClose" class="uma-x">✕</button>
+    </div>
+
+    <p class="uma-modal-sub">
+      Estos cursos se quedaron igual por conflicto de horario o porque los turnos alternativos están llenos.
+    </p>
+
+    <ul id="aiBlockedList" class="ai-blocked-list"></ul>
+  </div>
+</div>
+
+
 </body>
 </html>
 

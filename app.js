@@ -343,16 +343,74 @@ async function ensureAdminToken(req) {
   return String(adminToken);
 }
 
-/**
- * ✅ Fetch course-number-enrolled from grupoa and normalize it
- * We compute:
- * - total_vacations (capacity)
- * - number_enrolled
- * - vacancies_left = max(0, total_vacations - number_enrolled)
- * - is_full = vacancies_left <= 0
- */
+async function autoVerifyBoletaForStudent(req) {
+  const student = req.session.student;
+  const profile = req.session.profile;
+
+  if (!student || !profile) return { ok: false, ticket: null };
+
+  const normalizeTicketKey = (s) =>
+    String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  const normalizeIdKey = (s) =>
+    String(s || "").replace(/[^0-9]/g, "");
+
+  const normalizePeriodDigits = (s) =>
+    String(s || "").replace(/[^0-9]/g, "");
+
+  // ensure admin token
+  await ensureAdminToken(req);
+
+  const rawPeriod = profile.period || student.defaultPeriod || "";
+  const periodDigits = normalizePeriodDigits(rawPeriod);
+  if (!periodDigits) return { ok: false, ticket: null };
+
+  // call API (same as verify-boleta but without ticket)
+  const resp = await postAdminWithPeriodFallback(
+    req,
+    BOLETA_URL,
+    {},
+    rawPeriod,
+    "Auto boleta verification"
+  );
+
+  const rows = extractArrayFromApi(resp.data || {});
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: false, ticket: null };
+
+  const myPeriod = normalizeIdKey(periodDigits);
+  const myCode = normalizeIdKey(student.codigo);
+  const myDni = normalizeIdKey(profile.dni || student.dni || "");
+
+  const match = rows.find((r) => {
+    const rPeriod = normalizeIdKey(r.period);
+    const rCode = normalizeIdKey(r.codAlu || r.codigo || r.code || r.c_codalu);
+    const rDni = normalizeIdKey(r.dni || "");
+
+    const sameStudent =
+      (myCode && rCode && rCode === myCode) ||
+      (myDni && rDni && rDni === myDni);
+
+    return rPeriod === myPeriod && sameStudent;
+  });
+
+  if (!match) return { ok: false, ticket: null };
+
+  const ticketRaw =
+    match.number_ticket ||
+    match.numberTicket ||
+    match.boleta ||
+    match.numBoleta ||
+    match.nroBoleta ||
+    "";
+
+  const ticket = normalizeTicketKey(ticketRaw);
+
+  return { ok: true, ticket: ticket || null };
+}
+
 function normalizeCourseNumberRows(rows) {
   const arr = Array.isArray(rows) ? rows : [];
+
   return arr.map((r) => {
     const groupCode =
       r.courseGroup ||
@@ -363,21 +421,24 @@ function normalizeCourseNumberRows(rows) {
       r.course_group_code ||
       "";
 
-    const numberEnrolled = Number(
-      r.number_enrolled ?? r.numberEnrolled ?? r.enrolled ?? r.matriculados ?? 0
-    );
-
-    const vacantes = Number(
+    const numberEnrolledRaw =
+      r.number_enrolled ?? r.numberEnrolled ?? r.enrolled ?? r.matriculados ?? 0;
+    const totalVacationsRaw =
       r.total_vacations ??
-        r.totalVacations ??
-        r.total_vacantes ??
-        r.totalVacantes ??
-        r.vacantes ??
-        0
-    );
+      r.totalVacations ??
+      r.total_vacantes ??
+      r.totalVacantes ??
+      r.vacantes ??
+      0;
 
-    // IMPORTANT: treat total_vacations as "vacantes disponibles"
-    const vacantesOk = Number.isFinite(vacantes) ? vacantes : 0;
+    const number_enrolled = Number(numberEnrolledRaw);
+    const total_vacations = Number(totalVacationsRaw);
+
+    const enrolledOk = Number.isFinite(number_enrolled) ? number_enrolled : 0;
+    const vacOk = Number.isFinite(total_vacations) ? total_vacations : 0;
+
+    // ✅ AVAILABLE = vacantes - matriculados
+    const vacancies_left = Math.max(0, vacOk - enrolledOk);
 
     return {
       period: r.period,
@@ -387,13 +448,17 @@ function normalizeCourseNumberRows(rows) {
       modalityCode: r.modalityCode,
       courseCode: r.courseCode,
       groupCode,
-      number_enrolled: Number.isFinite(numberEnrolled) ? numberEnrolled : 0,
-      total_vacations: vacantesOk,
-      is_full: vacantesOk <= 0,
+
+      number_enrolled: enrolledOk,
+      total_vacations: vacOk,
+      vacancies_left,
+      is_full: vacancies_left <= 0,
+
       raw: r,
     };
   });
 }
+
 
 /**
  * ✅ Build a quick map by group for merging into /available results
@@ -658,19 +723,35 @@ function pdfToBuffer(doc) {
   });
 }
 
-// Require verified student (login + boleta)
-function requireVerifiedStudent(req, res, next) {
-  const s = req.session && req.session.student;
-  if (!s) {
+async function requireVerifiedStudent(req, res, next) {
+  const s = req.session?.student;
+  const profile = req.session?.profile;
+
+  // Not logged in
+  if (!s || !profile) {
     if (req.accepts("html")) return res.redirect("/");
     return res.status(401).json({ error: "not_logged_in" });
   }
-  if (!req.session.boletaVerified) {
-    if (req.accepts("html")) return res.redirect("/boleta");
-    return res.status(403).json({ error: "boleta_not_verified" });
+
+  // Already verified
+  if (req.session.boletaVerified) return next();
+
+  // If session lost the flag, auto-verify again
+  try {
+    const { ok, ticket } = await autoVerifyBoletaForStudent(req);
+    req.session.boletaVerified = ok;
+    req.session.boletaNumber = ticket || null;
+
+    if (ok) return next();
+  } catch (e) {
+    console.error("autoVerifyBoletaForStudent failed:", e?.message || e);
   }
-  return next();
+
+  // Still not verified => block access and force login again
+  if (req.accepts("html")) return res.redirect("/?err=boleta");
+  return res.status(403).json({ error: "boleta_not_verified" });
 }
+
 
 // Health check
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
@@ -790,28 +871,75 @@ app.post("/login", async (req, res) => {
     }));
 
     // Save session
-    req.session.student = {
-      token: String(studentToken),
-      codigo: code,
-      dni: String(dni || ""),
-      defaultPeriod: String(profileOut.period || periodFromLogin || ""),
-      name: fullName,
-    };
-    req.session.profile = profileOut;
-    req.session.enrolled = schedules;
-    req.session.firstName = firstName;
-    req.session.lastName = lastName;
-    req.session.boletaVerified = false;
+req.session.student = {
+  token: String(studentToken),
+  codigo: code,
+  dni: String(dni || ""),
+  defaultPeriod: String(profileOut.period || periodFromLogin || ""),
+  name: fullName,
+};
+req.session.profile = profileOut;
+req.session.enrolled = schedules;
+req.session.firstName = firstName;
+req.session.lastName = lastName;
 
-    // Render boleta verification page
-    return res.render("boleta", {
-      firstName,
-      lastName,
-      studentId: code,
-      semester: fmtPeriod(profileOut.period),
-      dni: profileOut.dni,
-      error: null,
-    });
+// ✅ Auto verify boleta during login (no user input)
+const { ok, ticket } = await autoVerifyBoletaForStudent(req);
+req.session.boletaVerified = ok;
+req.session.boletaNumber = ticket || null;
+
+// ❌ If no boleta exists for this student+period, block access (NO boleta page)
+if (!ok) {
+  req.session.destroy(() => {});
+  return res.render("index", {
+    firstName: null,
+    lastName: null,
+    studentId: null,
+    semester: null,
+    department: null,
+    schedules: [],
+    available: [],
+    dni: null,
+    email_institucional: null,
+    phone: null,
+    facultyName: null,
+    specialtyName: null,
+    facultyCode: null,
+    specialtyCode: null,
+    gender: null,
+    age: null,
+    mode: null,
+    period: null,
+    periodCode: null,
+    error:
+      "No se encontró una boleta válida para este periodo y código. Contacta con soporte.",
+  });
+}
+
+// ✅ If ok, go directly to portal (index)
+return res.render("index", {
+  firstName,
+  lastName,
+  studentId: code,
+  semester: fmtPeriod(profileOut.period),
+  department: profileOut.specialtyName,
+  schedules,
+  available: [],
+  dni: profileOut.dni,
+  email_institucional: profileOut.email_institucional,
+  phone: profileOut.phone,
+  facultyName: profileOut.facultyName,
+  specialtyName: profileOut.specialtyName,
+  facultyCode: profileOut.facultyCode,
+  specialtyCode: profileOut.specialtyCode,
+  gender: profileOut.gender,
+  age: profileOut.age,
+  mode: profileOut.mode,
+  period: profileOut.period,
+  periodCode: profileOut.periodCode,
+  error: null,
+});
+
   } catch (err) {
     console.error(
       "Login error:",
@@ -844,145 +972,10 @@ app.post("/login", async (req, res) => {
 });
 
 /* ------------ verify boleta after login ------------ */
-app.post("/verify-boleta", async (req, res) => {
-  try {
-    const student = req.session.student;
-    const profile = req.session.profile;
-    const firstName = req.session.firstName || "";
-    const lastName = req.session.lastName || "";
-
-    // If session is lost, go back to login
-    if (!student || !profile) {
-      return res.redirect("/");
-    }
-
-    // 1) Read boleta from form
-    const rawBoleta = String(req.body.boleta || "").trim();
-    if (!rawBoleta) {
-      return res.render("boleta", {
-        firstName,
-        lastName,
-        studentId: student.codigo,
-        semester: fmtPeriod(profile.period),
-        dni: profile.dni || "",
-        error: "Ingresa el número de boleta.",
-      });
-    }
-
-
-    const normalizeTicketKey = (s) =>
-      String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); // remove all non-alphanumerics
-
-    const normalizeIdKey = (s) =>
-      String(s || "").replace(/[^0-9]/g, ""); // keep digits only (for code/dni/period)
-    const normalizePeriodDigits = (s) =>
-      String(s || "").replace(/[^0-9]/g, ""); // keep digits only (for period)
-
-    // 2) Ensure admin token
-    const adminToken = await ensureAdminToken(req);
-
-    // 3) Call rectification_payments API with the period only (as NUMBER)
-    const rawPeriod = profile.period || student.defaultPeriod || "";
-    const periodDigits = normalizePeriodDigits(rawPeriod);
-    if (!periodDigits) {
-      throw new Error("Invalid period for boleta verification: " + rawPeriod);
-    }
-
-    // ✅ Call API with fallback formats (20261 / "20261" / "2026-1")
-    const resp = await postAdminWithPeriodFallback(
-      req,
-      BOLETA_URL,
-      {},                 // no extra fields, only period
-      rawPeriod,
-      "Boleta verification"
-    );
-
-    const rows = extractArrayFromApi(resp.data);
-
-
-
-    const myPeriod = normalizeIdKey(periodDigits);
-    const myCode = normalizeIdKey(student.codigo);
-    const myDni = normalizeIdKey(profile.dni || student.dni || "");
-    const myTicket = normalizeTicketKey(rawBoleta);
-
-    const match = rows.find((r) => {
-     const rPeriod = normalizeIdKey(r.period || r.periodo || r.PERIODO || r.Periodo);
-      const rCode = normalizeIdKey(r.codAlu || r.codigo || r.code || r.c_codalu);
-      const rDni = normalizeIdKey(r.dni || "");
-      const rTicket = normalizeTicketKey(
-        r.number_ticket || r.numberTicket || r.boleta || r.numBoleta || r.nroBoleta
-      );
-
-      const sameStudent =
-        (myCode && rCode && rCode === myCode) ||
-        (myDni && rDni && rDni === myDni);
-
-      return rPeriod === myPeriod && sameStudent && rTicket === myTicket;
-    });
-
-
-    if (!match) {
-      return res.render("boleta", {
-        firstName,
-        lastName,
-        studentId: student.codigo,
-        semester: fmtPeriod(rawPeriod),
-        dni: profile.dni || "",
-        error:
-          "No se encontró una boleta válida para este periodo y código. Verifica el número e intenta de nuevo.",
-      });
-    }
-
-    // ✅ Verified
-    req.session.boletaVerified = true;
-
-    // 5) Show main rectification portal using existing data in session
-    const schedules = Array.isArray(req.session.enrolled) ? req.session.enrolled : [];
-    const profileOut = profile;
-
-    return res.render("index", {
-      firstName,
-      lastName,
-      studentId: student.codigo,
-      semester: fmtPeriod(profileOut.period),
-      department: profileOut.specialtyName,
-      schedules,
-      available: [],
-      dni: profileOut.dni,
-      email_institucional: profileOut.email_institucional,
-      phone: profileOut.phone,
-      facultyName: profileOut.facultyName,
-      specialtyName: profileOut.specialtyName,
-      facultyCode: profileOut.facultyCode,
-      specialtyCode: profileOut.specialtyCode,
-      gender: profileOut.gender,
-      age: profileOut.age,
-      mode: profileOut.mode,
-      period: profileOut.period,
-      periodCode: profileOut.periodCode,
-      error: null,
-    });
-  } catch (err) {
-    console.error(
-      " /verify-boleta error:",
-      err.response?.status,
-      err.response?.data || err.message
-    );
-
-    const student = req.session.student || {};
-    const profile = req.session.profile || {};
-
-    return res.render("boleta", {
-      firstName: req.session.firstName || "",
-      lastName: req.session.lastName || "",
-      studentId: student.codigo || "—",
-      semester: fmtPeriod(profile.period || ""),
-      dni: profile.dni || "",
-      error: "Ocurrió un error al verificar la boleta. Intenta nuevamente.",
-    });
-  }
+app.post("/verify-boleta", (req, res) => {
+  return res.redirect("/"); // not used anymore
 });
+
 
 // AJAX: available groups for one course (+ vacancies merge)
 app.post("/available", requireVerifiedStudent, async (req, res) => {

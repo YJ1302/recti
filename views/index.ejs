@@ -46,6 +46,149 @@
       letter-spacing:.5px;
     }
 
+    .panel-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:nowrap; /* keeps everything in ONE line */
+}
+
+.panel-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-shrink:0; /* prevents buttons from shrinking weirdly */
+}
+
+:root{
+  --btn-dark-bg:#0b0b0f;                 /* like cerrar sesión */
+  --btn-dark-bd:rgba(255,255,255,.14);
+  --btn-dark-shadow:0 12px 28px rgba(16,24,40,.18);
+
+  --btn-light-bg:#111827;               /* slightly lighter */
+  --btn-light-bd:rgba(148,163,184,.28);
+  --btn-light-shadow:0 10px 24px rgba(16,24,40,.14);
+}
+
+/* ===== Make logout (Cerrar sesión) the reference style ===== */
+.logout-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 18px;
+  border-radius:18px;
+  background:var(--btn-dark-bg);
+  color:#fff;
+  border:1px solid var(--btn-dark-bd);
+  box-shadow:var(--btn-dark-shadow);
+  font-weight:900;
+  cursor:pointer;
+  transition:filter .15s ease, transform .15s ease;
+}
+.logout-btn:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+
+/* ===== Right side actions (Guide + IA) in ONE line ===== */
+.panel-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+/* ===== Guide button (NO animation) — same as logout ===== */
+.btn-guide{
+  height:58px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:0 18px;
+  border-radius:18px;
+
+  background:var(--btn-dark-bg);
+  color:#fff;
+  border:1px solid var(--btn-dark-bd);
+  box-shadow:var(--btn-dark-shadow);
+  font-weight:900;
+  cursor:pointer;
+
+  transition:filter .15s ease, transform .15s ease;
+}
+.btn-guide:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+
+/* Ensure NO pseudo glow/animation on guide */
+.btn-guide::before,
+.btn-guide::after{
+  content:none !important;
+  animation:none !important;
+}
+.btn-guide__ico{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+  /* make black icon look white if needed */
+  filter:invert(1);
+}
+
+/* ===== Generar con IA — same base as logout, but keep your existing animation ===== */
+#aiSuggestBtn.btn-ia{
+  height:58px;
+  border-radius:18px;
+  background:var(--btn-dark-bg);
+  border:1px solid var(--btn-dark-bd);
+  box-shadow:var(--btn-dark-shadow);
+  overflow:hidden;
+}
+#aiSuggestBtn .btn-ia__inner{
+  background:transparent !important;
+  padding:14px 22px !important;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ===== Action buttons row — same style but a bit lighter ===== */
+.actions-center #resetScheduleBtn,
+.actions-center #seeTimetableBtn,
+.actions-center #confirmBtn{
+  background:var(--btn-light-bg) !important;
+  color:#fff !important;
+  border:1px solid var(--btn-light-bd) !important;
+  box-shadow:var(--btn-light-shadow) !important;
+
+  border-radius:18px !important;
+  padding:14px 18px !important;
+  font-weight:900 !important;
+
+  transition:filter .15s ease, transform .15s ease;
+}
+.actions-center #resetScheduleBtn:hover,
+.actions-center #seeTimetableBtn:hover,
+.actions-center #confirmBtn:hover{
+  filter:brightness(1.05);
+  transform:translateY(-1px);
+}
+.actions-center #resetScheduleBtn:disabled,
+.actions-center #seeTimetableBtn:disabled,
+.actions-center #confirmBtn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  transform:none;
+}
+
+/* Optional: make timetable close also match (light variant) */
+.tt-close{
+  background:var(--btn-light-bg) !important;
+  color:#fff !important;
+  border:1px solid var(--btn-light-bd) !important;
+  box-shadow:var(--btn-light-shadow) !important;
+  border-radius:18px !important;
+  padding:10px 14px !important;
+  font-weight:900 !important;
+}
+
+
     .profile-cards{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
@@ -90,6 +233,106 @@
         grid-template-columns:1fr;
       }
     }
+
+    /* ===== Guide Modal ===== */
+.guide-modal-overlay{
+  position: fixed;
+  z-index: 11000;
+  inset: 0;
+  background: rgba(60,60,80,0.18);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+body.guide-modal-open > .wrap,
+body.guide-modal-open > .loading-overlay{
+  filter: blur(6px) brightness(0.95);
+  pointer-events: none;
+  user-select: none;
+}
+
+.guide-card{
+  background: rgba(255,255,255,0.96);
+  border-radius: 20px;
+  padding: 22px 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.35);
+  width: min(760px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+}
+
+.guide-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.guide-title{
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.guide-subtitle{
+  color:#6b7280;
+  font-weight:700;
+  font-size:.95rem;
+  margin-top: 4px;
+}
+
+.guide-x{
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.guide-steps{
+  margin: 12px 0 14px;
+  padding-left: 18px;
+  color:#111827;
+  font-weight: 600;
+}
+.guide-steps li{ margin: 10px 0; line-height: 1.35; }
+
+.guide-tips{
+  background:#f8fafc;
+  border:1px solid #eef0f6;
+  border-radius: 14px;
+  padding: 12px 12px;
+  display:flex;
+  flex-direction: column;
+  gap:10px;
+  margin-bottom: 12px;
+}
+
+.guide-tip{ color:#334155; font-weight: 700; font-size: .95rem; }
+
+.guide-check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#374151;
+  font-weight: 800;
+  margin: 10px 0 0;
+}
+
+.guide-actions{
+  margin-top: 14px;
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
 
     .grid{ display:grid; gap:16px; }
     .grid-3{ grid-template-columns:repeat(3,1fr); }
@@ -264,6 +507,19 @@
     }
 
     .error{ color:#b00; background:#630606; border:1px solid #fbb; padding:10px; border-radius:8px; margin-bottom:16px; }
+    /* ✅ Login page: center the error above the login card */
+body.is-login .error{
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+
+  max-width: 420px;
+  width: min(420px, calc(100% - 32px));
+  margin: 18px auto 12px;
+  text-align: center;
+}
+
     .title-container{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
     .uma-header-logo { width:84px; height:auto; display:block; object-fit:contain; }
     .loading-overlay{ position:fixed; z-index:9999; inset:0; background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
@@ -365,6 +621,35 @@
       border-bottom: none;
       background: none;
     }
+    .tt-section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  background:#f8fafc;
+  border:1px solid #eef0f6;
+  border-radius:14px;
+  font-weight:900;
+  color:#0f172a;
+  margin-bottom:10px;
+}
+.tt-count{
+  color:#6b7280;
+  font-weight:800;
+  font-size:.95rem;
+}
+
+/* highlight changed courses */
+.card-mini--old{
+  border-color:#ef4444 !important;   /* red */
+  box-shadow:0 4px 12px rgba(239,68,68,.14) !important;
+}
+.card-mini--new{
+  border-color:#22c55e !important;   /* green */
+  box-shadow:0 4px 12px rgba(34,197,94,.14) !important;
+}
+
     .tt-head .cell:first-child { border-left: none; border-radius: 14px 0 0 0; }
     .tt-head .cell:last-child  { border-radius: 0 14px 0 0; }
 
@@ -705,8 +990,6 @@
       const _totalCredits = _enrolled.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
     %>
 
-    <% if (error) { %><div class="error"><%= error %></div><% } %>
-
     <% if (!_firstName) { %>
       <div class="login-card">
         <div id="loginTitle" class="login-card__title">
@@ -729,6 +1012,8 @@
                 <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
               </div>
             </div>
+
+            <% if (error) { %><div class="error"><%= error %></div><% } %>
 
             <div style="margin-top:18px; text-align:center;">
               <button type="submit" class="login-btn pulse">Ingresar</button>
@@ -807,16 +1092,24 @@
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-header">
-          <h3 class="panel-title">Cursos Matriculados</h3>
-          <button id="aiSuggestBtn" class="btn-ia"
-            style="--btn-h:64px; --btn-px:28px; --btn-fs:18px; --btn-radius:16px;">
+      <div class="panel-header">
+        <h3 class="panel-title">Cursos Matriculados</h3>
+
+        <div class="panel-actions">
+          <button type="button" id="guideBtn" class="btn-guide">
+            <img src="/images/guide.png" alt="Guía" class="btn-guide__ico">
+            <span>Guía</span>
+          </button>
+
+          <button id="aiSuggestBtn" class="btn-ia">
             <span class="btn-ia__inner">
               <span class="btn-ia__label">Generar con IA</span>
             </span>
           </button>
         </div>
+      </div>
+
+
 
         <% if (!_enrolled.length) { %>
           <p class="muted">No hay cursos inscritos.</p>
@@ -872,34 +1165,34 @@
             Ver nuevo horario
           </button>
 
-          <button id="confirmBtn" class="btn-primary" style="background:#16a34a;border-color:#16a34a;">
+          <button id="confirmBtn" class="btn-primary">
             Confirmar y Descargar PDF
           </button>
         </div>
 
+<div id="timetablePanel" class="timetable hidden">
+  <div class="tt-header">
+    <h3 style="margin:0 0 0 8px;">Mi Horario</h3>
+    <button id="closeTimetable" class="tt-close">Cerrar</button>
+  </div>
 
-        <div id="timetablePanel" class="timetable hidden">
-          <div class="tt-header">
-            <h3 style="margin:0 0 0 8px;">
-              Mi Horario (<span id="courseCount">0</span> cursos)
-            </h3>
-            <div class="tt-toggle-row">
-              <div class="tt-tabs" role="tablist">
-                <button type="button" id="ttTabOriginal"
-                        class="tt-tab tt-tab-active" data-target="original">
-                  Horario original
-                </button>
-                <button type="button" id="ttTabNew" class="tt-tab" data-target="new">
-                  Horario nuevo
-                </button>
-              </div>
-            </div>
-            <button id="closeTimetable" class="tt-close">Cerrar</button>
-          </div>
+  <div class="tt-section">
+    <div class="tt-section-title">
+      <span>Horario original</span>
+      <span class="tt-count">(<span id="courseCountOriginal">0</span> cursos)</span>
+    </div>
+    <div id="ttGridOriginal" class="ttGridWrapper"></div>
+  </div>
 
-          <div id="ttGridOriginal" class="ttGridWrapper"></div>
-          <div id="ttGridNew" class="ttGridWrapper hidden"></div>
-        </div>
+  <div class="tt-section" style="margin-top:16px;">
+    <div class="tt-section-title">
+      <span>Horario nuevo</span>
+      <span class="tt-count">(<span id="courseCountNew">0</span> cursos)</span>
+    </div>
+    <div id="ttGridNew" class="ttGridWrapper"></div>
+  </div>
+</div>
+
 
         <div id="confirmModal" class="modal-overlay">
           <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
@@ -939,6 +1232,8 @@
         <h1 class="card-title">Configurar preferencias para IA</h1>
         <p class="card-subtitle">Selecciona los días que prefieres libres</p>
       </div>
+     
+
 
       <div class="section-title">Días libres</div>
       <div class="days-grid">
@@ -992,7 +1287,43 @@
       </div>
     </div>
   </div>
+      <div id="guideModal" class="guide-modal-overlay" aria-hidden="true">
+      <div class="guide-card" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <div class="guide-header">
+          <div>
+            <div id="guideTitle" class="guide-title">Guía rápida</div>
+            <div class="guide-subtitle">Cómo rectificar tu horario en 5 pasos</div>
+          </div>
+          <button id="guideClose" class="guide-x" type="button" aria-label="Cerrar">×</button>
+        </div>
+
+        <ol class="guide-steps">
+          <li><b>Revisa</b> tus cursos matriculados (código, docente, grupo, día y hora).</li>
+          <li>Abre <b>“Reemplazar curso”</b> para ver turnos disponibles.</li>
+          <li>Elige un turno con cupos: <b>“Usar este turno completo”</b> (si dice “Turno lleno”, no se puede).</li>
+          <li>Presiona <b>“Ver nuevo horario”</b> para comparar <b>Original</b> vs <b>Nuevo</b>.</li>
+          <li>Cuando estés listo, presiona <b>“Confirmar y Descargar PDF”</b>.</li>
+        </ol>
+
+        <div class="guide-tips">
+          <div class="guide-tip"><b>✅ Consejo:</b> Si te equivocaste, usa <b>“Restablecer horario original”</b>.</div>
+          <div class="guide-tip"><b>⚠️ Importante:</b> Si un turno dice <b>“Horario en conflicto”</b>, choca con otro curso.</div>
+        </div>
+
+        <label class="guide-check">
+          <input id="guideDontShow" type="checkbox" />
+          No volver a mostrar
+        </label>
+
+        <div class="guide-actions">
+          <button id="guideOk" type="button" class="btn-primary">Entendido</button>
+        </div>
+      </div>
+    </div>
   <script>
+
+
+
   document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     if (loginForm) loginForm.addEventListener('submit', () =>
@@ -1001,6 +1332,66 @@
     window.addEventListener('load', () =>
       document.getElementById('loadingOverlay').classList.remove('active')
     );
+
+    // ===== Guide modal (first-time + button) =====
+const GUIDE_KEY = 'uma_rectify_guide_v1_dismissed';
+
+const guideBtn = document.getElementById('guideBtn');
+const guideModal = document.getElementById('guideModal');
+const guideClose = document.getElementById('guideClose');
+const guideOk = document.getElementById('guideOk');
+const guideDontShow = document.getElementById('guideDontShow');
+
+function openGuide(){
+  if (!guideModal) return;
+  guideModal.style.display = 'flex';
+  document.body.classList.add('guide-modal-open');
+  guideModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeGuide(){
+  if (!guideModal) return;
+
+  // Save preference if checked
+  try {
+    if (guideDontShow && guideDontShow.checked) {
+      localStorage.setItem(GUIDE_KEY, '1');
+    }
+  } catch(e){}
+
+  guideModal.style.display = 'none';
+  document.body.classList.remove('guide-modal-open');
+  guideModal.setAttribute('aria-hidden', 'true');
+}
+
+if (guideBtn) guideBtn.addEventListener('click', openGuide);
+if (guideClose) guideClose.addEventListener('click', closeGuide);
+if (guideOk) guideOk.addEventListener('click', closeGuide);
+
+// close on backdrop click
+if (guideModal) {
+  guideModal.addEventListener('click', (e) => {
+    if (e.target === guideModal) closeGuide();
+  });
+}
+
+// close on ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && guideModal && guideModal.style.display === 'flex') {
+    closeGuide();
+  }
+});
+
+// auto-show once after login (not on login page)
+if (!document.body.classList.contains('is-login')) {
+  try {
+    const dismissed = localStorage.getItem(GUIDE_KEY) === '1';
+    if (!dismissed) openGuide();
+  } catch(e) {
+    // If localStorage blocked, still show once
+    openGuide();
+  }
+}
 
     const aiSuggestBtn = document.getElementById('aiSuggestBtn');
     const aiPreferencesModal = document.getElementById('aiPreferencesModal');
@@ -1050,13 +1441,16 @@
         }
 
         applyServerPlan(data);
+        refreshTimetableIfOpen();
         document.getElementById('seeTimetableBtn')?.click();
+
       } catch (err) {
         console.error(err);
         alert('Ocurrió un error generando el horario.');
       } finally {
         overlay?.classList.remove('active');
       }
+
     });
 
     const norm = (s) => String(s || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -1103,6 +1497,16 @@
 
     const originals = {};
     const changes   = {};
+    function getChangedCodesSet(){
+  const set = new Set();
+  Object.keys(changes).forEach(rowId => {
+    const row = document.getElementById(rowId);
+    const code = row?.getAttribute('data-code') || changes[rowId]?.code;
+    if (code) set.add(norm(code));
+  });
+  return set;
+}
+
 
     function readCurrent(row){
       const badge = row.querySelector('.badge');
@@ -1382,92 +1786,98 @@
             container.dataset.loaded = '1';
             return;
           }
-
-          const currentPlan = buildPlanWithoutCourse(courseCode);
-          const blocks = [];
-
-          opts.forEach(o => {
-  const conflictWith = getGroupConflict(currentPlan, o);
-
-  const groupCodeStr = o.groupCode || o.section || o.courseGroup || '';
-  const key = norm(groupCodeStr);
-
-  // If /available already contains these, use them.
-  // Otherwise, enrolledMap must come from your backend merge (recommended).
-  const rec = (typeof enrolledMap !== 'undefined' && enrolledMap[key]) ? enrolledMap[key] : {};
-
-  const enrolledVal = (o.number_enrolled ?? null);
-  const vacantesVal = (o.total_vacations ?? null);
-
-  const enrolledText = fmtNum(enrolledVal);
-  const vacantesText = fmtNum(vacantesVal);
-
-  // ✅ IMPORTANT: avoid Number(null) => 0
-  const vacNum = Number(vacantesVal);
-  const hasVac = Number.isFinite(vacNum);
-  const isFull = hasVac ? (vacNum <= 0) : false; // if unknown, don't mark as full
-
-
-
-  const payload = safeJson({
-    courseCode,
-    groupCode: groupCodeStr,
-    sessions: Array.isArray(o.sessions) ? o.sessions : []
-  });
-
-  const btnDisabled = !!conflictWith || isFull;
-
-  const btnAttrs = btnDisabled
-    ? 'class="option-btn" disabled'
-    : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
-
-  const btnLabel = conflictWith
-    ? 'Horario en conflicto'
-    : isFull
-      ? 'Turno lleno'
-      : 'Usar este turno completo';
-
-  const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
-    const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
-    const day = canonicalDay(s.dayName || s.day || '—');
-    const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
-    return `
-      <div class="field">
-        <span class="label">${escapeHtml(mod)}</span>
-        <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
-      </div>`;
-  }).join('');
-
-  blocks.push(`
-    <div class="option">
-      <div class="option-code">${escapeHtml(courseCode || "—")}</div>
-
-      <div class="option-fields">
-        <div class="field">
-          <span class="label">Grupo</span>
-          <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
-        </div>
-
-        <div class="field">
-          <span class="label">Matriculados</span>
-          <span class="value">${escapeHtml(enrolledText)}</span>
-        </div>
-
-        <div class="field">
-          <span class="label">Vacantes</span>
-          <span class="value">${escapeHtml(vacantesText)}</span>
-        </div>
-
-        ${sessionsHtml}
-      </div>
-
-      <div class="option-cta">
-        <button ${btnAttrs}>${btnLabel}</button>
-        ${conflictWith ? `<div class="conflict-note">Choca con ${escapeHtml(conflictWith.code)}</div>` : ``}
-      </div>
-    </div>
-  `);
+          opts = opts.filter(o => {
+  const a = Number(o.vacancies_left);
+  return !Number.isFinite(a) || a > 0; // keep unknown OR available > 0
 });
+
+        const currentPlan = buildPlanWithoutCourse(courseCode);
+        const blocks = [];
+
+        // iterate available options for this course
+        opts.forEach(function(o) {
+          // normalized group label used in UI and payload
+          const groupCodeStr = o.groupCode || o.section || o.courseGroup || o.group || '';
+
+          // check if this option conflicts with the current plan (excluding this course)
+          const conflictWith = getGroupConflict(currentPlan, o);
+
+          const availableVal =
+            (o.vacancies_left ?? null);
+
+          // fallback (just in case backend didn't send it)
+          let computedAvailable = null;
+          if (availableVal === null || availableVal === undefined) {
+            const v = Number(o.total_vacations);
+            const e = Number(o.number_enrolled);
+            if (Number.isFinite(v) && Number.isFinite(e)) computedAvailable = Math.max(0, v - e);
+          }
+
+          const availableFinal =
+            (availableVal !== null && availableVal !== undefined) ? availableVal : computedAvailable;
+
+          const availableText = fmtNum(availableFinal);
+
+          // ✅ Full if available is 0 (only when we know the number)
+          const aNum = Number(availableFinal);
+          const hasAvail = Number.isFinite(aNum);
+          const isFull = hasAvail ? (aNum <= 0) : false;
+
+          const payload = safeJson({
+            courseCode,
+            groupCode: groupCodeStr,
+            sessions: Array.isArray(o.sessions) ? o.sessions : []
+          });
+
+          const btnDisabled = !!conflictWith || isFull;
+
+          const btnAttrs = btnDisabled
+            ? 'class="option-btn" disabled'
+            : `class="option-btn" onclick='previewReplace(${idx}, ${payload})'`;
+
+          const btnLabel = conflictWith
+            ? 'Horario en conflicto'
+            : isFull
+              ? 'Turno lleno'
+              : 'Usar este turno completo';
+
+          const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
+            const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
+            const day = canonicalDay(s.dayName || s.day || '—');
+            const time = normalizeTime(s.time || `${s.start || ''}-${s.end || ''}`);
+            return `
+    <div class="field">
+      <span class="label">${escapeHtml(mod)}</span>
+      <span class="value">${escapeHtml(day)} &nbsp; ${escapeHtml(time)}</span>
+    </div>`;
+          }).join('');
+
+          blocks.push(`
+  <div class="option">
+    <div class="option-code">${escapeHtml(courseCode || "—")}</div>
+
+    <div class="option-fields">
+      <div class="field">
+        <span class="label">Grupo</span>
+        <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
+      </div>
+
+      <div class="field">
+        <span class="label">Disponibles</span>
+        <span class="value">${escapeHtml(availableText)}</span>
+      </div>
+
+
+      ${sessionsHtml}
+    </div>
+
+    <div class="option-cta">
+      <button ${btnAttrs}>${btnLabel}</button>
+      ${conflictWith ? `<div class="conflict-note">Choca con ${escapeHtml(conflictWith.code)}</div>` : ``}
+    </div>
+  </div>
+`);
+        }); // end opts.forEach
 
           container.innerHTML = blocks.join('');
           container.dataset.loaded = '1';
@@ -1559,6 +1969,8 @@
       // store full IA schedule (session-level) for drawing "Horario nuevo"
   serverFinalPlan = Array.isArray(data.finalCourses) ? data.finalCourses : null;
 
+  refreshTimetableIfOpen();
+
       const rowsByCode = {};
       document.querySelectorAll('.course').forEach(row => {
         const base = originals[row.id] || readCurrent(row);
@@ -1595,11 +2007,13 @@
         });
         });
 
-        hasNewTimetable = changeList.length > 0;
-        if (ttToggleNew && hasNewTimetable) {
-          ttToggleNew.disabled = false;
-          ttToggleNew.classList.remove('tt-tab-disabled');
-        }
+hasNewTimetable = (changeList.length > 0) || (serverFinalPlan && serverFinalPlan.length > 0);
+
+if (ttToggleNew) {
+  ttToggleNew.disabled = !hasNewTimetable;
+  ttToggleNew.classList.toggle('tt-tab-disabled', !hasNewTimetable);
+}
+
         }
 
     function buildOriginalEntries() {
@@ -1675,49 +2089,61 @@
       });
     }
 
-    function renderTimetableStacked(entries, containerId){
-      const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-      const container = document.getElementById(containerId);
-      if (!container) return;
+    function renderTimetableStacked(entries, containerId, changedCodesSet, variant){
+  const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-      const head = `<div class="tt-head">${DAYS.map(d=>`<div class="cell">${d}</div>`).join('')}</div>`;
-      const grid = `<div class="tt-grid">${DAYS.map(d=>`<div class="tt-col" data-day="${d}"></div>`).join('')}</div>`;
-      const legend = `
-        <div class="tt-legend">
-          <span><span class="dot"></span>Curso</span>
-          <span class="chip">P Presencial Teoría</span>
-          <span class="chip">V Virtual Teoría</span>
-          <span class="chip">L Laboratorio Presencial</span>
+  const head = `<div class="tt-head">${DAYS.map(d=>`<div class="cell">${d}</div>`).join('')}</div>`;
+  const grid = `<div class="tt-grid">${DAYS.map(d=>`<div class="tt-col" data-day="${d}"></div>`).join('')}</div>`;
+  const legend = `
+    <div class="tt-legend">
+      <span><span class="dot"></span>Curso</span>
+      <span class="chip">P Presencial Teoría</span>
+      <span class="chip">V Virtual Teoría</span>
+      <span class="chip">L Laboratorio Presencial</span>
+      <span class="chip">Rojo = cambiado (original)</span>
+      <span class="chip">Verde = cambiado (nuevo)</span>
+    </div>`;
+
+  container.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
+
+  const toStart = (t) => {
+    const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t||''));
+    return m ? (+m[1])*60 + (+m[2]) : 24*60;
+  };
+
+  const byDay = Object.fromEntries(DAYS.map(d=>[d,[]]));
+  entries.forEach(e => { const d = (e.day||''); if (byDay[d]) byDay[d].push(e); });
+  DAYS.forEach(d => byDay[d].sort((a,b)=> toStart(a.time) - toStart(b.time)));
+
+  const gridEl = container.querySelector('.tt-grid');
+
+  DAYS.forEach(d => {
+    const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
+    byDay[d].forEach(e=>{
+      const isChanged = !!changedCodesSet && changedCodesSet.has(norm(e.code));
+      const extraClass =
+        isChanged
+          ? (variant === 'old' ? ' card-mini--old' : (variant === 'new' ? ' card-mini--new' : ''))
+          : '';
+
+      const card = document.createElement('div');
+      card.className = 'card-mini' + extraClass;
+
+      card.innerHTML = `
+        <span class="code">${escapeHtml(e.code)}</span>
+        <div class="name">${escapeHtml(e.name || '')}</div>
+        <div class="meta">
+          <span class="chip">${escapeHtml(e.time || 'No asignada')}</span>
+          <span class="chip">Gr. ${escapeHtml(e.group || '—')}</span>
+          <span class="chip mod">${escapeHtml(shortMod(e.modality || ''))}</span>
         </div>`;
+      col.appendChild(card);
+    });
+  });
+}
 
-      container.innerHTML = `<div class="tt-board">${head}${grid}${legend}</div>`;
-
-      const toStart = (t) => {
-        const m = /(\d{1,2}):(\d{2}).*?(\d{1,2}):(\d{2})/.exec(String(t||''));
-        return m ? (+m[1])*60 + (+m[2]) : 24*60;
-      };
-      const byDay = Object.fromEntries(DAYS.map(d=>[d,[]]));
-      entries.forEach(e => { const d = (e.day||''); if (byDay[d]) byDay[d].push(e); });
-      DAYS.forEach(d => byDay[d].sort((a,b)=> toStart(a.time) - toStart(b.time)));
-
-      const gridEl = container.querySelector('.tt-grid');
-      DAYS.forEach(d => {
-        const col = gridEl.querySelector(`.tt-col[data-day="${d}"]`);
-        byDay[d].forEach(e=>{
-          const card = document.createElement('div');
-          card.className = 'card-mini';
-          card.innerHTML = `
-            <span class="code">${escapeHtml(e.code)}</span>
-            <div class="name">${escapeHtml(e.name || '')}</div>
-            <div class="meta">
-              <span class="chip">${escapeHtml(e.time || 'No asignada')}</span>
-              <span class="chip">Gr. ${escapeHtml(e.group || '—')}</span>
-              <span class="chip mod">${escapeHtml(shortMod(e.modality || ''))}</span>
-            </div>`;
-          col.appendChild(card);
-        });
-      });
-    }
 
     let lastOriginalCount = 0;
     let lastNewCount = 0;
@@ -1739,78 +2165,91 @@
       tabNew.classList.remove('tt-tab-disabled');
     }
 
+    function refreshTimetableIfOpen(){
+  const panel = document.getElementById('timetablePanel');
+  if (panel && !panel.classList.contains('hidden')){
+    document.getElementById('seeTimetableBtn')?.click();
+  }
+}
+
     function setTimetableMode(mode){
-      const isOriginal = (mode === 'original');
+  // ✅ stacked view: never hide any grid
+  const orig = document.getElementById('ttGridOriginal');
+  const neu  = document.getElementById('ttGridNew');
+  orig?.classList.remove('hidden');
+  neu?.classList.remove('hidden');
 
-      const orig = document.getElementById('ttGridOriginal');
-      const neu  = document.getElementById('ttGridNew');
-      if (orig && neu){
-        orig.classList.toggle('hidden', !isOriginal);
-        neu.classList.toggle('hidden', isOriginal);
-      }
+  // (optional) keep tab highlight if you still show tabs
+  const isOriginal = (mode === 'original');
+  const tabOrig = document.getElementById('ttTabOriginal');
+  const tabNew  = document.getElementById('ttTabNew');
+  if (tabOrig && tabNew){
+    tabOrig.classList.toggle('tt-tab-active', isOriginal);
+    tabNew.classList.toggle('tt-tab-active', !isOriginal);
+  }
 
-      const tabOrig = document.getElementById('ttTabOriginal');
-      const tabNew  = document.getElementById('ttTabNew');
-      if (tabOrig && tabNew){
-        tabOrig.classList.toggle('tt-tab-active', isOriginal);
-        tabNew.classList.toggle('tt-tab-active', !isOriginal);
-      }
+  // (optional) if you still use this span
+  const countSpan = document.getElementById('courseCount');
+  if (countSpan){
+    countSpan.textContent = String(lastNewCount); // or keep original logic if you want
+  }
+}
+const seeBtn = document.getElementById('seeTimetableBtn');
 
-      const countSpan = document.getElementById('courseCount');
-      if (countSpan){
-        countSpan.textContent = isOriginal
-          ? String(lastOriginalCount)
-          : String(lastNewCount);
-      }
+if (seeBtn) {
+  seeBtn.addEventListener('click', () => {
+    // 1) Build entries
+    const originalEntries = removeTrueDuplicates(buildOriginalEntries());
+
+    let newEntries;
+    const hasServerFinal = Array.isArray(serverFinalPlan) && serverFinalPlan.length > 0;
+
+    if (hasServerFinal) {
+      newEntries = serverFinalPlan.map(e => ({
+        code: e.code || e.courseCode || '',
+        name: e.name || e.courseName || '',
+        day: canonicalDay(e.day || ''),
+        time: normalizeTime(e.time || e.hour || ''),
+        group: e.group || e.groupCode || e.section || '—',
+        modality: normalizeModalityDisplay(e.modality || '')
+      }));
+      newEntries = removeTrueDuplicates(newEntries);
+    } else {
+      newEntries = removeTrueDuplicates(buildFinalEntries());
     }
 
-    const seeBtn = document.getElementById('seeTimetableBtn');
-    if (seeBtn){
-      seeBtn.addEventListener('click', () => {
-        // 1) Always build original from current DOM
-        const originalEntries = removeTrueDuplicates(buildOriginalEntries());
-        lastOriginalCount = originalEntries.length;
+    // 2) Highlight changed codes
+    const changedCodes = getChangedCodesSet();
+    const hasChanges = changedCodes.size > 0 || hasServerFinal;
 
-        // 2) Decide how to build the "new" timetable
-        let newEntries;
-        if (serverFinalPlan && serverFinalPlan.length) {
-          // Use the full schedule returned by /ai-local (session-level)
-          newEntries = serverFinalPlan.map(e => ({
-            code: e.code || e.courseCode || '',
-            name: e.name || e.courseName || '',
-            day:  canonicalDay(e.day || ''),
-            time: normalizeTime(e.time || ''),
-            group: e.group || e.groupCode || e.section || '—',
-            modality: normalizeModalityDisplay(e.modality || '')
-          }));
-          newEntries = removeTrueDuplicates(newEntries);
-        } else {
-          // Fallback: build from manual replacements in the browser
-          newEntries = removeTrueDuplicates(buildFinalEntries());
-        }
-        lastNewCount = newEntries.length;
+    // 3) Counts
+    const cO = document.getElementById('courseCountOriginal');
+    const cN = document.getElementById('courseCountNew');
+    if (cO) cO.textContent = String(originalEntries.length);
 
-        const hasChanges =
-          Object.keys(changes).length > 0 ||
-          (serverFinalPlan && serverFinalPlan.length);
+    // 4) Render original
+    renderTimetableStacked(originalEntries, 'ttGridOriginal', changedCodes, 'old');
 
-        renderTimetableStacked(originalEntries, 'ttGridOriginal');
-
-        if (hasChanges){
-          renderTimetableStacked(newEntries, 'ttGridNew');
-          unlockToggle();
-          setTimetableMode('new');
-        } else {
-          const gridNew = document.getElementById('ttGridNew');
-          if (gridNew) gridNew.innerHTML = '';
-          lockToggleToOriginal();
-        }
-
-        const panel = document.getElementById('timetablePanel');
-        panel?.classList.remove('hidden');
-        panel?.scrollIntoView({ behavior:'smooth', block:'start' });
-      });
+    // 5) Render new (or show message)
+    if (hasChanges) {
+      renderTimetableStacked(newEntries, 'ttGridNew', changedCodes, 'new');
+      if (cN) cN.textContent = String(newEntries.length);
+    } else {
+      const gridNew = document.getElementById('ttGridNew');
+      if (gridNew) gridNew.innerHTML = `<p class="muted" style="margin:8px 6px;">Aún no hay cambios para mostrar.</p>`;
+      if (cN) cN.textContent = "0";
     }
+
+    // 6) Open panel
+    const panel = document.getElementById('timetablePanel');
+    if (panel) {
+      panel.classList.remove('hidden');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+
 
         // "Restablecer horario original" button
     const resetBtn = document.getElementById('resetScheduleBtn');
@@ -1834,9 +2273,17 @@
           renderTimetableStacked(originalEntries, 'ttGridOriginal');
 
           const gridNew = document.getElementById('ttGridNew');
-          if (gridNew) gridNew.innerHTML = '';
+          if (gridNew) {
+            gridNew.classList.remove('hidden');
+            gridNew.innerHTML = `<p class="muted" style="margin:8px 6px;">Aún no hay cambios para mostrar.</p>`;
+          }
 
-          setTimetableMode('original');
+          const cN = document.getElementById('courseCountNew');
+          if (cN) cN.textContent = "0";
+
+          document.getElementById('ttGridOriginal')?.classList.remove('hidden');
+          document.getElementById('ttGridNew')?.classList.remove('hidden');
+
         }
 
         alert('Se restableció tu horario original.');
@@ -1938,6 +2385,9 @@
           document.getElementById('aiSuggestBtn')?.setAttribute('disabled','true');
           document.getElementById('seeTimetableBtn')?.setAttribute('disabled','true');
           document.getElementById('confirmBtn')?.setAttribute('disabled','true');
+          document.getElementById('ttGridOriginal')?.classList.remove('hidden');
+          document.getElementById('ttGridNew')?.classList.remove('hidden');
+
 
         } catch (e) {
           alert('No se pudo generar el PDF.');

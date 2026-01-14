@@ -250,12 +250,7 @@
   justify-content: center;
 }
 
-body.guide-modal-open > .wrap,
-body.guide-modal-open > .loading-overlay{
-  filter: blur(6px) brightness(0.95);
-  pointer-events: none;
-  user-select: none;
-}
+
 
 .guide-card{
   background: rgba(255,255,255,0.96);
@@ -818,12 +813,18 @@ body.is-login .error{
       justify-content: center;
       transition: opacity 0.3s;
     }
-    body.ai-modal-open > .wrap,
-    body.ai-modal-open > .loading-overlay {
-      filter: blur(6px) brightness(0.95);
-      pointer-events: none;
-      user-select: none;
-    }
+    /* ✅ Prevent stuck blur in production — rely on modal backdrop instead */
+body.guide-modal-open,
+body.ai-modal-open{
+  overflow: hidden; /* stops background scroll when modal open */
+}
+
+/* (optional) if you still want blur, blur ONLY the overlay backdrop, not the full page */
+.guide-modal-overlay,
+.ai-modal-overlay{
+  backdrop-filter: blur(8px);
+}
+
 
     .preferences-card {
       background: rgba(255, 255, 255, 0.95);
@@ -1446,6 +1447,10 @@ body.is-login .error{
     window.addEventListener('load', () =>
       document.getElementById('loadingOverlay').classList.remove('active')
     );
+    window.addEventListener("pageshow", () => {
+  document.body.classList.remove("ai-modal-open", "guide-modal-open");
+});
+
 
     // ===== Guide modal (first-time + button) =====
 const GUIDE_KEY = 'uma_rectify_guide_v1_dismissed';

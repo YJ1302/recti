@@ -99,28 +99,27 @@ const mailer =
     socketTimeout: 20000,
   });
 
-if (mailer) {
-  // ✅ DO NOT verify SMTP on Render/production (it causes timeouts/log spam)
-  if (process.env.NODE_ENV !== "production") {
-    mailer.verify((err) => {
-      if (err) console.error("SMTP verify failed:", err.message);
-      else console.log("SMTP verify OK. From:", FROM_EMAIL);
-    });
-  }
+  if (mailer) {
+    console.log(
+      "SMTP settings",
+      JSON.stringify({
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: String(process.env.SMTP_SECURE),
+        from: FROM_EMAIL,
+      })
+    );
 
-  console.log(
-    "SMTP settings",
-    JSON.stringify({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE,
-      from: FROM_EMAIL,
-      nodeEnv: process.env.NODE_ENV || "",
-    })
-  );
-} else {
-  console.log("SMTP disabled (missing nodemailer or SMTP_USER/SMTP_PASS).");
-}
+    const shouldVerify = process.env.SMTP_VERIFY_ON_BOOT === "true";
+    if (shouldVerify) {
+      mailer.verify((err) => {
+        if (err) console.error("SMTP verify failed:", err.message);
+        else console.log("SMTP verify OK. From:", FROM_EMAIL);
+      });
+    } else {
+      console.log("SMTP verify skipped (set SMTP_VERIFY_ON_BOOT=true to enable)");
+    }
+  }
 
 
 // Helpers

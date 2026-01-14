@@ -7,6 +7,9 @@ const path = require("path");
 const session = require("express-session");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
+const crypto = require("crypto");
+const { addRectification, addLoginAudit, getClientIp, PDF_DIR } = require("./utils/adminStore");
+
 
 // Optional require for nodemailer
 let nodemailer = null;
@@ -59,6 +62,9 @@ app.use(
     },
   })
 );
+const adminRoutes = require("./routes/admin");
+app.use("/admin", adminRoutes);
+
 
 // Mail transport (no-reply)
 const FROM_EMAIL =
@@ -759,6 +765,7 @@ async function requireVerifiedStudent(req, res, next) {
 }
 
 
+
 // Health check
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
 
@@ -810,6 +817,19 @@ app.post("/login", async (req, res) => {
     if (!studentToken) throw new Error("Student login failed (no token).");
 
     const code = String(studentCode);
+
+    try {
+    await addLoginAudit({
+      at: new Date().toISOString(),
+      student_code: String(code),
+      status: "SUCCESS",
+      ip: getClientIp(req),
+      ua: req.headers["user-agent"] || "",
+    });
+  } catch (e) {
+    console.warn("addLoginAudit failed:", e?.message || e);
+  }
+
     const periodFromLogin = String(periodCode || "");
 
     // 2) Admin login for grupoa endpoints
@@ -975,10 +995,23 @@ return res.render("index", {
 });
 
   } catch (err) {
+    try {
+    await addLoginAudit({
+      at: new Date().toISOString(),
+      student_code: String(req.body?.codigo || ""),
+      status: "FAIL",
+      ip: getClientIp(req),
+      ua: req.headers["user-agent"] || "",
+    });
+  } catch (e) {
+    console.warn("addLoginAudit failed:", e?.message || e);
+  }
+
     console.error(
       "Login error:",
       err.response && err.response.status,
       err.response ? err.response.data : err.message
+      
     );
     return res.render("index", {
       firstName: null,
@@ -1586,6 +1619,8 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       credits: Number(s.credits || s.credit || 0),
     }));
 
+  
+
     const finalPlan =
       clientFinal && clientFinal.length
         ? clientFinal
@@ -1597,6 +1632,7 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
             time: c.hour,
             modality: c.modality,
           }));
+
 
     const changesList = clientChanges || [];
 
@@ -1800,6 +1836,47 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
     // Convert to buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
+    // =========================
+    // ✅ STEP 6: SAVE PDF + SAVE RECORD FOR ADMIN
+    // =========================
+    const id = crypto.randomUUID
+      ? crypto.randomUUID()
+      : crypto.randomBytes(16).toString("hex");
+
+    // Make a safe unique filename (avoid overwriting)
+    const safeCode = String(info.code || "student").replace(/[^a-zA-Z0-9_-]/g, "");
+    const safePeriod = String(info.period || "period").replace(/[^a-zA-Z0-9_-]/g, "");
+    const pdfFile = `rectificacion_${safeCode}_${safePeriod}_${Date.now()}_${id}.pdf`;
+
+    await fs.promises.mkdir(PDF_DIR, { recursive: true });
+    await fs.promises.writeFile(path.join(PDF_DIR, pdfFile), pdfBuffer);
+
+    // Save metadata + all changes for admin dashboard
+    await addRectification({
+      id,
+      createdAt: new Date().toISOString(),
+      student: {
+        name: info.name || "",
+        code: info.code || "",
+        dni: info.dni ? String(info.dni).slice(-4) : "",
+        facultyName: info.faculty || "",         // ✅ use your existing info fields
+        specialtyName: info.program || "",
+        period: info.period || "",
+        mode: info.mode || "",
+        email: info.email || "",
+        phone: profile.phone || "",
+      },
+      changes: Array.isArray(changesList) ? changesList : [],
+      finalCourses: Array.isArray(finalPlan) ? finalPlan : [],   // ✅ use finalPlan (your variable)
+      pdfFile,
+      meta: {
+        ip: getClientIp(req),
+        ua: req.headers["user-agent"] || "",
+      },
+    });
+    // =========================
+
+
     // Try emailing to admins
     if (mailer && process.env.ADMIN_PDF_TO) {
       const toList = process.env.ADMIN_PDF_TO.split(",").map((s) => s.trim()).filter(Boolean);
@@ -1824,11 +1901,14 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       }
     }
 
-    // Send PDF to browser
-    const fileName = `rectificacion_${info.code}_${info.period}.pdf`;
+    
+    // Send PDF to browser (clean name for student download)
+    const downloadName = `rectificacion_${info.code}_${info.period}.pdf`;
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${downloadName}"`);
     return res.end(pdfBuffer);
+
   } catch (e) {
     console.error("/confirm error:", e.response?.data || e.message);
     return res.status(500).json({ ok: false, error: "confirm_failed" });

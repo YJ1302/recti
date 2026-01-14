@@ -61,6 +61,10 @@
   flex-shrink:0; /* prevents buttons from shrinking weirdly */
 }
 
+.hidden {
+  display: none !important;
+}
+
 :root{
   --btn-dark-bg:#0b0b0f;                 /* like cerrar sesión */
   --btn-dark-bd:rgba(255,255,255,.14);
@@ -607,7 +611,7 @@ body.is-login .error{
 
     .title-container{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
     .uma-header-logo { width:84px; height:auto; display:block; object-fit:contain; }
-    .loading-overlay{ position:fixed; z-index:9999; inset:0; background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
+    .loading-overlay{ position:fixed; z-index:20000; inset:0; background:rgba(255,255,255,.95); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
     .loading-overlay.active{ opacity:1; pointer-events:all; }
     .hidden{ display:none; }
 
@@ -1104,6 +1108,14 @@ body.is-login .error{
               <button type="submit" class="login-btn pulse">Ingresar</button>
             </div>
           </form>
+          <div style="margin-top:14px;">
+          <a href="/admin/login"
+            class="btn-secondary"
+            style="display:block; text-align:center; text-decoration:none;">
+            Ingreso Admin
+          </a>
+        </div>
+
 
           <div class="login-footer" style="margin-top:12px;text-align:center;color:#6b7280;">
             ¿Problemas para acceder? Contacta con soporte técnico.
@@ -1129,7 +1141,7 @@ body.is-login .error{
         </form>
       </div>
 
-      <div class="card profile-shell" style="margin-bottom:18px;">
+    <div id="studentInfoBox" class="card profile-shell" style="margin-bottom:18px;">  
         <div class="header">
           <div class="header-row">
             <div class="avatar"><%= (_firstName && _firstName[0]) || "U" %></div>
@@ -1176,8 +1188,25 @@ body.is-login .error{
           <% } %>
         </div>
       </div>
+    <div id="afterConfirmNotice" class="card hidden" style="margin-bottom:18px;">
+  <div style="padding:18px 20px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:44px;height:44px;border-radius:14px;background:#ecfdf5;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;font-size:22px;">
+        ✅
+      </div>
+      <div>
+        <div style="font-weight:900;color:#0f172a;font-size:1.08rem;">
+          Solicitud enviada
+        </div>
+        <div class="muted" style="margin-top:2px;">
+          Tus cambios han sido enviados correctamente. Recibirás el horario actualizado por correo.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-      <div class="panel-header">
+      <div id="aiControlsBox" class="panel-header">
         <h3 class="panel-title">Cursos Matriculados</h3>
 
         <div class="panel-actions">
@@ -1195,7 +1224,7 @@ body.is-login .error{
       </div>
 
 
-
+      <div id="coursesBox">
         <% if (!_enrolled.length) { %>
           <p class="muted">No hay cursos inscritos.</p>
         <% } else { %>
@@ -1241,7 +1270,7 @@ body.is-login .error{
         <% } %>
 
                 <!-- ACTIONS -->
-        <div class="actions-center">
+        <div id="actionButtonsBox" class="actions-center">
           <button id="resetScheduleBtn" class="btn-secondary">
             Restablecer horario original
           </button>
@@ -1261,22 +1290,22 @@ body.is-login .error{
     <button id="closeTimetable" class="tt-close">Cerrar</button>
   </div>
 
-  <div class="tt-section">
-    <div class="tt-section-title">
-      <span>Horario original</span>
-      <span class="tt-count">(<span id="courseCountOriginal">0</span> cursos)</span>
+    <div class="tt-section" id="ttSectionOriginal">
+      <div class="tt-section-title">
+        <span>Horario original</span>
+        <span class="tt-count">(<span id="courseCountOriginal">0</span> cursos)</span>
+      </div>
+      <div id="ttGridOriginal" class="ttGridWrapper"></div>
     </div>
-    <div id="ttGridOriginal" class="ttGridWrapper"></div>
-  </div>
 
-  <div class="tt-section" style="margin-top:16px;">
-    <div class="tt-section-title">
-      <span>Horario nuevo</span>
-      <span class="tt-count">(<span id="courseCountNew">0</span> cursos)</span>
+    <div class="tt-section" id="ttSectionNew" style="margin-top:16px;">
+      <div class="tt-section-title">
+        <span>Horario nuevo</span>
+        <span class="tt-count">(<span id="courseCountNew">0</span> cursos)</span>
+      </div>
+      <div id="ttGridNew" class="ttGridWrapper"></div>
     </div>
-    <div id="ttGridNew" class="ttGridWrapper"></div>
-  </div>
-</div>
+
 
 
         <div id="confirmModal" class="modal-overlay">
@@ -1297,7 +1326,7 @@ body.is-login .error{
         </div>
       </div>
 
-      <div class="panel" style="margin-top:18px; text-align:center;">
+      <div id="helpPanel" class="panel" style="margin-top:18px; text-align:center;">
         <p class="muted">¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.</p>
       </div>
     <% } %>
@@ -2463,18 +2492,76 @@ if (seeBtn) {
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirmModal(); });
     }
 
+      function setAfterConfirmMode() {
+    // Hide everything the student should NOT see anymore
+    document.getElementById('afterConfirmNotice')?.classList.remove('hidden');
+    document.getElementById('aiControlsBox')?.classList.add('hidden');
+    document.getElementById('coursesBox')?.classList.add('hidden');
+    document.getElementById('actionButtonsBox')?.classList.add('hidden');
+    document.getElementById('helpPanel')?.classList.add('hidden');
+
+    // Show timetable panel
+    const panel = document.getElementById('timetablePanel');
+    panel?.classList.remove('hidden');
+
+    // Show ONLY "Horario nuevo"
+    document.getElementById('ttSectionOriginal')?.classList.add('hidden');
+    document.getElementById('ttSectionNew')?.classList.remove('hidden');
+
+    // Build the final "new timetable" entries
+    const hasServerFinal = Array.isArray(serverFinalPlan) && serverFinalPlan.length > 0;
+
+    let newEntries = hasServerFinal
+      ? serverFinalPlan.map(e => ({
+          code: e.code || e.courseCode || '',
+          name: e.name || e.courseName || '',
+          day: canonicalDay(e.day || ''),
+          time: normalizeTime(e.time || e.hour || ''),
+          group: e.group || e.groupCode || e.section || '—',
+          modality: normalizeModalityDisplay(e.modality || '')
+        }))
+      : buildFinalEntries();
+
+    newEntries = removeTrueDuplicates(newEntries);
+
+    // Render only the NEW grid
+    const changedCodes = getChangedCodesSet();
+    renderTimetableStacked(newEntries, 'ttGridNew', changedCodes, 'new');
+
+    // Update count
+    const cN = document.getElementById('courseCountNew');
+    if (cN) cN.textContent = String(newEntries.length);
+
+    // Clear original grid content (optional)
+    const gridOrig = document.getElementById('ttGridOriginal');
+    if (gridOrig) gridOrig.innerHTML = '';
+
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
     if (confirmSendBtn) {
       confirmSendBtn.addEventListener('click', async () => {
+        const overlay = document.getElementById('loadingOverlay');
+
         try {
           confirmSendBtn.disabled = true;
+
           const finalCourses = removeTrueDuplicates(buildFinalEntries());
           const problems = findConflicts(finalCourses);
           if (problems.length){
-            const lines = problems.map(([a,b]) => `• ${a.code} (${formatMins(a.start)}–${formatMins(a.end)}) con ${b.code} (${formatMins(b.start)}–${formatMins(b.end)})`).join('\n');
+            const lines = problems
+              .map(([a,b]) => `• ${a.code} (${formatMins(a.start)}–${formatMins(a.end)}) con ${b.code} (${formatMins(b.start)}–${formatMins(b.end)})`)
+              .join('\n');
             alert('Hay conflictos de horario. Cambia uno de los horarios:\n\n' + lines);
             confirmSendBtn.disabled = false;
             return;
           }
+
+          // ✅ Close modal first so loader is visible
+          closeConfirmModal();
+
+          // ✅ Show loader now
+          overlay?.classList.add('active');
 
           const changesArr = [];
           document.querySelectorAll('.course').forEach(row => {
@@ -2502,8 +2589,6 @@ if (seeBtn) {
             phone: '<%= _phone %>'
           };
 
-          document.getElementById('loadingOverlay')?.classList.add('active');
-
           const resp = await fetch('/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2511,39 +2596,29 @@ if (seeBtn) {
           });
           if (!resp.ok) throw new Error('PDF generation failed');
 
-          closeConfirmModal();
-
           const blob = await resp.blob();
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url; a.download = `rectification_${student.code}.pdf`;
-          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+          a.href = url;
+          a.download = `rectification_${student.code}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
 
-          // after sending, lock UI and show message instead of course list
-          const courseContainer = document.querySelector('.course-container');
-          if (courseContainer) {
-            courseContainer.innerHTML = `
-              <p class="muted">
-                Tu solicitud de rectificación ha sido enviada correctamente.
-                Recibirás el detalle actualizado de tu horario por correo electrónico.
-              </p>`;
-          }
-          document.getElementById('aiSuggestBtn')?.setAttribute('disabled','true');
-          document.getElementById('seeTimetableBtn')?.setAttribute('disabled','true');
-          document.getElementById('confirmBtn')?.setAttribute('disabled','true');
-          document.getElementById('ttGridOriginal')?.classList.remove('hidden');
-          document.getElementById('ttGridNew')?.classList.remove('hidden');
-
+          // ✅ Switch to final “sent” view
+          setAfterConfirmMode();
 
         } catch (e) {
-          alert('No se pudo generar el PDF.');
           console.error(e);
+          alert('No se pudo generar el PDF.');
         } finally {
           confirmSendBtn.disabled = false;
-          document.getElementById('loadingOverlay')?.classList.remove('active');
+          overlay?.classList.remove('active');
         }
       });
     }
+
 
     function formatMins(m){ const h=Math.floor(m/60), mm=String(m%60).padStart(2,'0'); return `${h}:${mm}`; }
     function fmtNum(v){
@@ -2556,16 +2631,7 @@ if (seeBtn) {
     function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
     
   </script>
-  <div id="aiBlockedModal" class="uma-modal-backdrop" aria-hidden="true">
-  <div class="uma-modal">
-    <div class="uma-modal-head">
-      <h3>Algunos cursos no se pudieron cambiar</h3>
-      <button id="aiBlockedClose" class="uma-x">✕</button>
-    </div>
-
-    <p class="uma-modal-sub">
-      Estos cursos se quedaron igual por conflicto de horario o porque los turnos alternativos están llenos.
-    </p>
+  
 
     <ul id="aiBlockedList" class="ai-blocked-list"></ul>
   </div>

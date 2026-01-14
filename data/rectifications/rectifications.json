@@ -1,0 +1,682 @@
+[
+  {
+    "id": "37765b6e-894f-40dc-b053-45143c92e3e9",
+    "createdAt": "2026-01-14T17:26:16.781Z",
+    "student": {
+      "name": "SANY GISSELLA DIAZ MONSALVE",
+      "code": "2320606",
+      "dni": "4182",
+      "facultyName": "FACULTAD DE CIENCIAS DE LA SALUD",
+      "specialtyName": "FARMACIA Y BIOQUÍMICA",
+      "period": "2026-1",
+      "mode": "SEMIPRESENCIAL",
+      "email": "sany.diaz@uma.edu.pe",
+      "phone": "967619319"
+    },
+    "changes": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Viernes",
+          "time": "18:50–20:30",
+          "modality": "TEORÍA VIRTUAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Miércoles",
+          "time": "14:00–15:40",
+          "modality": "TEORÍA VIRTUAL"
+        }
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Lunes",
+          "time": "17:10–18:50",
+          "modality": "LABORATORIO PRESENCIAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Sábado",
+          "time": "11:20–13:00",
+          "modality": "LABORATORIO PRESENCIAL"
+        }
+      }
+    ],
+    "finalCourses": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Miércoles",
+        "time": "14:00–15:40",
+        "group": "M1",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Sábado",
+        "time": "11:20–13:00",
+        "group": "M1",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Miércoles",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Lunes",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Lunes",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Miércoles",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SCTS3061",
+        "name": "GESTIÓN DE LA CALIDAD",
+        "day": "Viernes",
+        "time": "20:30–22:10",
+        "group": "N3",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Jueves",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Martes",
+        "time": "17:10–18:50",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3065B",
+        "name": "REGULACIÓN DE ESTABLECIMIENTOS FARMACÉUTICOS",
+        "day": "Jueves",
+        "time": "17:10–19:40",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      }
+    ],
+    "pdfFile": "rectificacion_2320606_2026-1_1768411576765_37765b6e-894f-40dc-b053-45143c92e3e9.pdf",
+    "meta": {
+      "ip": "127.0.0.1",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "id": "d1bf2761-4ad5-4e9e-8295-8035ee20f3fc",
+    "createdAt": "2026-01-14T17:00:15.425Z",
+    "student": {
+      "name": "SANY GISSELLA DIAZ MONSALVE",
+      "code": "2320606",
+      "dni": "4182",
+      "facultyName": "FACULTAD DE CIENCIAS DE LA SALUD",
+      "specialtyName": "FARMACIA Y BIOQUÍMICA",
+      "period": "2026-1",
+      "mode": "SEMIPRESENCIAL",
+      "email": "sany.diaz@uma.edu.pe",
+      "phone": "967619319"
+    },
+    "changes": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Viernes",
+          "time": "18:50–20:30",
+          "modality": "TEORÍA VIRTUAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Miércoles",
+          "time": "14:00–15:40",
+          "modality": "TEORÍA VIRTUAL"
+        }
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Lunes",
+          "time": "17:10–18:50",
+          "modality": "LABORATORIO PRESENCIAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Sábado",
+          "time": "11:20–13:00",
+          "modality": "LABORATORIO PRESENCIAL"
+        }
+      }
+    ],
+    "finalCourses": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Miércoles",
+        "time": "14:00–15:40",
+        "group": "M1",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Sábado",
+        "time": "11:20–13:00",
+        "group": "M1",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Miércoles",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Lunes",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Miércoles",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Lunes",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SCTS3061",
+        "name": "GESTIÓN DE LA CALIDAD",
+        "day": "Viernes",
+        "time": "20:30–22:10",
+        "group": "N3",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Jueves",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Martes",
+        "time": "17:10–18:50",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3065B",
+        "name": "REGULACIÓN DE ESTABLECIMIENTOS FARMACÉUTICOS",
+        "day": "Jueves",
+        "time": "17:10–19:40",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      }
+    ],
+    "pdfFile": "rectificacion_2320606_2026-1_1768410015415_d1bf2761-4ad5-4e9e-8295-8035ee20f3fc.pdf",
+    "meta": {
+      "ip": "127.0.0.1",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "id": "28864d09-0920-40db-abbc-942d9118170e",
+    "createdAt": "2026-01-14T16:49:30.721Z",
+    "student": {
+      "name": "SANY GISSELLA DIAZ MONSALVE",
+      "code": "2320606",
+      "dni": "4182",
+      "facultyName": "FACULTAD DE CIENCIAS DE LA SALUD",
+      "specialtyName": "FARMACIA Y BIOQUÍMICA",
+      "period": "2026-1",
+      "mode": "SEMIPRESENCIAL",
+      "email": "sany.diaz@uma.edu.pe",
+      "phone": "967619319"
+    },
+    "changes": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Viernes",
+          "time": "18:50–20:30",
+          "modality": "TEORÍA VIRTUAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Miércoles",
+          "time": "14:00–15:40",
+          "modality": "TEORÍA VIRTUAL"
+        }
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Lunes",
+          "time": "17:10–18:50",
+          "modality": "LABORATORIO PRESENCIAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Sábado",
+          "time": "11:20–13:00",
+          "modality": "LABORATORIO PRESENCIAL"
+        }
+      }
+    ],
+    "finalCourses": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Miércoles",
+        "time": "14:00–15:40",
+        "group": "M1",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Sábado",
+        "time": "11:20–13:00",
+        "group": "M1",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Miércoles",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Lunes",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Miércoles",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Lunes",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SCTS3061",
+        "name": "GESTIÓN DE LA CALIDAD",
+        "day": "Viernes",
+        "time": "20:30–22:10",
+        "group": "N3",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Martes",
+        "time": "17:10–18:50",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Jueves",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3065B",
+        "name": "REGULACIÓN DE ESTABLECIMIENTOS FARMACÉUTICOS",
+        "day": "Jueves",
+        "time": "17:10–19:40",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      }
+    ],
+    "pdfFile": "rectificacion_2320606_2026-1_1768409370657_28864d09-0920-40db-abbc-942d9118170e.pdf",
+    "meta": {
+      "ip": "127.0.0.1",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "id": "b7cd2bbf-3610-49f5-b098-9b38c64087ad",
+    "createdAt": "2026-01-14T16:27:28.890Z",
+    "student": {
+      "name": "SANY GISSELLA DIAZ MONSALVE",
+      "code": "2320606",
+      "dni": "4182",
+      "facultyName": "FACULTAD DE CIENCIAS DE LA SALUD",
+      "specialtyName": "FARMACIA Y BIOQUÍMICA",
+      "period": "2026-1",
+      "mode": "SEMIPRESENCIAL",
+      "email": "sany.diaz@uma.edu.pe",
+      "phone": "967619319"
+    },
+    "changes": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Lunes",
+          "time": "17:10–18:50",
+          "modality": "LABORATORIO PRESENCIAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Sábado",
+          "time": "11:20–13:00",
+          "modality": "LABORATORIO PRESENCIAL"
+        }
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Viernes",
+          "time": "18:50–20:30",
+          "modality": "TEORÍA VIRTUAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Miércoles",
+          "time": "14:00–15:40",
+          "modality": "TEORÍA VIRTUAL"
+        }
+      }
+    ],
+    "finalCourses": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Sábado",
+        "time": "11:20–13:00",
+        "group": "M1",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Miércoles",
+        "time": "14:00–15:40",
+        "group": "M1",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Miércoles",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Lunes",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Miércoles",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Lunes",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SCTS3061",
+        "name": "GESTIÓN DE LA CALIDAD",
+        "day": "Viernes",
+        "time": "20:30–22:10",
+        "group": "N3",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Jueves",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Martes",
+        "time": "17:10–18:50",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3065B",
+        "name": "REGULACIÓN DE ESTABLECIMIENTOS FARMACÉUTICOS",
+        "day": "Jueves",
+        "time": "17:10–19:40",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      }
+    ],
+    "pdfFile": "rectificacion_2320606_2026-1_1768408048850_b7cd2bbf-3610-49f5-b098-9b38c64087ad.pdf",
+    "meta": {
+      "ip": "127.0.0.1",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "id": "9ef72388-728f-45b2-8d99-c34d18fb377a",
+    "createdAt": "2026-01-14T15:52:44.537Z",
+    "student": {
+      "name": "SANY GISSELLA DIAZ MONSALVE",
+      "code": "2320606",
+      "dni": "4182",
+      "facultyName": "FACULTAD DE CIENCIAS DE LA SALUD",
+      "specialtyName": "FARMACIA Y BIOQUÍMICA",
+      "period": "2026-1",
+      "mode": "SEMIPRESENCIAL",
+      "email": "sany.diaz@uma.edu.pe",
+      "phone": "967619319"
+    },
+    "changes": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Viernes",
+          "time": "18:50–20:30",
+          "modality": "TEORÍA VIRTUAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Miércoles",
+          "time": "14:00–15:40",
+          "modality": "TEORÍA VIRTUAL"
+        }
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "from": {
+          "group": "N4",
+          "day": "Lunes",
+          "time": "17:10–18:50",
+          "modality": "LABORATORIO PRESENCIAL"
+        },
+        "to": {
+          "group": "M1",
+          "day": "Sábado",
+          "time": "11:20–13:00",
+          "modality": "LABORATORIO PRESENCIAL"
+        }
+      }
+    ],
+    "finalCourses": [
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Miércoles",
+        "time": "14:00–15:40",
+        "group": "M1",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3063",
+        "name": "BIOQUÍMICA II",
+        "day": "Sábado",
+        "time": "11:20–13:00",
+        "group": "M1",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Miércoles",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3061",
+        "name": "FARMACOLOGÍA I",
+        "day": "Lunes",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Lunes",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3064",
+        "name": "FARMACOQUÍMICA I",
+        "day": "Miércoles",
+        "time": "18:50–20:30",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SCTS3061",
+        "name": "GESTIÓN DE LA CALIDAD",
+        "day": "Viernes",
+        "time": "20:30–22:10",
+        "group": "N3",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Jueves",
+        "time": "20:30–22:10",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      },
+      {
+        "code": "SFBQ3062",
+        "name": "PARASITOLOGÍA",
+        "day": "Martes",
+        "time": "17:10–18:50",
+        "group": "N4",
+        "modality": "LABORATORIO PRESENCIAL"
+      },
+      {
+        "code": "SFBQ3065B",
+        "name": "REGULACIÓN DE ESTABLECIMIENTOS FARMACÉUTICOS",
+        "day": "Jueves",
+        "time": "17:10–19:40",
+        "group": "N4",
+        "modality": "TEORÍA VIRTUAL"
+      }
+    ],
+    "pdfFile": "rectificacion_2320606_2026-1_1768405964535_9ef72388-728f-45b2-8d99-c34d18fb377a.pdf",
+    "meta": {
+      "ip": "127.0.0.1",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+    }
+  }
+]

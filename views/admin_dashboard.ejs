@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Dashboard</title>
+  <style>
+    body{font-family:system-ui;margin:0;background:#f8fafc;padding:16px;}
+    .top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+    .box{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(2,6,23,.06);}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;}
+    th{font-weight:900;color:#111827;}
+    a{color:#2563eb;text-decoration:none;font-weight:800;}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px;}
+    @media(min-width:1000px){.grid{grid-template-columns:1.4fr .6fr;}}
+    .search{display:flex;gap:8px;flex-wrap:wrap}
+    input{padding:10px;border-radius:12px;border:1px solid #e5e7eb;}
+    button{padding:10px 12px;border-radius:12px;border:0;background:#111827;color:#fff;font-weight:800;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2 style="margin:0;">Admin Dashboard</h2>
+    <form method="POST" action="/admin/logout">
+      <button type="submit">Logout</button>
+    </form>
+  </div>
+
+  <div class="grid">
+    <div class="box">
+      <div class="top" style="margin-bottom:10px;">
+        <h3 style="margin:0;">Rectificaciones</h3>
+        <form class="search" method="GET" action="/admin">
+          <input name="q" value="<%= q %>" placeholder="Buscar: código / nombre" />
+          <button type="submit">Buscar</button>
+        </form>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Periodo</th>
+            <th>PDF</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rects.forEach(r => { %>
+            <tr>
+              <td><%= new Date(r.createdAt).toLocaleString('es-PE', { timeZone: 'America/Lima', hour12: false }) %></td>
+              <td><%= r.student?.code %></td>
+              <td><%= r.student?.name %></td>
+              <td><%= r.student?.period %></td>
+              <td>
+                <a href="/admin/rectifications/<%= r.id %>">Ver</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h3 style="margin:0 0 10px;">Logins recientes</h3>
+      <table>
+        <thead><tr><th>Fecha</th><th>Alumno</th><th>IP</th></tr></thead>
+        <tbody>
+          <% logins.forEach(l => { %>
+            <tr>
+              <td><%= new Date(l.at).toLocaleString('es-PE', { timeZone: 'America/Lima', hour12: false }) %></td>
+              <td><%= l.student_code %></td>
+              <td><%= l.ip %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

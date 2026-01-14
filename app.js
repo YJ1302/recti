@@ -70,39 +70,58 @@ app.use("/admin", adminRoutes);
 const FROM_EMAIL =
   process.env.FROM_EMAIL || process.env.SMTP_USER || "noreply@uma.edu.pe";
 
+// ✅ Normalize env vars properly + give a safe default host for Microsoft 365
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.office365.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").toLowerCase() === "true";
+
+// Build transporter only if nodemailer + creds exist
 const mailer =
   nodemailer &&
+  process.env.SMTP_USER &&
+  process.env.SMTP_PASS &&
   nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
-    auth:
-      process.env.SMTP_USER && process.env.SMTP_PASS
-        ? {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          }
-        : undefined,
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,     // ✅ boolean
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+
+    // ✅ Office365 on 587 uses STARTTLS
+    requireTLS: true,
+    tls: { minVersion: "TLSv1.2" },
+
+    // ✅ prevent long hangs
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
   });
 
 if (mailer) {
-  mailer.verify((err) => {
-    if (err) {
-      console.error("SMTP verify failed:", err.message);
-    } else {
-      console.log("SMTP verify OK. From:", FROM_EMAIL);
-    }
-  });
+  // ✅ DO NOT verify SMTP on Render/production (it causes timeouts/log spam)
+  if (process.env.NODE_ENV !== "production") {
+    mailer.verify((err) => {
+      if (err) console.error("SMTP verify failed:", err.message);
+      else console.log("SMTP verify OK. From:", FROM_EMAIL);
+    });
+  }
+
   console.log(
     "SMTP settings",
     JSON.stringify({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: String(process.env.SMTP_SECURE),
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
       from: FROM_EMAIL,
+      nodeEnv: process.env.NODE_ENV || "",
     })
   );
+} else {
+  console.log("SMTP disabled (missing nodemailer or SMTP_USER/SMTP_PASS).");
 }
+
 
 // Helpers
 function jsonHeaders(token) {

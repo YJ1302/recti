@@ -591,6 +591,16 @@
     }
 
     .error{ color:#b00; background:#630606; border:1px solid #fbb; padding:10px; border-radius:8px; margin-bottom:16px; }
+    .success{
+  color:#065f46;
+  background:#ecfdf5;
+  border:1px solid #bbf7d0;
+  padding:10px;
+  border-radius:12px;
+  margin-bottom:16px;
+  font-weight:800;
+}
+
     /* ✅ Login page: center the error above the login card */
 body.is-login .error{
   position: static !important;
@@ -959,6 +969,18 @@ body.ai-modal-open{
     .login-card .input-with-icon { display:flex; align-items:center; gap:8px; border:1px solid var(--border); padding:10px 12px; border-radius:10px; }
     .login-card .input-with-icon input { border:0; outline:none; width:100%; font-size:1rem; }
 
+    .done-details { margin-top: 10px; }
+.done-list { display: grid; gap: 10px; margin-top: 8px; }
+.done-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; background: #fff; }
+.done-title { font-size: 14px; margin-bottom: 8px; }
+.done-row { display: flex; gap: 10px; align-items: center; font-size: 13px; margin: 6px 0; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+.badge.old { background: #fee2e2; color: #991b1b; }
+.badge.new { background: #dcfce7; color: #166534; }
+.done-table { width: 100%; border-collapse: collapse; margin-top: 8px; min-width: 520px; }
+.done-table th, .done-table td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; font-size: 13px; }
+.muted { color: #6b7280; font-size: 13px; }
+
     .course{
       display:grid;
       grid-template-columns:120px 1fr 240px;
@@ -1105,8 +1127,88 @@ body.ai-modal-open{
 
             <% if (error) { %><div class="error"><%= error %></div><% } %>
 
+            <% if (typeof done !== 'undefined' && done) { %>
+            <div class="success" style="margin-top:12px;">
+              <strong><%= (typeof doneMessage !== 'undefined' && doneMessage) ? doneMessage : '' %></strong>
+            </div>
+
+            <% if (typeof doneData !== 'undefined' && doneData) { %>
+  <details class="done-details">
+    <summary>Ver detalles</summary>
+
+    <% if (doneData.submitted_at) { %>
+      <p class="muted">Enviado: <strong><%= new Date(doneData.submitted_at).toLocaleString('es-PE') %></strong></p>
+    <% } %>
+
+    <% if (doneData.changes && doneData.changes.length) { %>
+      <h4 style="margin-top:12px;">Cambios realizados</h4>
+      <div class="done-list">
+        <% doneData.changes.forEach(function(ch, idx){ %>
+          <div class="done-card">
+            <div class="done-title"><%= idx + 1 %>. <strong><%= ch.code %></strong> — <%= ch.name %></div>
+
+            <div class="done-row">
+              <span class="badge old">Antes</span>
+              <span>
+                Sec. <strong><%= (ch.from && ch.from.group) ? ch.from.group : '—' %></strong>,
+                <%= (ch.from && ch.from.day) ? ch.from.day : '—' %> <%= (ch.from && ch.from.time) ? ch.from.time : '—' %>
+                (<%= (ch.from && ch.from.modality) ? ch.from.modality : '—' %>)
+              </span>
+            </div>
+
+            <div class="done-row">
+              <span class="badge new">Después</span>
+              <span>
+                Sec. <strong><%= (ch.to && ch.to.group) ? ch.to.group : '—' %></strong>,
+                <%= (ch.to && ch.to.day) ? ch.to.day : '—' %> <%= (ch.to && ch.to.time) ? ch.to.time : '—' %>
+                (<%= (ch.to && ch.to.modality) ? ch.to.modality : '—' %>)
+              </span>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="muted" style="margin-top:10px;">No se registraron cambios.</p>
+    <% } %>
+
+    <% if (doneData.finalCourses && doneData.finalCourses.length) { %>
+      <h4 style="margin-top:14px;">Horario final</h4>
+      <div style="overflow:auto;">
+        <table class="done-table">
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Sec.</th>
+              <th>Día</th>
+              <th>Horario</th>
+              <th>Modalidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% doneData.finalCourses.forEach(function(c){ %>
+              <tr>
+                <td><strong><%= c.code %></strong> — <%= c.name %></td>
+                <td><%= c.group || '—' %></td>
+                <td><%= c.day || '—' %></td>
+                <td><%= c.time || '—' %></td>
+                <td><%= c.modality || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </details>
+<% } %>
+
+          <% } %>
+
+
             <div style="margin-top:18px; text-align:center;">
-              <button type="submit" class="login-btn pulse">Ingresar</button>
+              <button type="submit" class="login-btn pulse" <%= done ? 'disabled' : '' %>>
+  Ingresar
+</button>
+
             </div>
           </form>
           <div style="margin-top:14px;">
@@ -1124,7 +1226,8 @@ body.ai-modal-open{
         </div>
       </div>
 
-    <% } else { %>
+    <% } else if (!done) { %>
+
       <div class="title-container">
         <div style="display:flex;align-items:center;gap:12px;">
           <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
@@ -1330,7 +1433,89 @@ body.ai-modal-open{
       <div id="helpPanel" class="panel" style="margin-top:18px; text-align:center;">
         <p class="muted">¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.</p>
       </div>
+        <% } else { %>
+      <!-- ✅ If student is already DONE but still has session, block portal -->
+      <div class="card" style="padding:22px; margin-top:22px;">
+        <div class="success">
+          <strong><%= doneMessage || "Tu solicitud ya fue enviada. No puedes ingresar nuevamente." %></strong>
+        </div>
+
+        <% if (typeof doneData !== 'undefined' && doneData) { %>
+  <details class="done-details">
+    <summary>Ver detalles</summary>
+
+    <% if (doneData.submitted_at) { %>
+      <p class="muted">Enviado: <strong><%= new Date(doneData.submitted_at).toLocaleString('es-PE') %></strong></p>
     <% } %>
+
+    <% if (doneData.changes && doneData.changes.length) { %>
+      <h4 style="margin-top:12px;">Cambios realizados</h4>
+      <div class="done-list">
+        <% doneData.changes.forEach(function(ch, idx){ %>
+          <div class="done-card">
+            <div class="done-title"><%= idx + 1 %>. <strong><%= ch.code %></strong> — <%= ch.name %></div>
+
+            <div class="done-row">
+              <span class="badge old">Antes</span>
+              <span>
+                Sec. <strong><%= (ch.from && ch.from.group) ? ch.from.group : '—' %></strong>,
+                <%= (ch.from && ch.from.day) ? ch.from.day : '—' %> <%= (ch.from && ch.from.time) ? ch.from.time : '—' %>
+                (<%= (ch.from && ch.from.modality) ? ch.from.modality : '—' %>)
+              </span>
+            </div>
+
+            <div class="done-row">
+              <span class="badge new">Después</span>
+              <span>
+                Sec. <strong><%= (ch.to && ch.to.group) ? ch.to.group : '—' %></strong>,
+                <%= (ch.to && ch.to.day) ? ch.to.day : '—' %> <%= (ch.to && ch.to.time) ? ch.to.time : '—' %>
+                (<%= (ch.to && ch.to.modality) ? ch.to.modality : '—' %>)
+              </span>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="muted" style="margin-top:10px;">No se registraron cambios.</p>
+    <% } %>
+
+    <% if (doneData.finalCourses && doneData.finalCourses.length) { %>
+      <h4 style="margin-top:14px;">Horario final</h4>
+      <div style="overflow:auto;">
+        <table class="done-table">
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Sec.</th>
+              <th>Día</th>
+              <th>Horario</th>
+              <th>Modalidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% doneData.finalCourses.forEach(function(c){ %>
+              <tr>
+                <td><strong><%= c.code %></strong> — <%= c.name %></td>
+                <td><%= c.group || '—' %></td>
+                <td><%= c.day || '—' %></td>
+                <td><%= c.time || '—' %></td>
+                <td><%= c.modality || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </details>
+<% } %>
+
+
+        <form action="/logout" method="POST" style="margin-top:16px;">
+          <button type="submit" class="logout-btn">Cerrar sesión</button>
+        </form>
+      </div>
+    <% } %>
+
   </div>
 
   <div id="loadingOverlay" class="loading-overlay">

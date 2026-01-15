@@ -9,6 +9,13 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const crypto = require("crypto");
 const { addRectification, addLoginAudit, getClientIp, PDF_DIR } = require("./utils/adminStore");
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
+);
 
 
 // Optional require for nodemailer
@@ -46,6 +53,14 @@ app.disable("x-powered-by");
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.set("trust proxy", 1);
+// ✅ Global defaults for EJS variables (prevents "done is not defined")
+app.use((req, res, next) => {
+  res.locals.done = false;
+  res.locals.doneMessage = null;
+  res.locals.doneData = null;
+  next();
+});
+
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -130,6 +145,63 @@ function jsonHeaders(token) {
   };
   if (token) h.Authorization = "Bearer " + token;
   return { headers: h };
+}
+
+async function upsertPortalState({ period_id, student_code, boleta_number, dni_last4 }) {
+  const payload = {
+    period_id,
+    student_code,
+    boleta_number: boleta_number || null,
+    dni_last4: dni_last4 || null,
+    // ❌ do NOT send first_login_at here (avoid overwriting on every login)
+  };
+
+  const { error } = await supabase
+    .from("portal_state")
+    .upsert(payload, { onConflict: "period_id,student_code" });
+
+  if (error) throw error;
+}
+
+
+
+async function getPortalState(period_id, student_code) {
+  const { data, error } = await supabase
+    .from("portal_state")
+    .select("status,message,final_data")
+    .eq("period_id", period_id)
+    .eq("student_code", student_code)
+    .single();
+
+  // If no row exists, return null
+  if (error && String(error.code) === "PGRST116") return null;
+  if (error) throw error;
+  return data;
+}
+
+async function markPortalDone({ period_id, student_code, message, final_data }) {
+  const patch = {
+    status: "DONE",
+    message: message || null,
+    final_data: final_data || {},
+    done_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("portal_state")
+    .update(patch)
+    .eq("period_id", period_id)
+    .eq("student_code", student_code);
+
+  if (error) throw error;
+}
+
+async function upsertRectificationRequest(row) {
+  const { error } = await supabase
+    .from("rectification_requests")
+    .upsert(row, { onConflict: "period_id,student_code" });
+
+  if (error) throw error;
 }
 
 
@@ -914,10 +986,13 @@ if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
     period: null,
     periodCode: null,
     error: `No puedes ingresar. Tu periodo es ${fmtPeriod(loginPeriodDigits)} pero el portal solo permite rectificación del periodo ${fmtPeriod(CURRENT_PERIOD_ID)}.`,
+    
+    done: false,
+    doneMessage: null,
+    doneData: null,
+
   });
 }
-
-
 
     // 4) Enrolled schedules
     const schedulesUrl = DATA_URL + "/course-schedules";
@@ -959,6 +1034,58 @@ req.session.lastName = lastName;
 const { ok, ticket } = await autoVerifyBoletaForStudent(req);
 req.session.boletaVerified = ok;
 req.session.boletaNumber = ticket || null;
+
+// =========================
+// ✅ Supabase portal_state check (after boleta verification)
+// =========================
+const period_id = CURRENT_PERIOD_ID;
+const student_code = String(code);
+const dni_last4 = String(profileOut.dni || dni || "").slice(-4) || null;
+
+// If no boleta => don't create portal_state; just block as you already do
+if (ok) {
+  await upsertPortalState({
+    period_id,
+    student_code,
+    boleta_number: ticket || "—",
+    dni_last4,
+  });
+
+  const ps = await getPortalState(period_id, student_code);
+
+  // ✅ If DONE => block login and show details/message
+  if (ps && ps.status === "DONE") {
+    req.session.destroy(() => {});
+    return res.render("index", {
+      firstName: null,
+      lastName: null,
+      studentId: null,
+      semester: null,
+      department: null,
+      schedules: [],
+      available: [],
+      dni: null,
+      email_institucional: null,
+      phone: null,
+      facultyName: null,
+      specialtyName: null,
+      facultyCode: null,
+      specialtyCode: null,
+      gender: null,
+      age: null,
+      mode: null,
+      period: null,
+      periodCode: null,
+      error: null,
+      done: true,
+      doneMessage:
+        ps.message ||
+        "Tu solicitud ya fue enviada. No puedes ingresar nuevamente.",
+      doneData: ps.final_data || {},
+    });
+  }
+}
+
 
 // ❌ If no boleta exists for this student+period, block access (NO boleta page)
 if (!ok) {
@@ -1869,30 +1996,77 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
     await fs.promises.mkdir(PDF_DIR, { recursive: true });
     await fs.promises.writeFile(path.join(PDF_DIR, pdfFile), pdfBuffer);
 
-    // Save metadata + all changes for admin dashboard
-    await addRectification({
-      id,
-      createdAt: new Date().toISOString(),
-      student: {
-        name: info.name || "",
-        code: info.code || "",
-        dni: info.dni ? String(info.dni).slice(-4) : "",
-        facultyName: info.faculty || "",         // ✅ use your existing info fields
-        specialtyName: info.program || "",
-        period: info.period || "",
-        mode: info.mode || "",
-        email: info.email || "",
-        phone: profile.phone || "",
-      },
+  // =========================
+// ✅ Supabase: save request + lock portal
+// =========================
+const period_id = CURRENT_PERIOD_ID;
+const student_code = String(info.code || safeCode);
+const nowIso = new Date().toISOString();
+
+// (Optional) Prevent double-submit
+const psBefore = await getPortalState(period_id, student_code);
+if (psBefore && psBefore.status === "DONE") {
+  return res.status(403).json({
+    ok: false,
+    error: "already_submitted",
+    message: psBefore.message || "Ya enviaste tu solicitud.",
+  });
+}
+
+    // 1) Save rectification payload (admin will later approve/reject here)
+    await upsertRectificationRequest({
+      period_id,
+      student_code,
+      student_name: info.name || null,
+      dni_last4: String(info.dni || "").slice(-4) || null,
+      email: info.email || null,
+      phone: profile.phone || null,
+      faculty_name: info.faculty || null,
+      specialty_name: info.program || null,
+      mode: info.mode || null,
+
+      boleta_number: req.session.boletaNumber || null,
+      boleta_verified: true,
+
+      status: "SUBMITTED",
+      locked: true,
+      admin_message: null,
+
       changes: Array.isArray(changesList) ? changesList : [],
-      finalCourses: Array.isArray(finalPlan) ? finalPlan : [],   // ✅ use finalPlan (your variable)
-      pdfFile,
-      meta: {
-        ip: getClientIp(req),
-        ua: req.headers["user-agent"] || "",
-      },
+      final_courses: Array.isArray(finalPlan) ? finalPlan : [],
+      current_courses: Array.isArray(currentSchedule) ? currentSchedule : [],
+
+      pdf_storage_path: pdfFile, // you saved it locally
+      pdf_url: null,
+
+      submitted_at: nowIso,
+      ip: getClientIp(req),
+      user_agent: req.headers["user-agent"] || null,
     });
-    // =========================
+
+    // 2) Ensure portal_state exists + mark DONE
+    await upsertPortalState({
+      period_id,
+      student_code,
+      boleta_number: req.session.boletaNumber || "—",
+      dni_last4: String(info.dni || "").slice(-4) || null,
+    });
+
+    // 2) Mark DONE
+await markPortalDone({
+  period_id,
+  student_code,
+  message: "Tu solicitud fue enviada correctamente. Ya no puedes ingresar nuevamente.",
+  final_data: {
+    submitted_at: nowIso,
+    changes: Array.isArray(changesList) ? changesList : [],
+    finalCourses: Array.isArray(finalPlan) ? finalPlan : [],
+    currentCourses: Array.isArray(currentSchedule) ? currentSchedule : [],
+    pdfFile,
+  },
+});
+
+
 
 
     // Try emailing to admins

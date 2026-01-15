@@ -8,7 +8,7 @@ const session = require("express-session");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const crypto = require("crypto");
-const { addRectification, addLoginAudit, getClientIp, PDF_DIR } = require("./utils/adminStore");
+const { addRectification, addLoginAudit, PDF_DIR } = require("./utils/adminStore");
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
@@ -163,6 +163,17 @@ async function upsertPortalState({ period_id, student_code, boleta_number, dni_l
   if (error) throw error;
 }
 
+function getClientIp(req) {
+  const xff = req.headers["x-forwarded-for"];
+  if (xff) return String(xff).split(",")[0].trim();
+  return (
+    req.ip ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.connection?.socket?.remoteAddress ||
+    null
+  );
+}
 
 
 async function getPortalState(period_id, student_code) {
@@ -2136,6 +2147,17 @@ app.use((_, res) => {
     periodCode: null,
     error: "Página no encontrada",
   });
+});
+app.use((err, req, res, next) => {
+  console.error("🔥 Express error:", err?.response?.data || err?.message || err);
+
+  if (res.headersSent) return next(err);
+
+  if (req.accepts("html")) {
+    return res.status(500).send("Error interno del servidor");
+  }
+
+  return res.status(500).json({ ok: false, error: "server_error" });
 });
 
 // Start server

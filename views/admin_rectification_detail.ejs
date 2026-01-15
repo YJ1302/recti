@@ -4,54 +4,160 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Rectificación</title>
+
   <style>
-    body{font-family:system-ui;margin:0;background:#f8fafc;padding:16px;}
+    body{font-family:system-ui;margin:0;background:#f8fafc;padding:16px;color:#0f172a;}
     .box{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(2,6,23,.06);margin-bottom:14px;}
-    h2,h3{margin:0 0 10px;}
-    .row{display:grid;grid-template-columns:1fr;gap:10px;}
-    @media(min-width:900px){.row{grid-template-columns:1fr 1fr;}}
-    table{width:100%;border-collapse:collapse;}
-    th,td{padding:10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;}
-    th{font-weight:900;}
     a{color:#2563eb;font-weight:900;text-decoration:none;}
+    h2,h3{margin:0 0 10px;}
+    .muted{color:#6b7280;font-size:13px;}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px;}
+    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr;}}
+    .kv{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:13px;background:#fff;}
+    .pill b{font-weight:900;}
+    .btn{display:inline-block;padding:10px 12px;border-radius:12px;background:#111827;color:#fff;font-weight:900;}
+    .btn.secondary{background:#0ea5e9;}
+    .btn:active{transform:translateY(1px);}
+
+    /* Cards like student UI */
+    .done-list{display:grid;gap:10px;margin-top:10px;}
+    .done-card{border:1px solid #e5e7eb;border-radius:16px;padding:12px 14px;background:#fff;}
+    .done-title{font-size:16px;font-weight:900;margin-bottom:10px;}
+    .done-sub{font-size:13px;color:#6b7280;margin-top:-6px;margin-bottom:10px;}
+    .done-row{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.35;margin:8px 0;}
+    .badge{font-size:12px;padding:4px 10px;border-radius:999px;font-weight:900;min-width:78px;text-align:center;}
+    .badge.old{background:#fee2e2;color:#991b1b;}
+    .badge.new{background:#dcfce7;color:#166534;}
+
+    /* Optional table */
+    table{width:100%;border-collapse:collapse;margin-top:10px;}
+    th,td{padding:10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;vertical-align:top;}
+    th{font-weight:900;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
   </style>
 </head>
+
 <body>
+  <%
+    // safe fields
+    const createdAt = rec?.created_at || rec?.createdAt || null;
+    const submittedAt = rec?.submitted_at || rec?.submittedAt || null;
+
+    const periodId = rec?.period_id || rec?.periodId || "—";
+    const student = rec?.student || {};
+    const code = student.code || "—";
+    const name = student.name || "—";
+    const dni = student.dni || "—";
+    const mode = student.mode || "—";
+    const faculty = student.faculty || "";
+    const specialty = student.specialty || "";
+    const email = student.email || "";
+    const phone = student.phone || "";
+
+    const changes = Array.isArray(rec?.changes) ? rec.changes : [];
+    const pdfUrl = rec?.pdfUrl || rec?.pdf_url || null;
+
+    const fmt = (d) => {
+      try { return new Date(d).toLocaleString("es-PE"); } catch(e) { return d; }
+    };
+
+    const turnoLabel = (x) => {
+      const sec = (x && (x.group || x.groupCode)) ? (x.group || x.groupCode) : "—";
+      const day = (x && x.day) ? x.day : "—";
+      const time = (x && (x.time || x.hour)) ? (x.time || x.hour) : "—";
+      const mod = (x && x.modality) ? x.modality : "—";
+      return `Sec. ${sec}, ${day} ${time} (${mod})`;
+    };
+  %>
+
+  <!-- Header box -->
   <div class="box">
     <a href="/admin">← Volver</a>
     <h2 style="margin-top:8px;">Rectificación</h2>
-    <div><b>Fecha:</b> <%= rec.createdAt %></div>
-    <div><b>Alumno:</b> <%= rec.student?.name %> (<%= rec.student?.code %>)</div>
-    <div><b>Periodo:</b> <%= rec.student?.period %> | <b>Modalidad:</b> <%= rec.student?.mode %></div>
-    <div style="margin-top:10px;">
-      <a href="/admin/rectifications/<%= rec.id %>/pdf">Descargar PDF</a>
+
+    <div class="kv">
+      <span class="pill"><b>Código:</b> <%= code %></span>
+      <span class="pill"><b>Alumno:</b> <%= name %></span>
+      <span class="pill"><b>DNI:</b> <%= dni %></span>
+      <span class="pill"><b>Periodo:</b> <%= periodId %></span>
+      <span class="pill"><b>Modalidad:</b> <%= mode %></span>
+    </div>
+
+    <div class="grid" style="margin-top:10px;">
+      <div class="muted">
+        <div><b>Creado:</b> <%= createdAt ? fmt(createdAt) : "—" %></div>
+        <div><b>Enviado:</b> <%= submittedAt ? fmt(submittedAt) : "—" %></div>
+      </div>
+
+      <div class="muted">
+        <% if (faculty) { %><div><b>Facultad:</b> <%= faculty %></div><% } %>
+        <% if (specialty) { %><div><b>Programa:</b> <%= specialty %></div><% } %>
+        <% if (email) { %><div><b>Correo:</b> <%= email %></div><% } %>
+        <% if (phone) { %><div><b>Teléfono:</b> <%= phone %></div><% } %>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="/admin/rectifications/<%= rec.id %>/pdf">Abrir / Descargar PDF</a>
+      <% if (pdfUrl) { %>
+        <a class="btn secondary" href="<%= pdfUrl %>" target="_blank" rel="noreferrer">PDF (Supabase URL)</a>
+      <% } %>
     </div>
   </div>
 
+  <!-- Changes cards -->
   <div class="box">
-    <h3>Cambios</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Curso</th>
-          <th>Antes</th>
-          <th>Después</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% (rec.changes || []).forEach(c => { %>
-          <tr>
-            <td><b><%= c.code %></b><br/><%= c.name || "" %></td>
-            <td>
-              Gr: <%= c.from?.group %> | <%= c.from?.day %> | <%= c.from?.time %> | <%= c.from?.modality %>
-            </td>
-            <td>
-              Gr: <%= c.to?.group %> | <%= c.to?.day %> | <%= c.to?.time %> | <%= c.to?.modality %>
-            </td>
-          </tr>
+    <h3>Cambios realizados</h3>
+    <% if (!changes.length) { %>
+      <p class="muted">No hay cambios guardados.</p>
+    <% } else { %>
+
+      <div class="done-list">
+        <% changes.forEach(function(c, idx){ %>
+          <div class="done-card">
+            <div class="done-title"><%= idx + 1 %>. <%= c.code || "—" %> — <%= c.name || "" %></div>
+
+            <div class="done-row">
+              <span class="badge old">Antes</span>
+              <span><%= turnoLabel(c.from || {}) %></span>
+            </div>
+
+            <div class="done-row">
+              <span class="badge new">Después</span>
+              <span><%= turnoLabel(c.to || {}) %></span>
+            </div>
+          </div>
         <% }) %>
-      </tbody>
-    </table>
+      </div>
+
+      <!-- Optional table view (nice for copy/paste) -->
+      <details style="margin-top:14px;">
+        <summary style="cursor:pointer;font-weight:900;">Ver en tabla</summary>
+        <table>
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Antes</th>
+              <th>Después</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% changes.forEach(function(c){ %>
+              <tr>
+                <td>
+                  <b class="mono"><%= c.code || "—" %></b><br/>
+                  <%= c.name || "" %>
+                </td>
+                <td><%= turnoLabel(c.from || {}) %></td>
+                <td><%= turnoLabel(c.to || {}) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </details>
+
+    <% } %>
   </div>
 </body>
 </html>

@@ -50,7 +50,14 @@
         <tbody>
           <% rects.forEach(r => { %>
             <tr>
-              <td><%= new Date(r.createdAt).toLocaleString('es-PE', { timeZone: 'America/Lima', hour12: false }) %></td>
+              <%
+            const rawDate = r.submitted_at || r.createdAt || r.created_at || r.at || null;
+            const dt = rawDate ? new Date(rawDate) : null;
+            const fechaTxt = (dt && !isNaN(dt.getTime()))
+              ? dt.toLocaleString('es-PE')
+              : "—";
+          %>
+          <td><%= fechaTxt %></td>
               <td><%= r.student?.code %></td>
               <td><%= r.student?.name %></td>
               <td><%= r.student?.period %></td>

@@ -114,27 +114,27 @@ const mailer =
     socketTimeout: 20000,
   });
 
-  if (mailer) {
-    console.log(
-      "SMTP settings",
-      JSON.stringify({
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: String(process.env.SMTP_SECURE),
-        from: FROM_EMAIL,
-      })
-    );
+if (mailer) {
+  console.log(
+    "SMTP settings",
+    JSON.stringify({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: String(process.env.SMTP_SECURE),
+      from: FROM_EMAIL,
+    })
+  );
 
-    const shouldVerify = process.env.SMTP_VERIFY_ON_BOOT === "true";
-    if (shouldVerify) {
-      mailer.verify((err) => {
-        if (err) console.error("SMTP verify failed:", err.message);
-        else console.log("SMTP verify OK. From:", FROM_EMAIL);
-      });
-    } else {
-      console.log("SMTP verify skipped (set SMTP_VERIFY_ON_BOOT=true to enable)");
-    }
+  const shouldVerify = process.env.SMTP_VERIFY_ON_BOOT === "true";
+  if (shouldVerify) {
+    mailer.verify((err) => {
+      if (err) console.error("SMTP verify failed:", err.message);
+      else console.log("SMTP verify OK. From:", FROM_EMAIL);
+    });
+  } else {
+    console.log("SMTP verify skipped (set SMTP_VERIFY_ON_BOOT=true to enable)");
   }
+}
 
 
 // Helpers
@@ -687,8 +687,8 @@ function flattenAvailable(coursesMap) {
       const sessions = Array.isArray(g.sessions)
         ? g.sessions
         : Array.isArray(g)
-        ? g
-        : [];
+          ? g
+          : [];
 
       sessions.forEach((s) => {
         const day = s.dayName || dayNameFromNumber(s.day);
@@ -920,16 +920,16 @@ app.post("/login", async (req, res) => {
     const code = String(studentCode);
 
     try {
-    await addLoginAudit({
-      at: new Date().toISOString(),
-      student_code: String(code),
-      status: "SUCCESS",
-      ip: getClientIp(req),
-      ua: req.headers["user-agent"] || "",
-    });
-  } catch (e) {
-    console.warn("addLoginAudit failed:", e?.message || e);
-  }
+      await addLoginAudit({
+        at: new Date().toISOString(),
+        student_code: String(code),
+        status: "SUCCESS",
+        ip: getClientIp(req),
+        ua: req.headers["user-agent"] || "",
+      });
+    } catch (e) {
+      console.warn("addLoginAudit failed:", e?.message || e);
+    }
 
     const periodFromLogin = String(periodCode || "");
 
@@ -955,55 +955,55 @@ app.post("/login", async (req, res) => {
     const fullName = `${firstName} ${lastName}`.trim();
 
     const profileOut = {
-    dni: info.dni || "",
-    email_institucional: info.email_institucional || "",
-    phone: info.phone || "",
-    facultyName: info.facultyName || "",
-    specialtyName: info.specialtyName || "",
-    facultyCode: info.facultyCode || "",
-    specialtyCode: info.specialtyCode || "",
-    gender: info.gender || "",
-    age: info.age !== undefined && info.age !== null ? String(info.age) : "",
-    mode: info.mode || "",
-    period: String(info.period || periodFromLogin || ""),
-    periodCode: info.periodCode || "",
+      dni: info.dni || "",
+      email_institucional: info.email_institucional || "",
+      phone: info.phone || "",
+      facultyName: info.facultyName || "",
+      specialtyName: info.specialtyName || "",
+      facultyCode: info.facultyCode || "",
+      specialtyCode: info.specialtyCode || "",
+      gender: info.gender || "",
+      age: info.age !== undefined && info.age !== null ? String(info.age) : "",
+      mode: info.mode || "",
+      period: String(info.period || periodFromLogin || ""),
+      periodCode: info.periodCode || "",
 
-    // ✅ NEW (these are likely required by course-number-enrolled)
-    plan: info.plan ?? info.planCode ?? info.plan_code ?? null,
-    modalityCode: info.modalityCode ?? info.modality_code ?? info.modeCode ?? info.mode_code ?? null,
-  };
-  // ✅ BLOCK if student's period is not the latest
-const loginPeriodDigits = String(profileOut.period || "").replace(/[^0-9]/g, "");
-if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
-  req.session.destroy(() => {});
-  return res.render("index", {
-    firstName: null,
-    lastName: null,
-    studentId: null,
-    semester: null,
-    department: null,
-    schedules: [],
-    available: [],
-    dni: null,
-    email_institucional: null,
-    phone: null,
-    facultyName: null,
-    specialtyName: null,
-    facultyCode: null,
-    specialtyCode: null,
-    gender: null,
-    age: null,
-    mode: null,
-    period: null,
-    periodCode: null,
-    error: `No puedes ingresar. Tu periodo es ${fmtPeriod(loginPeriodDigits)} pero el portal solo permite rectificación del periodo ${fmtPeriod(CURRENT_PERIOD_ID)}.`,
-    
-    done: false,
-    doneMessage: null,
-    doneData: null,
+      // ✅ NEW (these are likely required by course-number-enrolled)
+      plan: info.plan ?? info.planCode ?? info.plan_code ?? null,
+      modalityCode: info.modalityCode ?? info.modality_code ?? info.modeCode ?? info.mode_code ?? null,
+    };
+    // ✅ BLOCK if student's period is not the latest
+    const loginPeriodDigits = String(profileOut.period || "").replace(/[^0-9]/g, "");
+    if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
+      req.session.destroy(() => { });
+      return res.render("index", {
+        firstName: null,
+        lastName: null,
+        studentId: null,
+        semester: null,
+        department: null,
+        schedules: [],
+        available: [],
+        dni: null,
+        email_institucional: null,
+        phone: null,
+        facultyName: null,
+        specialtyName: null,
+        facultyCode: null,
+        specialtyCode: null,
+        gender: null,
+        age: null,
+        mode: null,
+        period: null,
+        periodCode: null,
+        error: `No puedes ingresar. Tu periodo es ${fmtPeriod(loginPeriodDigits)} pero el portal solo permite rectificación del periodo ${fmtPeriod(CURRENT_PERIOD_ID)}.`,
 
-  });
-}
+        done: false,
+        doneMessage: null,
+        doneData: null,
+
+      });
+    }
 
     // 4) Enrolled schedules
     const schedulesUrl = DATA_URL + "/course-schedules";
@@ -1029,145 +1029,145 @@ if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
     }));
 
     // Save session
-req.session.student = {
-  token: String(studentToken),
-  codigo: code,
-  dni: String(dni || ""),
-  defaultPeriod: String(profileOut.period || periodFromLogin || ""),
-  name: fullName,
-};
-req.session.profile = profileOut;
-req.session.enrolled = schedules;
-req.session.firstName = firstName;
-req.session.lastName = lastName;
+    req.session.student = {
+      token: String(studentToken),
+      codigo: code,
+      dni: String(dni || ""),
+      defaultPeriod: String(profileOut.period || periodFromLogin || ""),
+      name: fullName,
+    };
+    req.session.profile = profileOut;
+    req.session.enrolled = schedules;
+    req.session.firstName = firstName;
+    req.session.lastName = lastName;
 
-// ✅ Auto verify boleta during login (no user input)
-const { ok, ticket } = await autoVerifyBoletaForStudent(req);
-req.session.boletaVerified = ok;
-req.session.boletaNumber = ticket || null;
+    // ✅ Auto verify boleta during login (no user input)
+    const { ok, ticket } = await autoVerifyBoletaForStudent(req);
+    req.session.boletaVerified = ok;
+    req.session.boletaNumber = ticket || null;
 
-// =========================
-// ✅ Supabase portal_state check (after boleta verification)
-// =========================
-const period_id = CURRENT_PERIOD_ID;
-const student_code = String(code);
-const dni_last4 = String(profileOut.dni || dni || "").slice(-4) || null;
+    // =========================
+    // ✅ Supabase portal_state check (after boleta verification)
+    // =========================
+    const period_id = CURRENT_PERIOD_ID;
+    const student_code = String(code);
+    const dni_last4 = String(profileOut.dni || dni || "").slice(-4) || null;
 
-// If no boleta => don't create portal_state; just block as you already do
-if (ok) {
-  await upsertPortalState({
-    period_id,
-    student_code,
-    boleta_number: ticket || "—",
-    dni_last4,
-  });
+    // If no boleta => don't create portal_state; just block as you already do
+    if (ok) {
+      await upsertPortalState({
+        period_id,
+        student_code,
+        boleta_number: ticket || "—",
+        dni_last4,
+      });
 
-  const ps = await getPortalState(period_id, student_code);
+      const ps = await getPortalState(period_id, student_code);
 
-  // ✅ If DONE => block login and show details/message
-  if (ps && ps.status === "DONE") {
-    req.session.destroy(() => {});
+      // ✅ If DONE => block login and show details/message
+      if (ps && ps.status === "DONE") {
+        req.session.destroy(() => { });
+        return res.render("index", {
+          firstName: null,
+          lastName: null,
+          studentId: null,
+          semester: null,
+          department: null,
+          schedules: [],
+          available: [],
+          dni: null,
+          email_institucional: null,
+          phone: null,
+          facultyName: null,
+          specialtyName: null,
+          facultyCode: null,
+          specialtyCode: null,
+          gender: null,
+          age: null,
+          mode: null,
+          period: null,
+          periodCode: null,
+          error: null,
+          done: true,
+          doneMessage:
+            ps.message ||
+            "Tu solicitud ya fue enviada. No puedes ingresar nuevamente.",
+          doneData: ps.final_data || {},
+        });
+      }
+    }
+
+
+    // ❌ If no boleta exists for this student+period, block access (NO boleta page)
+    if (!ok) {
+      req.session.destroy(() => { });
+      return res.render("index", {
+        firstName: null,
+        lastName: null,
+        studentId: null,
+        semester: null,
+        department: null,
+        schedules: [],
+        available: [],
+        dni: null,
+        email_institucional: null,
+        phone: null,
+        facultyName: null,
+        specialtyName: null,
+        facultyCode: null,
+        specialtyCode: null,
+        gender: null,
+        age: null,
+        mode: null,
+        period: null,
+        periodCode: null,
+        error:
+          "No se encontró una boleta válida para este periodo y código. Contacta con soporte.",
+      });
+    }
+
+    // ✅ If ok, go directly to portal (index)
     return res.render("index", {
-      firstName: null,
-      lastName: null,
-      studentId: null,
-      semester: null,
-      department: null,
-      schedules: [],
+      firstName,
+      lastName,
+      studentId: code,
+      semester: fmtPeriod(profileOut.period),
+      department: profileOut.specialtyName,
+      schedules,
       available: [],
-      dni: null,
-      email_institucional: null,
-      phone: null,
-      facultyName: null,
-      specialtyName: null,
-      facultyCode: null,
-      specialtyCode: null,
-      gender: null,
-      age: null,
-      mode: null,
-      period: null,
-      periodCode: null,
+      dni: profileOut.dni,
+      email_institucional: profileOut.email_institucional,
+      phone: profileOut.phone,
+      facultyName: profileOut.facultyName,
+      specialtyName: profileOut.specialtyName,
+      facultyCode: profileOut.facultyCode,
+      specialtyCode: profileOut.specialtyCode,
+      gender: profileOut.gender,
+      age: profileOut.age,
+      mode: profileOut.mode,
+      period: profileOut.period,
+      periodCode: profileOut.periodCode,
       error: null,
-      done: true,
-      doneMessage:
-        ps.message ||
-        "Tu solicitud ya fue enviada. No puedes ingresar nuevamente.",
-      doneData: ps.final_data || {},
     });
-  }
-}
-
-
-// ❌ If no boleta exists for this student+period, block access (NO boleta page)
-if (!ok) {
-  req.session.destroy(() => {});
-  return res.render("index", {
-    firstName: null,
-    lastName: null,
-    studentId: null,
-    semester: null,
-    department: null,
-    schedules: [],
-    available: [],
-    dni: null,
-    email_institucional: null,
-    phone: null,
-    facultyName: null,
-    specialtyName: null,
-    facultyCode: null,
-    specialtyCode: null,
-    gender: null,
-    age: null,
-    mode: null,
-    period: null,
-    periodCode: null,
-    error:
-      "No se encontró una boleta válida para este periodo y código. Contacta con soporte.",
-  });
-}
-
-// ✅ If ok, go directly to portal (index)
-return res.render("index", {
-  firstName,
-  lastName,
-  studentId: code,
-  semester: fmtPeriod(profileOut.period),
-  department: profileOut.specialtyName,
-  schedules,
-  available: [],
-  dni: profileOut.dni,
-  email_institucional: profileOut.email_institucional,
-  phone: profileOut.phone,
-  facultyName: profileOut.facultyName,
-  specialtyName: profileOut.specialtyName,
-  facultyCode: profileOut.facultyCode,
-  specialtyCode: profileOut.specialtyCode,
-  gender: profileOut.gender,
-  age: profileOut.age,
-  mode: profileOut.mode,
-  period: profileOut.period,
-  periodCode: profileOut.periodCode,
-  error: null,
-});
 
   } catch (err) {
     try {
-    await addLoginAudit({
-      at: new Date().toISOString(),
-      student_code: String(req.body?.codigo || ""),
-      status: "FAIL",
-      ip: getClientIp(req),
-      ua: req.headers["user-agent"] || "",
-    });
-  } catch (e) {
-    console.warn("addLoginAudit failed:", e?.message || e);
-  }
+      await addLoginAudit({
+        at: new Date().toISOString(),
+        student_code: String(req.body?.codigo || ""),
+        status: "FAIL",
+        ip: getClientIp(req),
+        ua: req.headers["user-agent"] || "",
+      });
+    } catch (e) {
+      console.warn("addLoginAudit failed:", e?.message || e);
+    }
 
     console.error(
       "Login error:",
       err.response && err.response.status,
       err.response ? err.response.data : err.message
-      
+
     );
     return res.render("index", {
       firstName: null,
@@ -1380,7 +1380,7 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
       return res.status(401).json({ error: "not_logged_in" });
     }
 
-    
+
 
     const rawPrefs = (req.body && (req.body.preferences || req.body)) || {};
     const freeDays = Array.isArray(rawPrefs.freeDays) ? rawPrefs.freeDays : [];
@@ -1446,7 +1446,7 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
     const changes = [];
     const finalCourses = [];
     const unsatisfied = [];
-    const blocked = [];  
+    const blocked = [];
     const skippedFullGroups = [];
 
     function groupAvailableRows(code, rows, fallbackName) {
@@ -1644,43 +1644,43 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
       }
 
       if (!chosen) {
-      // Detect why: conflict vs freeDay restriction
-      let conflictCount = 0;
-      let freeDayCount = 0;
+        // Detect why: conflict vs freeDay restriction
+        let conflictCount = 0;
+        let freeDayCount = 0;
 
-      for (const g of candidateGroups) {
-        const err = testCandidate(code, g, true);
-        if (!err) continue;
-        if (err.reason === "conflict") conflictCount++;
-        if (err.reason === "freeDay") freeDayCount++;
-      }
+        for (const g of candidateGroups) {
+          const err = testCandidate(code, g, true);
+          if (!err) continue;
+          if (err.reason === "conflict") conflictCount++;
+          if (err.reason === "freeDay") freeDayCount++;
+        }
 
-      let reason = "CONFLICTO";
-      let detail = "No hay turnos alternativos sin cruce con otros cursos.";
+        let reason = "CONFLICTO";
+        let detail = "No hay turnos alternativos sin cruce con otros cursos.";
 
-      if (freeDayCount > 0 && conflictCount === 0) {
-        reason = "DIA_LIBRE";
-        detail = "No hay turnos que eviten el día seleccionado.";
-      } else if (conflictCount > 0) {
-        reason = "CONFLICTO";
-        detail = "Los turnos alternativos generan conflicto con el horario actual.";
-      }
+        if (freeDayCount > 0 && conflictCount === 0) {
+          reason = "DIA_LIBRE";
+          detail = "No hay turnos que eviten el día seleccionado.";
+        } else if (conflictCount > 0) {
+          reason = "CONFLICTO";
+          detail = "Los turnos alternativos generan conflicto con el horario actual.";
+        }
 
-      unsatisfied.push(`${code} - ${cur.courseName}`);
-      blocked.push({ code, name: cur.courseName, reason, detail });
+        unsatisfied.push(`${code} - ${cur.courseName}`);
+        blocked.push({ code, name: cur.courseName, reason, detail });
 
-      cur.segments.forEach((seg) => {
-        finalCourses.push({
-          code,
-          name: cur.courseName,
-          group: cur.group,
-          day: seg.day,
-          time: seg.time,
-          modality: seg.modality,
+        cur.segments.forEach((seg) => {
+          finalCourses.push({
+            code,
+            name: cur.courseName,
+            group: cur.group,
+            day: seg.day,
+            time: seg.time,
+            modality: seg.modality,
+          });
         });
-      });
-      continue;
-    }
+        continue;
+      }
 
 
       const beforeSeg = cur.segments[0] || { day: "", time: "", modality: "" };
@@ -1775,222 +1775,367 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       credits: Number(s.credits || s.credit || 0),
     }));
 
-  
+
 
     const finalPlan =
       clientFinal && clientFinal.length
         ? clientFinal
         : currentSchedule.map((c) => ({
-            code: c.courseCode,
-            name: c.courseName,
-            group: c.groupCode,
-            day: c.day,
-            time: c.hour,
-            modality: c.modality,
-          }));
+          code: c.courseCode,
+          name: c.courseName,
+          group: c.groupCode,
+          day: c.day,
+          time: c.hour,
+          modality: c.modality,
+        }));
 
 
     const changesList = clientChanges || [];
 
-    // PDF generation
-    const doc = new PDFDocument({ margin: 50 });
-    if (fs.existsSync(LOGO_PATH)) {
-      try {
-        doc.image(LOGO_PATH, 50, 40, { width: 130 });
-      } catch (e) {
-        console.warn("Failed to load logo in PDF:", e.message);
+    // PDF generation (professional layout)
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+
+    // ---- Constants
+    const M = doc.page.margins;
+    const PAGE_W = doc.page.width;
+    const CONTENT_W = PAGE_W - M.left - M.right;
+    const X0 = M.left;
+
+    function fmtDatePE(d = new Date()) {
+      return new Intl.DateTimeFormat("es-PE", {
+        timeZone: "America/Lima",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(d);
+    }
+
+    // Always force cursor back to left margin (fixes “right aligned starts” bug)
+    function resetX() {
+      doc.x = X0;
+    }
+
+    function bottomLimit() {
+      return doc.page.height - M.bottom;
+    }
+
+    function ensureSpace(neededHeight) {
+      if (doc.y + neededHeight > bottomLimit()) {
+        doc.addPage();
+        drawHeader();
       }
+      resetX();
     }
 
-    doc
-      .fontSize(16)
-      .font("Helvetica-Bold")
-      .text("UNIVERSIDAD MARÍA AUXILIADORA", 200, 50, { align: "right" })
-      .moveDown(0.3);
+    function drawHeader() {
+      const topY = M.top;
 
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text("Solicitud de Rectificación de Matrícula", { align: "right" });
+      // Logo (optional)
+      if (fs.existsSync(LOGO_PATH)) {
+        try {
+          doc.image(LOGO_PATH, X0, topY - 2, { fit: [110, 42] });
+        } catch (_) { }
+      }
 
-    doc.moveDown(2);
-
-    doc
-      .fontSize(13)
-      .font("Helvetica-Bold")
-      .text("Datos del estudiante", { underline: true });
-
-    doc.moveDown(0.5);
-    doc.fontSize(11).font("Helvetica");
-
-    const addInfoRow = (label, value) => {
-      doc.text(`${label}: `, { continued: true, width: 120 });
-      doc.font("Helvetica-Bold").text(String(value || "—")).font("Helvetica");
-    };
-
-    addInfoRow("Nombre completo", info.name);
-    addInfoRow("Código de estudiante", info.code);
-    addInfoRow("DNI", info.dni);
-    addInfoRow("Facultad", info.faculty);
-    addInfoRow("Programa", info.program);
-    addInfoRow("Periodo académico", fmtPeriod(info.period));
-    addInfoRow("Modalidad", info.mode);
-    addInfoRow("Correo institucional", info.email);
-
-    doc.moveDown(1.5);
-
-    // Section: current schedule
-    doc
-      .fontSize(13)
-      .font("Helvetica-Bold")
-      .text("Horario actual matriculado", { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10).font("Helvetica");
-
-    if (!currentSchedule.length) {
-      doc.text("No se encontraron cursos matriculados en el sistema.");
-    } else {
-      const colWidths = [60, 200, 50, 60, 70, 80];
-      const startX = doc.x;
-      const startY = doc.y;
-
-      const drawHeaderCell = (text, width) => {
-        doc.font("Helvetica-Bold").text(text, { width, continued: true });
-        doc.font("Helvetica");
-      };
-      const drawCell = (text, width) => {
-        doc.text(text, { width, continued: true });
-      };
-
-      drawHeaderCell("Código", colWidths[0]);
-      drawHeaderCell("Curso", colWidths[1]);
-      drawHeaderCell("Sec.", colWidths[2]);
-      drawHeaderCell("Día", colWidths[3]);
-      drawHeaderCell("Horario", colWidths[4]);
-      doc.text("Modalidad", { width: colWidths[5] });
-      doc.moveDown(0.4);
+      // Title block (right aligned)
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(14)
+        .text("UNIVERSIDAD MARÍA AUXILIADORA", X0, topY, {
+          width: CONTENT_W,
+          align: "right",
+        });
 
       doc
-        .moveTo(startX, startY - 3)
-        .lineTo(startX + colWidths.reduce((a, b) => a + b, 0), startY - 3)
-        .stroke();
+        .font("Helvetica")
+        .fontSize(11)
+        .text("Solicitud de Rectificación de Matrícula", {
+          width: CONTENT_W,
+          align: "right",
+        });
 
-      currentSchedule.forEach((c) => {
-        const modalityShort =
-          c.modality && c.modality.length > 30 ? c.modality.slice(0, 27) + "..." : c.modality || "";
-        drawCell(c.courseCode || "", colWidths[0]);
-        drawCell(c.courseName || "", colWidths[1]);
-        drawCell(c.groupCode || "", colWidths[2]);
-        drawCell(c.day || "", colWidths[3]);
-        drawCell(c.hour || "", colWidths[4]);
-        doc.text(modalityShort, { width: colWidths[5] });
-      });
-    }
-
-    doc.moveDown(1.5);
-
-    // Section: final suggested plan
-    doc
-      .fontSize(13)
-      .font("Helvetica-Bold")
-      .text("Horario propuesto (después de IA)", { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(10).font("Helvetica");
-
-    if (!finalPlan.length) {
-      doc.text("No se recibió una propuesta de cambios. Se asume que se mantiene el horario actual.");
-    } else {
-      const colWidths2 = [60, 200, 50, 60, 70, 80];
-      const startX2 = doc.x;
-      const startY2 = doc.y;
-
-      const drawHeaderCell2 = (text, width) => {
-        doc.font("Helvetica-Bold").text(text, { width, continued: true });
-        doc.font("Helvetica");
-      };
-      const drawCell2 = (text, width) => {
-        doc.text(text, { width, continued: true });
-      };
-
-      drawHeaderCell2("Código", colWidths2[0]);
-      drawHeaderCell2("Curso", colWidths2[1]);
-      drawHeaderCell2("Sec.", colWidths2[2]);
-      drawHeaderCell2("Día", colWidths2[3]);
-      drawHeaderCell2("Horario", colWidths2[4]);
-      doc.text("Modalidad", { width: colWidths2[5] });
-      doc.moveDown(0.4);
-
+      // Divider
+      const lineY = topY + 38;
       doc
-        .moveTo(startX2, startY2 - 3)
-        .lineTo(startX2 + colWidths2.reduce((a, b) => a + b, 0), startY2 - 3)
+        .moveTo(X0, lineY)
+        .lineTo(X0 + CONTENT_W, lineY)
+        .lineWidth(1)
+        .strokeColor("#B5B5B5")
         .stroke();
 
-      finalPlan.forEach((c) => {
-        const code = c.code || c.courseCode || "";
-        const name = c.name || c.courseName || "";
-        const group = c.group || c.groupCode || "";
-        const day = c.day || "";
-        const time = c.time || c.hour || "";
-        const modality =
-          c.modality && c.modality.length > 30 ? c.modality.slice(0, 27) + "..." : c.modality || "";
-
-        drawCell2(code, colWidths2[0]);
-        drawCell2(name, colWidths2[1]);
-        drawCell2(group, colWidths2[2]);
-        drawCell2(day, colWidths2[3]);
-        drawCell2(time, colWidths2[4]);
-        doc.text(modality, { width: colWidths2[5] });
-      });
+      doc.strokeColor("black");
+      doc.y = lineY + 18;
+      resetX();
     }
 
-    doc.moveDown(1.5);
+    function sectionTitle(t) {
+      ensureSpace(28);
+      doc.font("Helvetica-Bold").fontSize(12.5).text(t, X0, doc.y);
+      doc.moveDown(0.35);
+      resetX();
+    }
 
-    // Section: list of changes
-    doc
-      .fontSize(13)
-      .font("Helvetica-Bold")
-      .text("Resumen de cambios sugeridos por IA", { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(11).font("Helvetica");
+    function cleanTime(s) {
+      const raw = String(s || "").trim();
+      if (!raw) return "—";
+      const m = raw.match(/(\d{1,2}:\d{2}).*?(\d{1,2}:\d{2})/);
+      if (m) return `${m[1]}–${m[2]}`;
+      return raw.replace(/\s*-\s*/g, "–");
+    }
+
+    function cleanDay(s) {
+      const t = String(s || "").trim();
+      if (!t) return "—";
+      const k = t.toLowerCase();
+      const map = {
+        lunes: "Lunes",
+        martes: "Martes",
+        miercoles: "Miércoles",
+        miércoles: "Miércoles",
+        jueves: "Jueves",
+        viernes: "Viernes",
+        sabado: "Sábado",
+        sábado: "Sábado",
+        domingo: "Domingo",
+      };
+      return map[k] || t;
+    }
+
+    function drawKeyValueGrid(pairs) {
+      const labelW = 160;
+      const gap = 10;
+      const valueW = CONTENT_W - labelW - gap;
+
+      doc.fontSize(10.5);
+
+      for (const { label, value } of pairs) {
+        const v = String(value || "—");
+        const labelH = doc.heightOfString(label, { width: labelW });
+        const valueH = doc.heightOfString(v, { width: valueW });
+        const rowH = Math.max(labelH, valueH) + 6;
+
+        ensureSpace(rowH);
+
+        const y = doc.y;
+        doc.font("Helvetica").text(label, X0, y, { width: labelW });
+        doc.font("Helvetica-Bold").text(v, X0 + labelW + gap, y, { width: valueW });
+
+        doc.y = y + rowH;
+        resetX();
+      }
+
+      doc.moveDown(0.4);
+      resetX();
+    }
+
+    function drawTable({ columns, rows }) {
+      // columns: [{ header, key, width, align? }]
+      const headerH = 22;
+      const padY = 5;
+      const totalW = columns.reduce((a, c) => a + c.width, 0);
+
+      const drawHeaderRow = () => {
+        ensureSpace(headerH + 8);
+        const y = doc.y;
+
+        doc.rect(X0, y, totalW, headerH).fillColor("#F2F2F2").fill();
+        doc.fillColor("black").font("Helvetica-Bold").fontSize(10);
+
+        let x = X0;
+        for (const c of columns) {
+          doc.text(c.header, x + 4, y + 6, {
+            width: c.width - 8,
+            align: c.align || "left",
+          });
+          x += c.width;
+        }
+
+        doc
+          .moveTo(X0, y + headerH)
+          .lineTo(X0 + totalW, y + headerH)
+          .lineWidth(1)
+          .strokeColor("#B5B5B5")
+          .stroke();
+
+        doc.strokeColor("black");
+        doc.y = y + headerH + 2;
+        resetX();
+      };
+
+      drawHeaderRow();
+      doc.font("Helvetica").fontSize(10);
+
+      for (const r of rows) {
+        // compute row height first (no auto page breaks mid-row)
+        let maxCellH = 0;
+        for (const c of columns) {
+          const text = String(r[c.key] ?? "—");
+          const h = doc.heightOfString(text, { width: c.width - 8 });
+          maxCellH = Math.max(maxCellH, h);
+        }
+        const rowH = Math.max(16, maxCellH + padY * 2);
+
+        // if row won't fit, new page + header + table header
+        if (doc.y + rowH > bottomLimit()) {
+          doc.addPage();
+          drawHeader();
+          drawHeaderRow();
+        }
+
+        const y = doc.y;
+        let x = X0;
+
+        for (const c of columns) {
+          const text = String(r[c.key] ?? "—");
+          doc.text(text, x + 4, y + padY, {
+            width: c.width - 8,
+            align: c.align || "left",
+          });
+          x += c.width;
+        }
+
+        doc
+          .moveTo(X0, y + rowH)
+          .lineTo(X0 + totalW, y + rowH)
+          .lineWidth(0.8)
+          .strokeColor("#E0E0E0")
+          .stroke();
+
+        doc.strokeColor("black");
+        doc.y = y + rowH;
+        resetX();
+      }
+
+      doc.moveDown(0.8);
+      resetX();
+    }
+
+    // ---- Build PDF content
+    drawHeader();
+
+    // Student data
+    sectionTitle("Datos del estudiante");
+    drawKeyValueGrid([
+      { label: "Nombre completo", value: info.name },
+      { label: "Código de estudiante", value: info.code },
+      { label: "DNI", value: info.dni },
+      { label: "Facultad", value: info.faculty },
+      { label: "Programa", value: info.program },
+      { label: "Periodo académico", value: fmtPeriod(info.period) },
+      { label: "Modalidad", value: info.mode },
+      { label: "Correo institucional", value: info.email },
+    ]);
+
+    // Tables columns (fits A4 width exactly)
+    const cols = [
+      { header: "Código", key: "code", width: 62 },
+      { header: "Curso", key: "course", width: 220 },
+      { header: "Sec.", key: "sec", width: 42, align: "center" },
+      { header: "Día", key: "day", width: 70 },
+      { header: "Horario", key: "time", width: 74, align: "center" },
+      { header: "Modalidad", key: "modality", width: 62 },
+    ];
+
+    // Current schedule
+    sectionTitle("Horario actual matriculado");
+
+    const currentRows = (currentSchedule || []).map((c) => ({
+      code: c.courseCode || "—",
+      course: c.courseName || "—",
+      sec: c.groupCode || "—",
+      day: cleanDay(c.day),
+      time: cleanTime(c.hour),
+      modality: String(c.modality || "—"),
+    }));
+
+    if (!currentRows.length) {
+      doc.font("Helvetica").fontSize(10).text("No se encontraron cursos matriculados.", X0, doc.y);
+      doc.moveDown(0.8);
+      resetX();
+    } else {
+      drawTable({ columns: cols, rows: currentRows });
+    }
+
+    // Proposed schedule
+    sectionTitle("Horario propuesto (después de IA)");
+
+    const finalRows = (finalPlan || []).map((c) => ({
+      code: c.code || c.courseCode || "—",
+      course: c.name || c.courseName || "—",
+      sec: c.group || c.groupCode || "—",
+      day: cleanDay(c.day),
+      time: cleanTime(c.time || c.hour),
+      modality: String(c.modality || "—"),
+    }));
+
+    if (!finalRows.length) {
+      doc.font("Helvetica").fontSize(10).text(
+        "No se recibió una propuesta; se mantiene el horario actual.",
+        X0,
+        doc.y
+      );
+      doc.moveDown(0.8);
+      resetX();
+    } else {
+      drawTable({ columns: cols, rows: finalRows });
+    }
+
+    // Changes summary
+    sectionTitle("Resumen de cambios sugeridos por IA");
 
     if (!changesList.length) {
-      doc.text("No se registran cambios de sección; el horario propuesto coincide con el actual.");
+      doc.font("Helvetica").fontSize(10).text(
+        "No se registran cambios de sección; el horario propuesto coincide con el actual.",
+        X0,
+        doc.y
+      );
+      doc.moveDown(0.6);
+      resetX();
     } else {
-      changesList.forEach((ch, idx) => {
-        const title = `${idx + 1}. ${ch.code || ""} - ${ch.name || ""}`;
-        doc.font("Helvetica-Bold").text(title);
-        doc.font("Helvetica").moveDown(0.1);
-
+      doc.font("Helvetica").fontSize(10);
+      for (let i = 0; i < changesList.length; i++) {
+        const ch = changesList[i] || {};
         const from = ch.from || {};
         const to = ch.to || {};
 
-        doc.text(
-          `   De: Sección ${from.group || "—"}, ${from.day || "—"} ${from.time || "—"} (${from.modality || "—"})`
+        ensureSpace(55);
+
+        doc.font("Helvetica-Bold").text(`${i + 1}. ${ch.code || "—"} - ${ch.name || "—"}`, X0, doc.y);
+        doc.font("Helvetica").text(
+          `De: Sec. ${from.group || "—"} | ${cleanDay(from.day)} | ${cleanTime(from.time)} | ${from.modality || "—"}`,
+          X0,
+          doc.y
         );
         doc.text(
-          `   A:  Sección ${to.group || "—"}, ${to.day || "—"} ${to.time || "—"} (${to.modality || "—"})`
+          `A:  Sec. ${to.group || "—"} | ${cleanDay(to.day)} | ${cleanTime(to.time)} | ${to.modality || "—"}`,
+          X0,
+          doc.y
         );
         doc.moveDown(0.4);
-      });
+        resetX();
+      }
     }
 
-    doc.moveDown(2);
-
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
+    // Footer + signature
+    ensureSpace(70);
+    doc.font("Helvetica").fontSize(10).text(`Fecha de generación: ${fmtDatePE(new Date())}`, {
+      width: CONTENT_W,
+      align: "right",
     });
-    doc.fontSize(11).font("Helvetica").text(`Fecha de generación: ${dateStr}`, { align: "right" });
 
-    doc.moveDown(3);
-    doc.fontSize(11).font("Helvetica").text("Firma del estudiante:", 50).moveDown(2);
-    doc.moveTo(50, doc.y).lineTo(250, doc.y).stroke();
-    doc.text(info.name, 50, doc.y + 2);
+    doc.moveDown(1.6);
+    resetX();
+    doc.font("Helvetica").fontSize(10).text("Firma del estudiante:", X0, doc.y);
+    doc.moveDown(1.4);
+    doc.moveTo(X0, doc.y).lineTo(X0 + 220, doc.y).strokeColor("black").stroke();
+    doc.moveDown(0.2);
+    doc.font("Helvetica-Bold").text(info.name || "—", X0, doc.y);
+    resetX();
 
     // Convert to buffer
     const pdfBuffer = await pdfToBuffer(doc);
+
+
 
     // =========================
     // ✅ STEP 6: SAVE PDF + SAVE RECORD FOR ADMIN
@@ -2007,22 +2152,22 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
     await fs.promises.mkdir(PDF_DIR, { recursive: true });
     await fs.promises.writeFile(path.join(PDF_DIR, pdfFile), pdfBuffer);
 
-  // =========================
-// ✅ Supabase: save request + lock portal
-// =========================
-const period_id = CURRENT_PERIOD_ID;
-const student_code = String(info.code || safeCode);
-const nowIso = new Date().toISOString();
+    // =========================
+    // ✅ Supabase: save request + lock portal
+    // =========================
+    const period_id = CURRENT_PERIOD_ID;
+    const student_code = String(info.code || safeCode);
+    const nowIso = new Date().toISOString();
 
-// (Optional) Prevent double-submit
-const psBefore = await getPortalState(period_id, student_code);
-if (psBefore && psBefore.status === "DONE") {
-  return res.status(403).json({
-    ok: false,
-    error: "already_submitted",
-    message: psBefore.message || "Ya enviaste tu solicitud.",
-  });
-}
+    // (Optional) Prevent double-submit
+    const psBefore = await getPortalState(period_id, student_code);
+    if (psBefore && psBefore.status === "DONE") {
+      return res.status(403).json({
+        ok: false,
+        error: "already_submitted",
+        message: psBefore.message || "Ya enviaste tu solicitud.",
+      });
+    }
 
     // 1) Save rectification payload (admin will later approve/reject here)
     await upsertRectificationRequest({
@@ -2064,18 +2209,18 @@ if (psBefore && psBefore.status === "DONE") {
     });
 
     // 2) Mark DONE
-await markPortalDone({
-  period_id,
-  student_code,
-  message: "Tu solicitud fue enviada correctamente. Ya no puedes ingresar nuevamente.",
-  final_data: {
-    submitted_at: nowIso,
-    changes: Array.isArray(changesList) ? changesList : [],
-    finalCourses: Array.isArray(finalPlan) ? finalPlan : [],
-    currentCourses: Array.isArray(currentSchedule) ? currentSchedule : [],
-    pdfFile,
-  },
-});
+    await markPortalDone({
+      period_id,
+      student_code,
+      message: "Tu solicitud fue enviada correctamente. Ya no puedes ingresar nuevamente.",
+      final_data: {
+        submitted_at: nowIso,
+        changes: Array.isArray(changesList) ? changesList : [],
+        finalCourses: Array.isArray(finalPlan) ? finalPlan : [],
+        currentCourses: Array.isArray(currentSchedule) ? currentSchedule : [],
+        pdfFile,
+      },
+    });
 
 
 
@@ -2104,7 +2249,7 @@ await markPortalDone({
       }
     }
 
-    
+
     // Send PDF to browser (clean name for student download)
     const downloadName = `rectificacion_${info.code}_${info.period}.pdf`;
 
@@ -2164,3 +2309,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
+

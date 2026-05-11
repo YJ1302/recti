@@ -272,6 +272,7 @@ function dayToNumber(d) {
     miércoles: 3,
     jueves: 4,
     viernes: 5,
+    viérnes: 5,
     sabado: 6,
     sábado: 6,
     domingo: 7,
@@ -302,6 +303,7 @@ function canonicalDayName(s) {
     miércoles: "Miércoles",
     jueves: "Jueves",
     viernes: "Viernes",
+    viérnes: "Viernes",
     sabado: "Sábado",
     sábado: "Sábado",
     domingo: "Domingo",
@@ -1016,17 +1018,84 @@ app.post("/login", async (req, res) => {
     );
     const list = sch?.data && Array.isArray(sch.data.data) ? sch.data.data : [];
 
-    const schedules = list.map((s) => ({
-      courseCode: s.courseCode || s.c_codcur || "—",
-      courseName: s.courseName || "—",
-      groupCode: s.groupCode || s.section || "—",
-      modality: s.modality || s.modalityDescription || "—",
-      day: s.day || "—",
-      hour: s.hour || "—",
-      teacherName: s.teacherName || "—",
-      credits: Number(s.credits || s.credit || 0),
-      period: String(s.period || profileOut.period || ""),
-    }));
+    const schedules = (list || []).map((s) => {
+  // Try to detect nested sessions (some APIs return sessions instead of day/hour)
+  const sessionsRaw =
+    (Array.isArray(s.sessions) && s.sessions) ||
+    (Array.isArray(s.schedules) && s.schedules) ||
+    (Array.isArray(s.details) && s.details) ||
+    (Array.isArray(s.detalle) && s.detalle) ||
+    [];
+
+  const sessions = sessionsRaw
+    .map((x) => {
+      const dayRaw =
+        x.dayName ||
+        x.day_name ||
+        x.dia ||
+        x.day ||
+        (Number.isFinite(Number(x.dayNumber)) ? dayNameFromNumber(Number(x.dayNumber)) : null) ||
+        (Number.isFinite(Number(x.day)) ? dayNameFromNumber(Number(x.day)) : null);
+
+      const start = x.start || x.hourStart || x.hourIni || x.horaInicio || x.horaIni;
+      const end = x.end || x.hourEnd || x.hourFin || x.horaFin;
+
+      const hourRaw =
+        x.hour ||
+        x.time ||
+        x.schedule ||
+        x.horario ||
+        (start && end ? `${start}-${end}` : null);
+
+      if (!dayRaw || !hourRaw) return null;
+
+      return {
+        day: canonicalDayName(dayRaw),
+        hour: String(hourRaw).replace(/\s*-\s*/g, "–"),
+        modality: x.modality || s.modality || s.modalityDescription || "—",
+        teacherName: x.teacherName || s.teacherName || "—",
+      };
+    })
+    .filter(Boolean);
+
+  // Top-level day/hour fallback (if API gives them directly)
+const topDayRaw =
+    s.DAY ||
+    s.dayName ||
+    s.day_name ||
+    s.dia ||
+    s.day ||
+    (Number.isFinite(Number(s.dayNumber)) ? dayNameFromNumber(Number(s.dayNumber)) : null) ||
+    (Number.isFinite(Number(s.day)) ? dayNameFromNumber(Number(s.day)) : null);
+
+  const topStart = s.start || s.hourStart || s.hourIni || s.horaInicio || s.horaIni;
+  const topEnd = s.end || s.hourEnd || s.hourFin || s.horaFin;
+
+const topHourRaw =
+    s.HOUR ||
+    s.hour ||
+    s.time ||
+    s.schedule ||
+    s.horario ||
+    (topStart && topEnd ? `${topStart}-${topEnd}` : null);
+
+  // Use top-level if present, else use first session
+  const day = canonicalDayName(topDayRaw || sessions[0]?.day || "—");
+  const hour = String(topHourRaw || sessions[0]?.hour || "—").replace(/\s*-\s*/g, "–");
+
+  return {
+    courseCode: s.courseCode || s.c_codcur || "—",
+    courseName: s.courseName || s.c_descur || "—",
+    groupCode: s.groupCode || s.courseGroup || s.group || s.section || "—",
+    modality: s.modality || s.modalityDescription || "—",
+    day,
+    hour,
+    teacherName: s.teacherName || "—",
+    credits: Number(s.credits || s.credit || 0),
+    period: String(s.periodCode || s.period || profileOut.period || ""),
+    sessions, // ✅ keep this for the timetable renderer
+  };
+});
 
     // Save session
     req.session.student = {

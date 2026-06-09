@@ -38,7 +38,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 const AI_BASE_URL = process.env.AI_BASE_URL || "http://127.0.0.1:5055";
 // ✅ Current period (latest)
-const CURRENT_PERIOD_ID = String(process.env.CURRENT_PERIOD_ID || "20261").replace(/[^0-9]/g, "");
+const CURRENT_PERIOD_ID = String(process.env.CURRENT_PERIOD_ID || "20262").replace(/[^0-9]/g, "");
 
 
 // Logo path (for PDF)

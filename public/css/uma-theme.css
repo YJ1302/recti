@@ -415,3 +415,15 @@ body.is-login .error { max-width: 420px; text-align: left; font-size: .86rem; }
 /* Simulator: cycle picker on the login form */
 .period-select { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line, #E5E7EB); border-radius: 10px; background: #fff; font: inherit; color: #111827; }
 .period-select:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* Simulator: search bar at the top of the portal */
+.sim-search-card { padding: 16px 18px; margin-bottom: 18px; }
+.sim-search { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: flex-end; }
+.sim-search__field { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+.sim-search__field--code { flex: 1 1 240px; }
+.sim-search__field label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; font-weight: 700; }
+.sim-search__field input { height: 44px; padding: 0 12px; border: 1px solid var(--line, #E5E7EB); border-radius: 10px; font: inherit; }
+.sim-search__field input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.sim-search__btn { height: 44px; padding: 0 26px; width: auto !important; margin: 0 !important; }
+.sim-search__error { margin-top: 12px; }
+@media (max-width: 520px) { .sim-search__btn { width: 100% !important; } }

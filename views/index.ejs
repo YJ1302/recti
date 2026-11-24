@@ -1076,8 +1076,8 @@ body.ai-modal-open{
   <link rel="stylesheet" href="/css/uma-theme.css?v=1" />
   <link rel="icon" type="image/jpeg" href="/images/umalogo1.jpg" />
 </head>
-<body class="<%= firstName ? '' : 'is-login' %><%= simulator ? ' is-sim' : '' %>">
-  <% if (!firstName) { %>
+<body class="<%= (firstName || simulator) ? '' : 'is-login' %><%= simulator ? ' is-sim' : '' %>">
+  <% if (!firstName && !simulator) { %>
     <div class="login-bg" aria-hidden="true"></div>
   <% } %>
 
@@ -1101,7 +1101,22 @@ body.ai-modal-open{
       const _totalCredits = _enrolled.reduce((sum, c) => sum + (Number(c.credits) || 0), 0);
     %>
 
-    <% if (!_firstName) { %>
+    <% if (!_firstName && simulator) { %>
+      <div class="sim-banner" role="status">
+        <strong>Modo simulador</strong>
+        <span>Solo para probar horarios. No se guarda nada, no se envía ninguna solicitud y no se verifica el pago.</span>
+      </div>
+      <div class="title-container">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
+          <h1 style="font-size:2rem; font-weight:800; color:#1e293b; margin:0;">Portal de Rectificación de Cursos</h1>
+        </div>
+      </div>
+      <div class="card sim-search-card">
+        <%- include('partials/sim_search') %>
+        <p class="empty-note" style="margin:14px 0 0;">Escribe el código del estudiante, elige el ciclo y pulsa Consultar para ver sus cursos y las opciones de rectificación.</p>
+      </div>
+    <% } else if (!_firstName) { %>
       <div class="login-card">
         <div id="loginTitle" class="login-card__title">
           <img src="/images/umalogo1.jpg" alt="Universidad María Auxiliadora" class="login-card__logo">
@@ -1257,6 +1272,7 @@ body.ai-modal-open{
             Portal de Rectificación de Cursos
           </h1>
         </div>
+        <% if (!simulator) { %>
         <form action="/logout" method="POST" style="margin:0;">
           <button type="submit" class="logout-btn" aria-label="Logout">
             <span>Cerrar Sesión</span>
@@ -1265,7 +1281,9 @@ body.ai-modal-open{
             </svg>
           </button>
         </form>
+        <% } %>
       </div>
+      <% if (simulator) { %><div class="card sim-search-card"><%- include('partials/sim_search') %></div><% } %>
 
     <div id="studentInfoBox" class="card profile-shell" style="margin-bottom:18px;">  
         <div class="header">
@@ -1688,7 +1706,7 @@ function closeGuide(){
 
   // Save preference if checked
   try {
-    if (guideDontShow && guideDontShow.checked) {
+    if (SIM || (guideDontShow && guideDontShow.checked)) { // faculty search many students: show the guide only once
       localStorage.setItem(GUIDE_KEY, '1');
     }
   } catch(e){}
@@ -1763,7 +1781,7 @@ document.getElementById("aiBlockedModal")?.addEventListener("click", (e) => {
 
 
 // auto-show once after login (not on login page)
-if (!document.body.classList.contains('is-login')) {
+if (!document.body.classList.contains('is-login') && document.getElementById('studentInfoBox')) {
   try {
     const dismissed = localStorage.getItem(GUIDE_KEY) === '1';
     if (!dismissed) openGuide();

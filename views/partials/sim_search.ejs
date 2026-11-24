@@ -1,0 +1,22 @@
+<%
+  const _cur = String((typeof currentPeriod !== 'undefined' && currentPeriod) || '');
+  const _sel = String((typeof period !== 'undefined' && period) || _cur);
+  const _y = Number(_cur.slice(0,4)) || new Date().getFullYear();
+  const _opts = [];
+  for (let y=_y; y>=_y-3; y--) { [2,1].forEach(t => { const v = '' + y + t; if (!_cur || v <= _cur) _opts.push(v); }); }
+  const _lastCode = (typeof studentId !== 'undefined' && studentId) ? studentId : '';
+%>
+<form action="/login" method="POST" id="loginForm" class="sim-search" autocomplete="off">
+  <div class="sim-search__field sim-search__field--code">
+    <label for="codigo">Código del estudiante</label>
+    <input type="text" id="codigo" name="codigo" value="<%= _lastCode %>" placeholder="Ej. 2320606" required autofocus inputmode="numeric" maxlength="20">
+  </div>
+  <div class="sim-search__field">
+    <label for="periodo">Ciclo</label>
+    <select id="periodo" name="periodo" class="period-select">
+      <% _opts.forEach(v => { %><option value="<%= v %>" <%= v === _sel ? 'selected' : '' %>><%= v.slice(0,4) %>-<%= v.slice(4) %><%= v === _cur ? ' (actual)' : '' %></option><% }) %>
+    </select>
+  </div>
+  <button type="submit" class="login-btn sim-search__btn">Consultar</button>
+</form>
+<% if (typeof error !== 'undefined' && error) { %><div class="error sim-search__error"><%= error %></div><% } %>

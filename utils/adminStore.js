@@ -2,11 +2,17 @@
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false } }
-);
+// Supabase is optional: only used when STORAGE_DRIVER=supabase.
+// With the Sheets/Apps Script driver these creds are absent, so build the
+// client lazily and let the helpers below no-op instead of crashing on boot.
+const supabase =
+  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+      )
+    : null;
 
 // Keep PDFs stored locally on your server
 const PDF_DIR = path.join(__dirname, "..", "pdfs");
@@ -23,11 +29,13 @@ async function addLoginAudit({ at, student_code, status, ip, ua }) {
     ua: ua || null,
   };
 
+  if (!supabase) return; // Sheets driver: login audit handled elsewhere
   const { error } = await supabase.from("login_audit").insert(row);
   if (error) throw error;
 }
 
 async function listLoginAudit(limit = 200) {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("login_audit")
     .select("id, at, student_code, status, ip, ua")
@@ -42,6 +50,7 @@ async function listLoginAudit(limit = 200) {
 // RECTIFICATIONS
 // --------------------
 async function listRectifications() {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("rectification_requests")
     .select(
@@ -69,6 +78,7 @@ async function listRectifications() {
 }
 
 async function getRectification(id) {
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("rectification_requests")
     .select("*")

@@ -1,42 +1,36 @@
 <!doctype html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Admin Dashboard</title>
-  <style>
-    body{font-family:system-ui;margin:0;background:#f8fafc;padding:16px;}
-    .top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
-    .box{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(2,6,23,.06);}
-    table{width:100%;border-collapse:collapse;}
-    th,td{padding:10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;}
-    th{font-weight:900;color:#111827;}
-    a{color:#2563eb;text-decoration:none;font-weight:800;}
-    .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px;}
-    @media(min-width:1000px){.grid{grid-template-columns:1.4fr .6fr;}}
-    .search{display:flex;gap:8px;flex-wrap:wrap}
-    input{padding:10px;border-radius:12px;border:1px solid #e5e7eb;}
-    button{padding:10px 12px;border-radius:12px;border:0;background:#111827;color:#fff;font-weight:800;cursor:pointer;}
-  </style>
+  <title>Panel admin · Rectificación UMA</title>
+  <link rel="stylesheet" href="/css/uma-admin.css?v=1"/>
+  <link rel="icon" type="image/jpeg" href="/images/umalogo1.jpg"/>
 </head>
 <body>
-  <div class="top">
-    <h2 style="margin:0;">Admin Dashboard</h2>
+<div class="page">
+  <div class="topbar top">
+    <div class="brandrow">
+      <img src="/images/umalogo1.jpg" alt="UMA"/>
+      <span class="sep"></span>
+      <span class="ttl">Rectificación de matrícula<span class="sub">Panel de administración</span></span>
+    </div>
     <form method="POST" action="/admin/logout">
-      <button type="submit">Logout</button>
+      <button type="submit" class="secondary">Cerrar sesión</button>
     </form>
   </div>
 
-  <div class="grid">
+  <div class="grid two">
     <div class="box">
-      <div class="top" style="margin-bottom:10px;">
-        <h3 style="margin:0;">Rectificaciones</h3>
+      <div class="top" style="margin-bottom:14px;">
+        <h3>Rectificaciones</h3>
         <form class="search" method="GET" action="/admin">
-          <input name="q" value="<%= q %>" placeholder="Buscar: código / nombre" />
+          <input name="q" value="<%= q %>" placeholder="Buscar por código o nombre" aria-label="Buscar" />
           <button type="submit">Buscar</button>
         </form>
       </div>
 
+      <div class="tablewrap">
       <table>
         <thead>
           <tr>
@@ -44,7 +38,7 @@
             <th>Código</th>
             <th>Nombre</th>
             <th>Periodo</th>
-            <th>PDF</th>
+            <th>Detalle</th>
           </tr>
         </thead>
         <tbody>
@@ -57,21 +51,24 @@
               ? dt.toLocaleString('es-PE')
               : "—";
           %>
-          <td><%= fechaTxt %></td>
+              <td><%= fechaTxt %></td>
               <td><%= r.student?.code %></td>
               <td><%= r.student?.name %></td>
               <td><%= r.student?.period %></td>
               <td>
-                <a href="/admin/rectifications/<%= r.id %>">Ver</a>
+                <a href="/admin/rectifications/<%= r.id %>">Ver detalle</a>
               </td>
             </tr>
           <% }) %>
+          <% if (!rects.length) { %><tr><td class="empty" colspan="5">No hay rectificaciones registradas.</td></tr><% } %>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="box">
-      <h3 style="margin:0 0 10px;">Logins recientes</h3>
+      <h3>Ingresos recientes</h3>
+      <div class="tablewrap">
       <table>
         <thead><tr><th>Fecha</th><th>Alumno</th><th>IP</th></tr></thead>
         <tbody>
@@ -82,9 +79,12 @@
               <td><%= l.ip %></td>
             </tr>
           <% }) %>
+          <% if (!logins.length) { %><tr><td class="empty" colspan="3">Sin ingresos recientes.</td></tr><% } %>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
+</div>
 </body>
 </html>

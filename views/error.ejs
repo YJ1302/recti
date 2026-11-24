@@ -2,14 +2,17 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Error – UMA</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Error · UMA</title>
+  <link rel="stylesheet" href="/css/uma-admin.css?v=1"/>
+  <link rel="icon" type="image/jpeg" href="/images/umalogo1.jpg"/>
 </head>
 <body>
-  <div class="container">
-    <h2>❌ Error</h2>
-    <p><%= message %></p>
-    <a href="/"><button>🔙 Volver al Login</button></a>
+  <div class="errpage box">
+    <img src="/images/umalogo1.jpg" alt="UMA" style="height:56px;margin-bottom:14px"/>
+    <h2>Ocurrió un error</h2>
+    <p class="muted"><%= message %></p>
+    <a class="btn" href="/">Volver al inicio</a>
   </div>
 </body>
 </html>

@@ -1,44 +1,16 @@
 <!doctype html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Rectificación</title>
+  <title>Detalle de rectificación · UMA</title>
+  <link rel="stylesheet" href="/css/uma-admin.css?v=1"/>
+  <link rel="icon" type="image/jpeg" href="/images/umalogo1.jpg"/>
 
-  <style>
-    body{font-family:system-ui;margin:0;background:#f8fafc;padding:16px;color:#0f172a;}
-    .box{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(2,6,23,.06);margin-bottom:14px;}
-    a{color:#2563eb;font-weight:900;text-decoration:none;}
-    h2,h3{margin:0 0 10px;}
-    .muted{color:#6b7280;font-size:13px;}
-    .grid{display:grid;grid-template-columns:1fr;gap:10px;}
-    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr;}}
-    .kv{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
-    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-size:13px;background:#fff;}
-    .pill b{font-weight:900;}
-    .btn{display:inline-block;padding:10px 12px;border-radius:12px;background:#111827;color:#fff;font-weight:900;}
-    .btn.secondary{background:#0ea5e9;}
-    .btn:active{transform:translateY(1px);}
-
-    /* Cards like student UI */
-    .done-list{display:grid;gap:10px;margin-top:10px;}
-    .done-card{border:1px solid #e5e7eb;border-radius:16px;padding:12px 14px;background:#fff;}
-    .done-title{font-size:16px;font-weight:900;margin-bottom:10px;}
-    .done-sub{font-size:13px;color:#6b7280;margin-top:-6px;margin-bottom:10px;}
-    .done-row{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.35;margin:8px 0;}
-    .badge{font-size:12px;padding:4px 10px;border-radius:999px;font-weight:900;min-width:78px;text-align:center;}
-    .badge.old{background:#fee2e2;color:#991b1b;}
-    .badge.new{background:#dcfce7;color:#166534;}
-
-    /* Optional table */
-    table{width:100%;border-collapse:collapse;margin-top:10px;}
-    th,td{padding:10px;border-bottom:1px solid #eef2f7;text-align:left;font-size:14px;vertical-align:top;}
-    th{font-weight:900;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
-  </style>
 </head>
 
 <body>
+<div class="page">
   <%
     // safe fields
     const createdAt = rec?.created_at || rec?.createdAt || null;
@@ -73,8 +45,8 @@
 
   <!-- Header box -->
   <div class="box">
-    <a href="/admin">← Volver</a>
-    <h2 style="margin-top:8px;">Rectificación</h2>
+    <a class="back" href="/admin">← Volver al panel</a>
+    <h2>Rectificación de matrícula</h2>
 
     <div class="kv">
       <span class="pill"><b>Código:</b> <%= code %></span>
@@ -84,13 +56,13 @@
       <span class="pill"><b>Modalidad:</b> <%= mode %></span>
     </div>
 
-    <div class="grid" style="margin-top:10px;">
-      <div class="muted">
+    <div class="grid cols" style="margin-top:14px;">
+      <div class="meta">
         <div><b>Creado:</b> <%= createdAt ? fmt(createdAt) : "—" %></div>
         <div><b>Enviado:</b> <%= submittedAt ? fmt(submittedAt) : "—" %></div>
       </div>
 
-      <div class="muted">
+      <div class="meta">
         <% if (faculty) { %><div><b>Facultad:</b> <%= faculty %></div><% } %>
         <% if (specialty) { %><div><b>Programa:</b> <%= specialty %></div><% } %>
         <% if (email) { %><div><b>Correo:</b> <%= email %></div><% } %>
@@ -98,10 +70,10 @@
       </div>
     </div>
 
-    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+    <div class="actions">
       <a class="btn" href="/admin/rectifications/<%= rec.id %>/pdf">Abrir / Descargar PDF</a>
       <% if (pdfUrl) { %>
-        <a class="btn secondary" href="<%= pdfUrl %>" target="_blank" rel="noreferrer">PDF (Supabase URL)</a>
+        <a class="btn secondary" href="<%= pdfUrl %>" target="_blank" rel="noreferrer">Abrir PDF en línea</a>
       <% } %>
     </div>
   </div>
@@ -133,8 +105,8 @@
 
       <!-- Optional table view (nice for copy/paste) -->
       <details style="margin-top:14px;">
-        <summary style="cursor:pointer;font-weight:900;">Ver en tabla</summary>
-        <table>
+        <summary>Ver en tabla</summary>
+        <div class="tablewrap"><table>
           <thead>
             <tr>
               <th>Curso</th>
@@ -154,10 +126,11 @@
               </tr>
             <% }) %>
           </tbody>
-        </table>
+        </table></div>
       </details>
 
     <% } %>
   </div>
+</div>
 </body>
 </html>

@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Portal de Rectificación de cursos</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <link rel="stylesheet" href="/css/style.css" />
 
-  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-  <script type="module" src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js"></script>
 
   <style>
     :root{ --main-pink:#f02454; --main-pink-dark:#c81e47; --muted:#6b7280; --border:#e5e7eb; }
@@ -1076,8 +1073,10 @@ body.ai-modal-open{
     }
 
   </style>
+  <link rel="stylesheet" href="/css/uma-theme.css?v=1" />
+  <link rel="icon" type="image/jpeg" href="/images/umalogo1.jpg" />
 </head>
-<body class="<%= firstName ? '' : 'is-login' %>">
+<body class="<%= firstName ? '' : 'is-login' %><%= simulator ? ' is-sim' : '' %>">
   <% if (!firstName) { %>
     <div class="login-bg" aria-hidden="true"></div>
   <% } %>
@@ -1107,23 +1106,40 @@ body.ai-modal-open{
         <div id="loginTitle" class="login-card__title">
           <img src="/images/umalogo1.jpg" alt="Universidad María Auxiliadora" class="login-card__logo">
         </div>
+        <div class="login-card__heading">Rectificación de matrícula</div>
+        <p class="login-card__hint"><%= simulator ? 'Simulador para facultad: ingresa el código del estudiante.' : 'Ingresa con tu código de estudiante y tu DNI.' %></p>
         <div class="form-section">
           <form action="/login" method="POST" id="loginForm">
             <div class="form-group">
               <label for="codigo">Código</label>
               <div class="input-with-icon">
-                <i class="fas fa-user" style="color:#9ca3af"></i>
+                <svg class="field-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg>
                 <input type="text" id="codigo" name="codigo" placeholder="Ingresa tu código" required>
               </div>
             </div>
 
+<% if (simulator) {
+  const _cur = String((typeof currentPeriod !== 'undefined' && currentPeriod) || '');
+  const _y = Number(_cur.slice(0,4)) || new Date().getFullYear();
+  const _opts = [];
+  for (let y=_y; y>=_y-3; y--) { [2,1].forEach(t => { const v = '' + y + t; if (!_cur || v <= _cur) _opts.push(v); }); }
+%>
+            <div class="form-group" style="margin-top:12px;">
+              <label for="periodo">Ciclo a simular</label>
+              <select id="periodo" name="periodo" class="period-select">
+                <% _opts.forEach(v => { %><option value="<%= v %>" <%= v === _cur ? 'selected' : '' %>><%= v.slice(0,4) %>-<%= v.slice(4) %><%= v === _cur ? ' (actual)' : '' %></option><% }) %>
+              </select>
+            </div>
+<% } %>
+<% if (!simulator) { %>
             <div class="form-group" style="margin-top:12px;">
               <label for="dni">DNI</label>
               <div class="input-with-icon">
-                <i class="fas fa-id-card" style="color:#9ca3af"></i>
+                <svg class="field-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M14 10h4M14 14h4M6.5 16c.6-1.4 1.6-2 2.5-2s1.9.6 2.5 2"></path></svg>
                 <input type="password" id="dni" name="dni" placeholder="Ingresa tu DNI" required>
               </div>
             </div>
+<% } %>
 
             <% if (error) { %><div class="error"><%= error %></div><% } %>
 
@@ -1228,6 +1244,12 @@ body.ai-modal-open{
 
     <% } else if (!done) { %>
 
+      <% if (simulator) { %>
+      <div class="sim-banner" role="status">
+        <strong>Modo simulador</strong>
+        <span>Solo para probar horarios. No se guarda nada, no se envía ninguna solicitud y no se verifica el pago.</span>
+      </div>
+      <% } %>
       <div class="title-container">
         <div style="display:flex;align-items:center;gap:12px;">
           <img src="/images/umalogo1.jpg" alt="UMA" class="uma-header-logo" style="margin-right:18px;" />
@@ -1258,10 +1280,12 @@ body.ai-modal-open{
             <span class="profile-label">Código</span>
             <span class="profile-value"><%= _studentId %></span>
           </div>
+          <% if (!simulator) { %>
           <div class="profile-card">
             <span class="profile-label">DNI</span>
             <span class="profile-value"><%= _dni %></span>
           </div>
+          <% } %>
           <div class="profile-card">
             <span class="profile-label">Programa</span>
             <span class="profile-value"><%= _specialtyName %></span>
@@ -1330,7 +1354,7 @@ body.ai-modal-open{
 
       <div id="coursesBox">
         <% if (!_enrolled.length) { %>
-          <p class="muted">No hay cursos inscritos.</p>
+          <p class="empty-note"><%= simulator ? ('Este estudiante no tiene cursos matriculados en el periodo ' + _semester + '.') : 'No hay cursos inscritos.' %></p>
         <% } else { %>
           <div class="course-container">
             <% _enrolled.forEach(function(course, idx){ %>
@@ -1383,9 +1407,11 @@ body.ai-modal-open{
             Ver nuevo horario
           </button>
 
+          <% if (!simulator) { %>
           <button id="confirmBtn" class="btn-primary">
             Confirmar y Descargar PDF
           </button>
+          <% } %>
         </div>
 
 <div id="timetablePanel" class="timetable hidden">
@@ -1431,7 +1457,7 @@ body.ai-modal-open{
       </div>
 
       <div id="helpPanel" class="panel" style="margin-top:18px; text-align:center;">
-        <p class="muted">¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.</p>
+        <p class="muted"><%= simulator ? 'Simulador de rectificación para facultad. Los resultados son solo una referencia.' : '¿Necesitas ayuda con la selección de cursos? Contacta a tu asesor académico.' %></p>
       </div>
         <% } else { %>
       <!-- ✅ If student is already DONE but still has session, block portal -->
@@ -1519,10 +1545,9 @@ body.ai-modal-open{
   </div>
 
   <div id="loadingOverlay" class="loading-overlay">
-    <div>
-      <dotlottie-wc src="https://lottie.host/5a9c4467-dd56-41ee-9a40-6d62dda81d54/ZcE9bNMdwI.lottie"
-                    style="width: 200px; height: 200px;" speed="1" autoplay loop></dotlottie-wc>
-      <div style="text-align:center;color:#f02454;font-weight:600;">Cargando datos...</div>
+    <div class="uma-loader" role="status" aria-live="polite">
+      <div class="uma-spinner" aria-hidden="true"></div>
+      <div class="uma-loader__text">Cargando datos…</div>
     </div>
   </div>
 
@@ -1602,7 +1627,11 @@ body.ai-modal-open{
           <li>Abre <b>“Reemplazar curso”</b> para ver turnos disponibles.</li>
           <li>Elige un turno con cupos: <b>“Usar este turno completo”</b> (si dice “Turno lleno”, no se puede).</li>
           <li>Presiona <b>“Ver nuevo horario”</b> para comparar <b>Original</b> vs <b>Nuevo</b>.</li>
+          <% if (simulator) { %>
+          <li>Revisa si el cambio es posible: sin cruces de horario y con cupos disponibles. En el simulador no se envía nada.</li>
+          <% } else { %>
           <li>Cuando estés listo, presiona <b>“Confirmar y Descargar PDF”</b>.</li>
+          <% } %>
         </ol>
 
         <div class="guide-tips">
@@ -1621,6 +1650,7 @@ body.ai-modal-open{
       </div>
     </div>
   <script>
+    const SIM = <%= simulator ? 'true' : 'false' %>;
 
 
 
@@ -1786,7 +1816,7 @@ if (!document.body.classList.contains('is-login')) {
         const data = await resp.json();
 
         if (!resp.ok || !data || data.ok === false) {
-          alert('No se pudo generar un horario con IA.');
+          umaToast('No se pudo generar un horario con IA.', 'error');
           return;
         }
 
@@ -1808,7 +1838,7 @@ if (!document.body.classList.contains('is-login')) {
 
       } catch (err) {
         console.error(err);
-        alert('Ocurrió un error generando el horario.');
+        umaToast('Ocurrió un error generando el horario.', 'error');
       } finally {
        
       }
@@ -1892,10 +1922,10 @@ if (!document.body.classList.contains('is-login')) {
         <div class="change-title">Cambios</div>
         <div class="change-compare">
           <div class="change-card">
-            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(before.group)}</span></div>
-            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(before.day)}</span></div>
-            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(before.time)}</span></div>
-            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(before.modality)}</span></div>
+            <div class="chg-field"><span class="label">Grupo</span><span class="value">${escapeHtml(before.group)}</span></div>
+            <div class="chg-field"><span class="label">Día</span><span class="value">${escapeHtml(before.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora</span><span class="value">${escapeHtml(before.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad</span><span class="value">${escapeHtml(before.modality)}</span></div>
           </div>
           <div class="change-arrow">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1904,10 +1934,10 @@ if (!document.body.classList.contains('is-login')) {
             </svg>
           </div>
           <div class="change-card">
-            <div class="chg-field"><span class="label">Grupo :</span><span class="value">${escapeHtml(after.group)}</span></div>
-            <div class="chg-field"><span class="label">Día :</span><span class="value">${escapeHtml(after.day)}</span></div>
-            <div class="chg-field"><span class="label">Hora :</span><span class="value">${escapeHtml(after.time)}</span></div>
-            <div class="chg-field"><span class="label">Modalidad :</span><span class="value">${escapeHtml(after.modality)}</span></div>
+            <div class="chg-field"><span class="label">Grupo</span><span class="value">${escapeHtml(after.group)}</span></div>
+            <div class="chg-field"><span class="label">Día</span><span class="value">${escapeHtml(after.day)}</span></div>
+            <div class="chg-field"><span class="label">Hora</span><span class="value">${escapeHtml(after.time)}</span></div>
+            <div class="chg-field"><span class="label">Modalidad</span><span class="value">${escapeHtml(after.modality)}</span></div>
           </div>
         </div>`;
     }
@@ -2149,10 +2179,6 @@ if (!document.body.classList.contains('is-login')) {
             container.dataset.loaded = '1';
             return;
           }
-          opts = opts.filter(o => {
-  const a = Number(o.vacancies_left);
-  return !Number.isFinite(a) || a > 0; // keep unknown OR available > 0
-});
 
         const currentPlan = buildPlanWithoutCourse(courseCode);
         const blocks = [];
@@ -2165,26 +2191,14 @@ if (!document.body.classList.contains('is-login')) {
           // check if this option conflicts with the current plan (excluding this course)
           const conflictWith = getGroupConflict(currentPlan, o);
 
-          const availableVal =
-            (o.vacancies_left ?? null);
-
-          // fallback (just in case backend didn't send it)
-          let computedAvailable = null;
-          if (availableVal === null || availableVal === undefined) {
-            const v = Number(o.total_vacations);
-            const e = Number(o.number_enrolled);
-            if (Number.isFinite(v) && Number.isFinite(e)) computedAvailable = Math.max(0, v - e);
-          }
-
-          const availableFinal =
-            (availableVal !== null && availableVal !== undefined) ? availableVal : computedAvailable;
-
-          const availableText = fmtNum(availableFinal);
-
-          // ✅ Full if available is 0 (only when we know the number)
-          const aNum = Number(availableFinal);
-          const hasAvail = Number.isFinite(aNum);
-          const isFull = hasAvail ? (aNum <= 0) : false;
+          // Seats: the server adds up every specialty row of the group. capacity_known=false means
+          // the university has not registered a capacity for that group (that is NOT "zero seats").
+          const capKnown = o.capacity_known === true;
+          const leftNum = capKnown ? Number(o.vacancies_left) : NaN;
+          const enrolledNum = Number(o.number_enrolled);
+          const isFull = capKnown && Number.isFinite(leftNum) && leftNum <= 0;
+          const availableText = capKnown && Number.isFinite(leftNum) ? String(leftNum) : 'Sin cupo registrado';
+          const enrolledText = Number.isFinite(enrolledNum) ? String(enrolledNum) : '—';
 
           const payload = safeJson({
             courseCode,
@@ -2192,7 +2206,8 @@ if (!document.body.classList.contains('is-login')) {
             sessions: Array.isArray(o.sessions) ? o.sessions : []
           });
 
-          const btnDisabled = !!conflictWith || isFull;
+          // Students can't pick a full group. Faculty (simulator) can: they only check feasibility.
+          const btnDisabled = !!conflictWith || (isFull && !SIM);
 
           const btnAttrs = btnDisabled
             ? 'class="option-btn" disabled'
@@ -2201,8 +2216,9 @@ if (!document.body.classList.contains('is-login')) {
           const btnLabel = conflictWith
             ? 'Horario en conflicto'
             : isFull
-              ? 'Turno lleno'
+              ? (SIM ? 'Usar (turno lleno)' : 'Turno lleno')
               : 'Usar este turno completo';
+          const rank = conflictWith ? 2 : (isFull ? 1 : 0);
 
           const sessionsHtml = (Array.isArray(o.sessions) ? o.sessions : []).map(s => {
             const mod = normalizeModalityDisplay(s.modality || s.modalityNorm || '');
@@ -2215,11 +2231,12 @@ if (!document.body.classList.contains('is-login')) {
     </div>`;
           }).join('');
 
-          blocks.push(`
+          blocks.push({ html: `
   <div class="option">
     <div class="option-code">${escapeHtml(courseCode || "—")}</div>
 
     <div class="option-fields">
+     <div class="opt-stats">
       <div class="field">
         <span class="label">Grupo</span>
         <span class="value">${escapeHtml(groupCodeStr || "—")}</span>
@@ -2227,9 +2244,14 @@ if (!document.body.classList.contains('is-login')) {
 
       <div class="field">
         <span class="label">Disponibles</span>
-        <span class="value">${escapeHtml(availableText)}</span>
+        <span class="value ${capKnown ? (isFull ? 'seat-full' : 'seat-ok') : 'seat-unknown'}">${escapeHtml(availableText)}</span>
       </div>
 
+      <div class="field">
+        <span class="label">Matriculados</span>
+        <span class="value">${escapeHtml(enrolledText)}</span>
+      </div>
+     </div>
 
       ${sessionsHtml}
     </div>
@@ -2237,12 +2259,15 @@ if (!document.body.classList.contains('is-login')) {
     <div class="option-cta">
       <button ${btnAttrs}>${btnLabel}</button>
       ${conflictWith ? `<div class="conflict-note">Choca con ${escapeHtml(conflictWith.code)}</div>` : ``}
+      ${(!conflictWith && isFull && SIM) ? `<div class="conflict-note">Turno lleno: haría falta ampliar el cupo.</div>` : ``}
     </div>
   </div>
-`);
+`, rank });
         }); // end opts.forEach
 
-          container.innerHTML = blocks.join('');
+          // possible groups first, then full ones, then the ones that clash
+          blocks.sort((a, b) => a.rank - b.rank);
+          container.innerHTML = blocks.map(b => b.html).join('');
           container.dataset.loaded = '1';
         } catch (e) {
           console.error(e);
@@ -2277,7 +2302,7 @@ if (!document.body.classList.contains('is-login')) {
         );
         const conflict = getConflict(plan, day, time);
         if (conflict) {
-          alert(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`);
+          umaToast(`Ese turno completo choca con ${conflict.code}. Selecciona otro turno de ese curso.`, 'warn');
           return;
         }
       }
@@ -2617,10 +2642,11 @@ if (seeBtn) {
         // "Restablecer horario original" button
     const resetBtn = document.getElementById('resetScheduleBtn');
     if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        const ok = confirm(
-          '¿Quieres restablecer tu horario original?\n' +
-          'Se perderán todos los cambios que hayas hecho.'
+      resetBtn.addEventListener('click', async () => {
+        const ok = await umaConfirm(
+          '¿Quieres restablecer el horario original?',
+          'Se perderán todos los cambios que hayas hecho.',
+          'Restablecer'
         );
         if (!ok) return;
 
@@ -2651,7 +2677,7 @@ if (seeBtn) {
 
         }
 
-        alert('Se restableció tu horario original.');
+        umaToast('Se restableció el horario original.', 'ok');
       });
     }
 
@@ -2742,7 +2768,7 @@ if (seeBtn) {
             const lines = problems
               .map(([a,b]) => `• ${a.code} (${formatMins(a.start)}–${formatMins(a.end)}) con ${b.code} (${formatMins(b.start)}–${formatMins(b.end)})`)
               .join('\n');
-            alert('Hay conflictos de horario. Cambia uno de los horarios:\n\n' + lines);
+            umaToast('Hay conflictos de horario. Cambia uno de los horarios:\n' + lines, 'warn');
             confirmSendBtn.disabled = false;
             return;
           }
@@ -2801,7 +2827,7 @@ if (seeBtn) {
 
         } catch (e) {
           console.error(e);
-          alert('No se pudo generar el PDF.');
+          umaToast('No se pudo generar el PDF.', 'error');
         } finally {
           confirmSendBtn.disabled = false;
           overlay?.classList.remove('active');
@@ -2818,14 +2844,9 @@ if (seeBtn) {
 }
   });
     function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c'); }
+    function safeJson(o) { return JSON.stringify(o).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/'/g, '\\u0027'); }
     
   </script>
-  
-
-    <ul id="aiBlockedList" class="ai-blocked-list"></ul>
-  </div>
-</div>
 <div id="aiBlockedModal" class="uma-modal-backdrop" aria-hidden="true">
   <div class="uma-modal">
     <div class="uma-modal-head">
@@ -2841,6 +2862,64 @@ if (seeBtn) {
   </div>
 </div>
 
+<div id="umaToastHost" class="uma-toast-host" aria-live="polite" aria-atomic="false"></div>
+
+<div id="umaConfirm" class="uma-confirm" aria-hidden="true">
+  <div class="uma-confirm__box" role="alertdialog" aria-modal="true" aria-labelledby="umaConfirmTitle" aria-describedby="umaConfirmText">
+    <h3 id="umaConfirmTitle" class="uma-confirm__title"></h3>
+    <p id="umaConfirmText" class="uma-confirm__text"></p>
+    <div class="uma-confirm__actions">
+      <button type="button" id="umaConfirmCancel" class="btn-secondary">Cancelar</button>
+      <button type="button" id="umaConfirmOk" class="btn-primary"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // In-page messages (replace the browser's alert / confirm pop-ups)
+  window.umaToast = function (message, kind, ms) {
+    var host = document.getElementById('umaToastHost');
+    if (!host) return;
+    var el = document.createElement('div');
+    el.className = 'uma-toast uma-toast--' + (kind || 'info');
+    el.setAttribute('role', kind === 'error' || kind === 'warn' ? 'alert' : 'status');
+    var msg = document.createElement('div');
+    msg.className = 'uma-toast__msg';
+    msg.textContent = String(message || '');
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'uma-toast__x'; x.setAttribute('aria-label', 'Cerrar'); x.textContent = '×';
+    function close() { el.classList.add('uma-toast--out'); setTimeout(function () { el.remove(); }, 200); }
+    x.addEventListener('click', close);
+    el.appendChild(msg); el.appendChild(x);
+    host.appendChild(el);
+    setTimeout(close, ms || (kind === 'ok' ? 3500 : 7000));
+  };
+
+  window.umaConfirm = function (title, text, okLabel) {
+    return new Promise(function (resolve) {
+      var root = document.getElementById('umaConfirm');
+      var ok = document.getElementById('umaConfirmOk');
+      var cancel = document.getElementById('umaConfirmCancel');
+      document.getElementById('umaConfirmTitle').textContent = title || '';
+      document.getElementById('umaConfirmText').textContent = text || '';
+      ok.textContent = okLabel || 'Aceptar';
+      root.classList.add('active'); root.setAttribute('aria-hidden', 'false');
+      ok.focus();
+      function done(v) {
+        root.classList.remove('active'); root.setAttribute('aria-hidden', 'true');
+        ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel);
+        root.removeEventListener('click', onBackdrop); document.removeEventListener('keydown', onKey);
+        resolve(v);
+      }
+      function onOk() { done(true); }
+      function onCancel() { done(false); }
+      function onBackdrop(e) { if (e.target === root) done(false); }
+      function onKey(e) { if (e.key === 'Escape') done(false); }
+      ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel);
+      root.addEventListener('click', onBackdrop); document.addEventListener('keydown', onKey);
+    });
+  };
+</script>
 
 </body>
 </html>

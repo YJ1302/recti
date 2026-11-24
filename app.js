@@ -8,14 +8,8 @@ const session = require("express-session");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const crypto = require("crypto");
-const { addRectification, addLoginAudit, PDF_DIR } = require("./utils/adminStore");
-const { createClient } = require("@supabase/supabase-js");
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false } }
-);
+const { addLoginAudit, PDF_DIR } = require("./utils/adminStore");
+const storage = require("./storage");
 
 
 // Optional require for nodemailer
@@ -48,6 +42,16 @@ const LOGO_PATH = path.join(__dirname, "public", "images", "logo.png");
 const BOLETA_URL =
   process.env.BOLETA_API_URL || (DATA_URL + "/rectification_payments");
 
+// DEMO MODE: local presentation only. Off unless DEMO_MODE=true. Never touches real APIs/storage/mail.
+const DEMO_MODE = String(process.env.DEMO_MODE || "").toLowerCase() === "true";
+const demo = DEMO_MODE ? require("./demo") : null;
+if (DEMO_MODE) console.warn("⚠️  DEMO_MODE is ON — login with code 'DEMO' uses fake data.");
+
+// SIMULATOR MODE: for faculty. Login with the student code only (no DNI); read-only —
+// no boleta check, nothing saved, no PDF, no email. Intended for the internal network only.
+const SIMULATOR_MODE = String(process.env.SIMULATOR_MODE || "").toLowerCase() === "true";
+if (SIMULATOR_MODE) console.warn("ℹ️  SIMULATOR_MODE is ON — faculty login by student code only; confirm is disabled.");
+
 // Express setup
 app.disable("x-powered-by");
 app.set("views", path.join(__dirname, "views"));
@@ -55,6 +59,8 @@ app.set("view engine", "ejs");
 app.set("trust proxy", 1);
 // ✅ Global defaults for EJS variables (prevents "done is not defined")
 app.use((req, res, next) => {
+  res.locals.simulator = SIMULATOR_MODE;
+  res.locals.currentPeriod = CURRENT_PERIOD_ID;
   res.locals.done = false;
   res.locals.doneMessage = null;
   res.locals.doneData = null;
@@ -77,6 +83,9 @@ app.use(
     },
   })
 );
+if (!process.env.SESSION_SECRET) {
+  console.warn("⚠️  SESSION_SECRET is not set — using an insecure built-in default. Set it before going live.");
+}
 const adminRoutes = require("./routes/admin");
 app.use("/admin", adminRoutes);
 
@@ -114,6 +123,8 @@ const mailer =
     socketTimeout: 20000,
   });
 
+console.log("mailer configured:", mailer ? "yes" : "no");
+console.log("ADMIN_PDF_TO exists:", process.env.ADMIN_PDF_TO ? "yes" : "no");
 if (mailer) {
   console.log(
     "SMTP settings",
@@ -148,19 +159,7 @@ function jsonHeaders(token) {
 }
 
 async function upsertPortalState({ period_id, student_code, boleta_number, dni_last4 }) {
-  const payload = {
-    period_id,
-    student_code,
-    boleta_number: boleta_number || null,
-    dni_last4: dni_last4 || null,
-    // ❌ do NOT send first_login_at here (avoid overwriting on every login)
-  };
-
-  const { error } = await supabase
-    .from("portal_state")
-    .upsert(payload, { onConflict: "period_id,student_code" });
-
-  if (error) throw error;
+  await storage.upsertPortalState({ period_id, student_code, boleta_number: boleta_number || null, dni_last4: dni_last4 || null });
 }
 
 function getClientIp(req) {
@@ -177,42 +176,15 @@ function getClientIp(req) {
 
 
 async function getPortalState(period_id, student_code) {
-  const { data, error } = await supabase
-    .from("portal_state")
-    .select("status,message,final_data")
-    .eq("period_id", period_id)
-    .eq("student_code", student_code)
-    .single();
-
-  // If no row exists, return null
-  if (error && String(error.code) === "PGRST116") return null;
-  if (error) throw error;
-  return data;
+  return storage.getPortalState(period_id, student_code);
 }
 
 async function markPortalDone({ period_id, student_code, message, final_data }) {
-  const patch = {
-    status: "DONE",
-    message: message || null,
-    final_data: final_data || {},
-    done_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase
-    .from("portal_state")
-    .update(patch)
-    .eq("period_id", period_id)
-    .eq("student_code", student_code);
-
-  if (error) throw error;
+  await storage.markPortalDone({ period_id, student_code, message, final_data });
 }
 
 async function upsertRectificationRequest(row) {
-  const { error } = await supabase
-    .from("rectification_requests")
-    .upsert(row, { onConflict: "period_id,student_code" });
-
-  if (error) throw error;
+  await storage.upsertRectificationRequest(row);
 }
 
 
@@ -251,7 +223,7 @@ function stripAcc(s) {
 
 function normMod(m) {
   const t = stripAcc(String(m || "").toUpperCase().trim());
-  if (t.includes("LAB")) return "LABORATORIO PRESENCIAL";
+  if (t.includes("LAB") || t === "LBP" || t === "L") return "LABORATORIO PRESENCIAL";
   if (t.includes("VIRT") || t.includes("TEV")) return "TEORÍA VIRTUAL";
   if (
     t.includes("PRE") ||
@@ -294,6 +266,15 @@ function numberToDay(n) {
 }
 
 // Canonical day + time helpers
+// The university sends hours as "17:10  18:50" (no dash). Show them as "17:10–18:50".
+function formatHourRange(h) {
+  const str = String(h || "").trim();
+  const m = str.match(/(\d{1,2}):(\d{2})\D+(\d{1,2}):(\d{2})/);
+  if (!m) return str.replace(/\s*-\s*/g, "–");
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(m[1])}:${m[2]}–${p(m[3])}:${m[4]}`;
+}
+
 function canonicalDayName(s) {
   const k = stripAcc(String(s || "")).toLowerCase();
   const map = {
@@ -576,6 +557,48 @@ function normalizeCourseNumberRows(rows) {
 
 
 /**
+ * The university system returns ONE ROW PER SPECIALTY for each group (the same group "M1" can
+ * appear for S1, S2, S6 ...). Add them up so every group has a single, correct line.
+ * Capacity 0 means "no capacity registered" (not "zero seats"), so it is reported as unknown
+ * (capacity_known=false) instead of being treated as full.
+ */
+function aggregateVacancyRows(rows) {
+  const normalized = normalizeCourseNumberRows(rows);
+  const byGroup = new Map();
+  normalized.forEach((r) => {
+    const k = norm(r.groupCode);
+    if (!k) return;
+    let a = byGroup.get(k);
+    if (!a) {
+      a = {
+        period: r.period,
+        courseCode: r.courseCode,
+        groupCode: r.groupCode,
+        number_enrolled: 0,
+        total_vacations: 0,
+        programs: 0,
+      };
+      byGroup.set(k, a);
+    }
+    a.number_enrolled += r.number_enrolled;
+    a.total_vacations += r.total_vacations;
+    a.programs += 1;
+  });
+  return Array.from(byGroup.values()).map((a) => {
+    const capacity_known = a.total_vacations > 0;
+    const vacancies_left = capacity_known
+      ? Math.max(0, a.total_vacations - a.number_enrolled)
+      : null;
+    return {
+      ...a,
+      capacity_known,
+      vacancies_left,
+      is_full: capacity_known && vacancies_left <= 0,
+    };
+  });
+}
+
+/**
  * ✅ Build a quick map by group for merging into /available results
  */
 async function getVacancyMapForCourse(req, period, courseCode) {
@@ -594,7 +617,7 @@ async function getVacancyMapForCourse(req, period, courseCode) {
   const payload = resp.data || {};
   const rows = extractArrayFromApi(payload);
 
-  const normalized = normalizeCourseNumberRows(rows);
+  const normalized = aggregateVacancyRows(rows);
 
   const map = {};
   normalized.forEach((x) => {
@@ -754,6 +777,7 @@ function flattenAvailable(coursesMap) {
         // ✅ new fields (merged later in /available)
         number_enrolled: null,
         total_vacations: null,
+        capacity_known: false,
         vacancies_left: null,
         is_full: false,
       });
@@ -872,6 +896,9 @@ async function requireVerifiedStudent(req, res, next) {
 // Health check
 app.get("/healthz", (_, res) => res.status(200).send("ok"));
 
+// Refreshing the page after login lands on GET /login (the form posts there): send people to the form
+app.get("/login", (_, res) => res.redirect("/"));
+
 // Root: login form or main portal (rendered by EJS)
 app.get("/", (_, res) => {
   res.render("index", {
@@ -898,12 +925,67 @@ app.get("/", (_, res) => {
   });
 });
 
+// Rate limit on login: stops anyone from walking through student codes (simulator) or guessing.
+const { rateLimit } = require("./utils/rateLimit");
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: Number(process.env.LOGIN_RATE_MAX || 60),
+  onLimit: (req, res, wait) =>
+    res.status(429).render("index", {
+      firstName: null, lastName: null, studentId: null, semester: null, department: null,
+      schedules: [], available: [], dni: null, email_institucional: null, phone: null,
+      facultyName: null, specialtyName: null, facultyCode: null, specialtyCode: null,
+      gender: null, age: null, mode: null, period: null, periodCode: null,
+      error: `Demasiados intentos. Vuelve a intentarlo en ${Math.ceil(wait / 60)} minuto(s).`,
+    }),
+});
+
 // Login: student + admin + profile + schedules, then show boleta screen
-app.post("/login", async (req, res) => {
+app.post("/login", loginLimiter, async (req, res) => {
   const codigo = req.body.codigo;
-  const dni = req.body.dni;
+  let dni = req.body.dni;
+
+  // Demo login (fake student, no external calls)
+  if (DEMO_MODE && String(codigo || "").trim().toUpperCase() === demo.DEMO_CODE) {
+    const p = { ...demo.profile, period: CURRENT_PERIOD_ID, profilePeriod: CURRENT_PERIOD_ID };
+    req.session.demo = true;
+    req.session.simulator = SIMULATOR_MODE;
+    req.session.student = {
+      token: "demo-token", codigo: demo.DEMO_CODE, dni: p.dni,
+      defaultPeriod: CURRENT_PERIOD_ID, name: "Estudiante Demo",
+    };
+    req.session.profile = p;
+    req.session.enrolled = demo.enrolled;
+    req.session.firstName = "Estudiante";
+    req.session.lastName = "Demo";
+    req.session.boletaVerified = true;
+    req.session.boletaNumber = "DEMO-0001";
+    return res.render("index", {
+      firstName: "Estudiante", lastName: "Demo", studentId: demo.DEMO_CODE,
+      semester: fmtPeriod(CURRENT_PERIOD_ID), department: p.specialtyName,
+      schedules: demo.enrolled, available: [],
+      dni: SIMULATOR_MODE ? "" : p.dni,
+      email_institucional: SIMULATOR_MODE ? "" : p.email_institucional,
+      phone: SIMULATOR_MODE ? "" : p.phone,
+      facultyName: p.facultyName, specialtyName: p.specialtyName,
+      facultyCode: p.facultyCode, specialtyCode: p.specialtyCode,
+      gender: p.gender, age: p.age, mode: p.mode,
+      period: p.period, periodCode: p.periodCode, error: null,
+    });
+  }
 
   try {
+    // 0) Simulator: faculty only type the student code. Look up the DNI server-side
+    //    (admin token) so the normal student login below still works. The DNI is never shown.
+    if (SIMULATOR_MODE) {
+      const lookupCode = String(codigo || "").trim();
+      if (!/^[0-9A-Za-z-]{3,20}$/.test(lookupCode)) throw new Error("Invalid student code.");
+      const pre = await postAdmin(req, DATA_URL + "/student", { code: lookupCode });
+      const preInfo = pre.data && pre.data.data;
+      if (!preInfo || !preInfo.dni) throw new Error("Student not found or has no DNI on file.");
+      dni = String(preInfo.dni);
+    }
+
     // 1) Student login
     const loginAlumnoUrl = LOGIN_URL + "/login-alumno";
     log("Student login", loginAlumnoUrl, { codigo, dni });
@@ -925,7 +1007,7 @@ app.post("/login", async (req, res) => {
       await addLoginAudit({
         at: new Date().toISOString(),
         student_code: String(code),
-        status: "SUCCESS",
+        status: SIMULATOR_MODE ? "SIMULATION" : "SUCCESS",
         ip: getClientIp(req),
         ua: req.headers["user-agent"] || "",
       });
@@ -974,42 +1056,27 @@ app.post("/login", async (req, res) => {
       plan: info.plan ?? info.planCode ?? info.plan_code ?? null,
       modalityCode: info.modalityCode ?? info.modality_code ?? info.modeCode ?? info.mode_code ?? null,
     };
-    // ✅ BLOCK if student's period is not the latest
-    const loginPeriodDigits = String(profileOut.period || "").replace(/[^0-9]/g, "");
-    if (loginPeriodDigits !== CURRENT_PERIOD_ID) {
-      req.session.destroy(() => { });
-      return res.render("index", {
-        firstName: null,
-        lastName: null,
-        studentId: null,
-        semester: null,
-        department: null,
-        schedules: [],
-        available: [],
-        dni: null,
-        email_institucional: null,
-        phone: null,
-        facultyName: null,
-        specialtyName: null,
-        facultyCode: null,
-        specialtyCode: null,
-        gender: null,
-        age: null,
-        mode: null,
-        period: null,
-        periodCode: null,
-        error: `No puedes ingresar. Tu periodo es ${fmtPeriod(loginPeriodDigits)} pero el portal solo permite rectificación del periodo ${fmtPeriod(CURRENT_PERIOD_ID)}.`,
+    // ✅ Rectification period controlled by portal, not by profile API
+// Profile API may return the previous academic period, but rectification is checked by CURRENT_PERIOD_ID.
+// Simulator only: faculty may pick another cycle (5 digits, e.g. 20261). Students always get the current one.
+const pickedPeriod = SIMULATOR_MODE ? String((req.body && req.body.periodo) || "").replace(/[^0-9]/g, "") : "";
+const portalPeriod = /^\d{5}$/.test(pickedPeriod) ? pickedPeriod : CURRENT_PERIOD_ID;
+const profilePeriodDigits = String(profileOut.period || "").replace(/[^0-9]/g, "");
 
-        done: false,
-        doneMessage: null,
-        doneData: null,
+console.log(
+  "Profile period:",
+  profilePeriodDigits || "(empty)",
+  "| Portal rectification period:",
+  portalPeriod
+);
 
-      });
-    }
+// Keep original profile period for reference, but use portal period for this rectification flow
+profileOut.profilePeriod = profileOut.period;
+profileOut.period = portalPeriod;
 
     // 4) Enrolled schedules
     const schedulesUrl = DATA_URL + "/course-schedules";
-    const schBody = { code, period: profileOut.period };
+    const schBody = { code, period: portalPeriod };
     log("Course schedules", schedulesUrl, schBody);
     const sch = await axios.post(
       schedulesUrl,
@@ -1051,7 +1118,7 @@ app.post("/login", async (req, res) => {
 
       return {
         day: canonicalDayName(dayRaw),
-        hour: String(hourRaw).replace(/\s*-\s*/g, "–"),
+        hour: formatHourRange(hourRaw),
         modality: x.modality || s.modality || s.modalityDescription || "—",
         teacherName: x.teacherName || s.teacherName || "—",
       };
@@ -1081,7 +1148,7 @@ const topHourRaw =
 
   // Use top-level if present, else use first session
   const day = canonicalDayName(topDayRaw || sessions[0]?.day || "—");
-  const hour = String(topHourRaw || sessions[0]?.hour || "—").replace(/\s*-\s*/g, "–");
+  const hour = formatHourRange(topHourRaw || sessions[0]?.hour || "—");
 
   return {
     courseCode: s.courseCode || s.c_codcur || "—",
@@ -1106,12 +1173,16 @@ const topHourRaw =
       name: fullName,
     };
     req.session.profile = profileOut;
+    req.session.simulator = SIMULATOR_MODE;
     req.session.enrolled = schedules;
     req.session.firstName = firstName;
     req.session.lastName = lastName;
 
     // ✅ Auto verify boleta during login (no user input)
-    const { ok, ticket } = await autoVerifyBoletaForStudent(req);
+    // Simulator: no payment check (first rectification is free; simulation never needs a boleta)
+    const { ok, ticket } = SIMULATOR_MODE
+      ? { ok: true, ticket: "SIMULACION" }
+      : await autoVerifyBoletaForStudent(req);
     req.session.boletaVerified = ok;
     req.session.boletaNumber = ticket || null;
 
@@ -1123,7 +1194,7 @@ const topHourRaw =
     const dni_last4 = String(profileOut.dni || dni || "").slice(-4) || null;
 
     // If no boleta => don't create portal_state; just block as you already do
-    if (ok) {
+    if (ok && !SIMULATOR_MODE) {
       await upsertPortalState({
         period_id,
         student_code,
@@ -1204,9 +1275,10 @@ const topHourRaw =
       department: profileOut.specialtyName,
       schedules,
       available: [],
-      dni: profileOut.dni,
-      email_institucional: profileOut.email_institucional,
-      phone: profileOut.phone,
+      dni: SIMULATOR_MODE ? "" : profileOut.dni,
+      // Simulator: faculty only need the academic data — no contact details.
+      email_institucional: SIMULATOR_MODE ? "" : profileOut.email_institucional,
+      phone: SIMULATOR_MODE ? "" : profileOut.phone,
       facultyName: profileOut.facultyName,
       specialtyName: profileOut.specialtyName,
       facultyCode: profileOut.facultyCode,
@@ -1258,7 +1330,9 @@ const topHourRaw =
       mode: null,
       period: null,
       periodCode: null,
-      error: "Error al iniciar sesión u obtener datos. Revisa tus credenciales.",
+      error: SIMULATOR_MODE
+        ? "No se pudo cargar al estudiante. Revisa que el código sea correcto."
+        : "Error al iniciar sesión u obtener datos. Revisa tus credenciales.",
     });
   }
 });
@@ -1277,6 +1351,22 @@ app.post("/available", requireVerifiedStudent, async (req, res) => {
 
     const period = String((req.body && req.body.period) || s.defaultPeriod || "");
     const courseCode = (req.body && req.body.courseCode) || "";
+
+    if (req.session.demo) {
+      const filtered = flattenAvailable(
+        demo.coursesMap[courseCode] ? { [courseCode]: demo.coursesMap[courseCode] } : {}
+      ).map((g) => {
+        const rec = aggregateVacancyRows(demo.vacancyRows(courseCode)).find(
+          (x) => norm(x.groupCode) === norm(g.groupCode)
+        );
+        return rec
+          ? { ...g, number_enrolled: rec.number_enrolled, total_vacations: rec.total_vacations,
+              capacity_known: rec.capacity_known, vacancies_left: rec.vacancies_left, is_full: rec.is_full }
+          : g;
+      });
+      return res.json({ data: filtered, courseKeys: Object.keys(demo.coursesMap),
+        bestKey: courseCode, requestedCode: courseCode, usedCourseCode: courseCode });
+    }
 
     const body = { codigo: s.codigo, period };
     if (s.dni) body.dni = s.dni;
@@ -1311,6 +1401,7 @@ app.post("/available", requireVerifiedStudent, async (req, res) => {
             ...g,
             number_enrolled: rec.number_enrolled,
             total_vacations: rec.total_vacations,
+            capacity_known: rec.capacity_known,
             vacancies_left: rec.vacancies_left,
             is_full: rec.is_full,
           };
@@ -1356,6 +1447,10 @@ app.post("/course-number-enrolled", requireVerifiedStudent, async (req, res) => 
       });
     }
 
+    if (req.session.demo) {
+      return res.json({ status: 200, data: aggregateVacancyRows(demo.vacancyRows(courseCode)) });
+    }
+
     const { normalized } = await getVacancyMapForCourse(req, period, courseCode);
 
     return res.json({
@@ -1378,6 +1473,7 @@ app.post("/course-number-enrolled", requireVerifiedStudent, async (req, res) => 
 
 // Proxy to external AI microservice (optional)
 app.post("/ai-suggest", requireVerifiedStudent, async (req, res) => {
+  if (req.session.demo) return res.status(503).json({ error: "disabled_in_demo" });
   try {
     const s = req.session.student;
     const prof = req.session.profile || {};
@@ -1440,6 +1536,7 @@ app.post("/ai-suggest", requireVerifiedStudent, async (req, res) => {
 
 // Local AI-like generator (server-side heuristic)
 app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
+  if (req.session.demo) return res.status(503).json({ error: "disabled_in_demo" });
   try {
     const s = req.session.student;
     const profile = req.session.profile || {};
@@ -1810,6 +1907,9 @@ app.post("/ai-local", requireVerifiedStudent, async (req, res) => {
 
 // Confirm: generate PDF + (optional) email to admins
 app.post("/confirm", requireVerifiedStudent, async (req, res) => {
+  if (req.session.simulator) {
+    return res.status(403).json({ ok: false, error: "simulator_mode", message: "El simulador no envía solicitudes." });
+  }
   try {
     const clientStudent = req.body?.student || {};
     const clientChanges = Array.isArray(req.body?.changes) ? req.body.changes : [];
@@ -2204,7 +2304,12 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
     // Convert to buffer
     const pdfBuffer = await pdfToBuffer(doc);
 
-
+    // Demo: hand back the PDF only — no storage, no state change, no email.
+    if (req.session.demo) {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="rectificacion_DEMO.pdf"`);
+      return res.end(pdfBuffer);
+    }
 
     // =========================
     // ✅ STEP 6: SAVE PDF + SAVE RECORD FOR ADMIN
@@ -2213,22 +2318,35 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       ? crypto.randomUUID()
       : crypto.randomBytes(16).toString("hex");
 
-    // Make a safe unique filename (avoid overwriting)
     const safeCode = String(info.code || "student").replace(/[^a-zA-Z0-9_-]/g, "");
     const safePeriod = String(info.period || "period").replace(/[^a-zA-Z0-9_-]/g, "");
     const pdfFile = `rectificacion_${safeCode}_${safePeriod}_${Date.now()}_${id}.pdf`;
 
-    await fs.promises.mkdir(PDF_DIR, { recursive: true });
-    await fs.promises.writeFile(path.join(PDF_DIR, pdfFile), pdfBuffer);
+    // Upload PDF to Drive via Apps Script
+    let pdf_drive_file_id = null;
+    let pdf_url = null;
+    try {
+      const uploadResult = await storage.uploadPdf({ filename: pdfFile, pdfBuffer });
+      pdf_drive_file_id = uploadResult.fileId || null;
+      pdf_url = uploadResult.pdfUrl || null;
+      console.log("PDF uploaded to Drive:", pdf_drive_file_id);
+    } catch (uploadErr) {
+      console.error("Drive PDF upload failed (continuing):", uploadErr.message || uploadErr);
+      // Local fallback
+      try {
+        await fs.promises.mkdir(PDF_DIR, { recursive: true });
+        await fs.promises.writeFile(path.join(PDF_DIR, pdfFile), pdfBuffer);
+        console.log("PDF saved locally as fallback:", pdfFile);
+      } catch (localErr) {
+        console.error("Local PDF fallback also failed:", localErr.message || localErr);
+      }
+    }
 
-    // =========================
-    // ✅ Supabase: save request + lock portal
-    // =========================
     const period_id = CURRENT_PERIOD_ID;
     const student_code = String(info.code || safeCode);
     const nowIso = new Date().toISOString();
 
-    // (Optional) Prevent double-submit
+    // Prevent double-submit
     const psBefore = await getPortalState(period_id, student_code);
     if (psBefore && psBefore.status === "DONE") {
       return res.status(403).json({
@@ -2238,7 +2356,7 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       });
     }
 
-    // 1) Save rectification payload (admin will later approve/reject here)
+    // 1) Save rectification request
     await upsertRectificationRequest({
       period_id,
       student_code,
@@ -2249,27 +2367,22 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       faculty_name: info.faculty || null,
       specialty_name: info.program || null,
       mode: info.mode || null,
-
       boleta_number: req.session.boletaNumber || null,
       boleta_verified: true,
-
       status: "SUBMITTED",
       locked: true,
       admin_message: null,
-
       changes: Array.isArray(changesList) ? changesList : [],
       final_courses: Array.isArray(finalPlan) ? finalPlan : [],
       current_courses: Array.isArray(currentSchedule) ? currentSchedule : [],
-
-      pdf_storage_path: pdfFile, // you saved it locally
-      pdf_url: null,
-
+      pdf_drive_file_id: pdf_drive_file_id || null,
+      pdf_url: pdf_url || null,
       submitted_at: nowIso,
       ip: getClientIp(req),
       user_agent: req.headers["user-agent"] || null,
     });
 
-    // 2) Ensure portal_state exists + mark DONE
+    // 2) Upsert portal state then mark DONE
     await upsertPortalState({
       period_id,
       student_code,
@@ -2277,7 +2390,6 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
       dni_last4: String(info.dni || "").slice(-4) || null,
     });
 
-    // 2) Mark DONE
     await markPortalDone({
       period_id,
       student_code,
@@ -2288,6 +2400,8 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
         finalCourses: Array.isArray(finalPlan) ? finalPlan : [],
         currentCourses: Array.isArray(currentSchedule) ? currentSchedule : [],
         pdfFile,
+        pdf_drive_file_id,
+        pdf_url,
       },
     });
 
@@ -2295,11 +2409,13 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
 
 
     // Try emailing to admins
+    console.log("mailer configured:", mailer ? "yes" : "no");
+    console.log("ADMIN_PDF_TO exists:", process.env.ADMIN_PDF_TO ? "yes" : "no");
     if (mailer && process.env.ADMIN_PDF_TO) {
       const toList = process.env.ADMIN_PDF_TO.split(",").map((s) => s.trim()).filter(Boolean);
       if (toList.length) {
         try {
-          await mailer.sendMail({
+          const mailResult = await mailer.sendMail({
             from: FROM_EMAIL,
             to: toList,
             subject: `Rectificación de matrícula - ${info.code} - ${fmtPeriod(info.period)}`,
@@ -2311,7 +2427,7 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
               },
             ],
           });
-          console.log("PDF enviado por correo a:", toList.join(", "));
+          console.log("sendMail messageId:", mailResult.messageId, "accepted:", mailResult.accepted, "rejected:", mailResult.rejected);
         } catch (mailErr) {
           console.error("Error enviando correo con PDF:", mailErr.message);
         }
@@ -2330,6 +2446,20 @@ app.post("/confirm", requireVerifiedStudent, async (req, res) => {
     console.error("/confirm error:", e.response?.data || e.message);
     return res.status(500).json({ ok: false, error: "confirm_failed" });
   }
+});
+
+// Diagnostics
+app.get("/admin/diagnostics", (req, res) => {
+  if (!req.session?.admin?.ok) return res.status(401).json({ error: "admin_required" });
+  res.json({
+    storageDriver: process.env.STORAGE_DRIVER || "appscript",
+    currentPeriod: CURRENT_PERIOD_ID,
+    strictStudentPeriodCheck: process.env.STRICT_STUDENT_PERIOD_CHECK === "true",
+    appScriptUrlConfigured: !!process.env.APPS_SCRIPT_API_URL,
+    appScriptSecretConfigured: !!process.env.APPS_SCRIPT_API_SECRET,
+    mailerConfigured: !!mailer,
+    adminPdfToConfigured: !!process.env.ADMIN_PDF_TO,
+  });
 });
 
 // Logout

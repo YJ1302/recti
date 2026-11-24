@@ -1,0 +1,32 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+dist
+build
+.next
+.cache
+tmp
+tmp_zips
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+venv
+.venv
+Output
+uploads
+# NOTE: ./storage is the Apps Script driver source — do NOT ignore it
+# generated PDFs / audit data — mounted as volumes, not copied
+pdfs
+data
+*.zip
+*.rar
+*.7z
